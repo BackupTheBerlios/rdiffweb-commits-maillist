@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r288 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r288%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200910310115.n9V1F08w028076%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r288 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r288%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200910310115.n9V1F08w028076%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r288 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Oct 31 02:15:00 CET 2009</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-10-31 02:14:55 +0100 (Sat, 31 Oct 2009)
+New Revision: 288
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/static/globals.js
+   trunk/rdiffWeb/static/locations.js
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Misc IE and email notification fixes.
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/page_admin.py	2009-10-31 01:14:55 UTC (rev 288)
+@@ -74,7 +74,9 @@
+       notify_options = email_notification.loadNotificationsTableResults(parms)
+       for option in notify_options:
+          if option in users:
+-            self.getUserDB().setAdminMonitoredRepoMaxAge(option, notify_options[option])
++            settings = self.getUserDB().getNotificationSettings(option)
++            settings['adminMaxAge'] = notify_options[option]
++            self.getUserDB().setNotificationSettings(option, settings)
+ 
+       return self._generatePageHtml(&quot;Successfully changed notifications.&quot;, &quot;&quot;)
+       
+@@ -109,7 +111,7 @@
+                 &quot;message&quot; : message,
+                 &quot;notificationsEnabled&quot; : notificationsEnabled,
+                 &quot;notificationsTable&quot; : notificationsTable,
+-                &quot;userEmail&quot; : self.getUserDB().getNotificationSettings(user)['email'],
++                &quot;userEmail&quot; : self.getUserDB().getNotificationSettings(self.getUsername())['email'],
+                 &quot;error&quot; : error }
+       return self.startPage(&quot;Administration&quot;) + self.compileTemplate(&quot;admin_main.html&quot;, **parms) + self.endPage()
+ 
+
+Modified: trunk/rdiffWeb/static/globals.js
+===================================================================
+--- trunk/rdiffWeb/static/globals.js	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/globals.js	2009-10-31 01:14:55 UTC (rev 288)
+@@ -51,7 +51,4 @@
+    }
+ };
+ 
+-new function()
+-{
+-   $(Lightbox.init);
+-};
++window.$(Lightbox.init);
+
+Modified: trunk/rdiffWeb/static/locations.js
+===================================================================
+--- trunk/rdiffWeb/static/locations.js	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/locations.js	2009-10-31 01:14:55 UTC (rev 288)
+@@ -9,10 +9,12 @@
+       {
+          $(event.target).click();
+       }
++
++      var repo = $(event.target).siblings('input[type=hidden]')[0].value;
+       var warningElem = document.createDocumentFragment();
+       appendText(warningElem, 'You are about to ');
+       appendText(warningElem, 'permanently delete', true)
+-      appendText(warningElem, ' the &quot;'+event.target.value+'&quot; backup location. Any data contained within this backup will be ');
++      appendText(warningElem, ' the &quot;'+repo+'&quot; backup location. Any data contained within this backup will be ');
+       appendText(warningElem, 'irretrievably lost!', true);
+       warningElem.appendChild(document.createElement('BR'));
+       warningElem.appendChild(document.createElement('BR'));
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/main.css	2009-10-31 01:14:55 UTC (rev 288)
+@@ -1,6 +1,7 @@
+ body
+ {
+    font-family: sans-serif;
++   padding: 0;
+ }
+ 
+ a
+@@ -85,16 +86,19 @@
+    top: 0;
+    left: 0;
+    display: none;
++   z-index: 10;
++   margin: 0;
+ }
+ #LightboxForeground
+ {
+    text-align: center;
+-   position: fixed;
++   position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
++   z-index: 11;
+ }
+ #LightboxCenterer
+ {
+@@ -138,6 +142,15 @@
+    margin-right: 0.5em;
+ }
+ 
++.error
++{
++   color: red;
++}
++.message
++{
++   color: green;
++}
++
+ /* Listing pages */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/templates/repo_listing.html	2009-10-31 01:14:55 UTC (rev 288)
+@@ -4,7 +4,6 @@
+ 
+ &lt;!--StartIncludeIf:error--&gt;&lt;p class=&quot;error&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
+ &lt;!--StartIncludeIf:message--&gt;&lt;p class=&quot;message&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
+-&lt;form action=&quot;.&quot; method=&quot;POST&quot;&gt;
+ &lt;table id=&quot;PopupTable&quot;&gt;
+    &lt;thead&gt;
+       &lt;tr&gt;
+@@ -18,13 +17,20 @@
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+       &lt;!--StartRepeat:repos--&gt;
+-      &lt;tr StartIncludeIf:altRow- class=&quot;altRow&quot; EndIncludeIf:altRow- &gt;
++         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;&lt;form action=&quot;.&quot; method=&quot;POST&quot;&gt;&lt;!--EndIncludeIf:allowRepoDeletion--&gt;
++         &lt;tr StartIncludeIf:altRow- class=&quot;altRow&quot; EndIncludeIf:altRow- &gt;
+          &lt;td class=&quot;Icon&quot;&gt;&lt;img src=&quot;/static/images/repo.png&quot;&gt;&lt;/img&gt;&lt;/td&gt;
+          &lt;td&gt;&lt;!--StartDeleteIf:failed--&gt;&lt;a href=&quot;^repoBrowseUrl$&quot;&gt;&lt;!--EndDeleteIf:failed--&gt;^repoName$&lt;!--StartDeleteIf:failed--&gt;&lt;/a&gt;&lt;!--EndDeleteIf:failed--&gt;&lt;/td&gt;
+          &lt;td&gt;^repoDate$&lt;/td&gt;&lt;td&gt;^repoSize$&lt;/td&gt;
+          &lt;td&gt;&lt;a href=&quot;^repoHistoryUrl$&quot;&gt;(more)&lt;/a&gt;&lt;/td&gt;
+-         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;&lt;td&gt;&lt;button type=&quot;submit&quot; name=&quot;repo&quot; value=&quot;^repoName$&quot;&gt;Delete this backup&lt;/button&gt;&lt;/td&gt;&lt;!--EndIncludeIf:allowRepoDeletion--&gt;
++         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;
++            &lt;td&gt;
++               &lt;input type=&quot;hidden&quot; name=&quot;repo&quot; value=&quot;^repoName$&quot;&gt;
++               &lt;button type=&quot;submit&quot;&gt;Delete this backup&lt;/button&gt;
++            &lt;/td&gt;
++         &lt;!--EndIncludeIf:allowRepoDeletion--&gt;
+       &lt;/tr&gt;
++         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;&lt;/form&gt;&lt;!--EndIncludeIf:allowRepoDeletion--&gt;
+       &lt;!--EndRepeat:repos--&gt;
+    &lt;/tbody&gt;
+ &lt;/table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

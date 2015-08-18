@@ -1,0 +1,174 @@
+From commits at rdiffweb.org  Mon Feb  2 15:42:44 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 2 Feb 2009 15:42:44 +0100
+Subject: [Rdiffweb-commits] r260 - trunk/rdiffWeb
+Message-ID: <200902021442.n12Egic7023506@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-02-02 15:42:42 +0100 (Mon, 02 Feb 2009)
+New Revision: 260
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Fix typos in db generation script.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-01-23 16:01:50 UTC (rev 259)
++++ trunk/rdiffWeb/db_sqlite.py	2009-02-02 14:42:42 UTC (rev 260)
+@@ -197,8 +197,8 @@
+ UserRoot varchar (255) NOT NULL DEFAULT "",
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT "",
+-RestoreFormat tinyint NOT NULL DEFAULT TRUE),
+-AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE)""",
++RestoreFormat tinyint NOT NULL DEFAULT TRUE,
++AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0)""",
+ """create table repos (
+ RepoID integer primary key autoincrement,
+ UserID int(11) NOT NULL, 
+@@ -245,7 +245,7 @@
+       # Handle the addition of adminMonitoredMaxAge
+       if not u'AdminMonitoredMaxAge' in self._getFieldNames('users'):
+          print 'Adding AdminMonitoredMaxAge column to users table...'
+-         self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE')
++         self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0')
+ 
+ 
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+
+
+
+From commits at rdiffweb.org  Fri Feb 20 15:49:12 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 20 Feb 2009 15:49:12 +0100
+Subject: [Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates
+Message-ID: <200902201449.n1KEnCbI018043@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-02-20 15:49:08 +0100 (Fri, 20 Feb 2009)
+New Revision: 261
+
+Modified:
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/templates/repo_listing.html
+   trunk/rdw.conf.sample
+Log:
+Add ability to report total raw disk usage.
+
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdiffWeb/page_locations.py	2009-02-20 14:49:08 UTC (rev 261)
+@@ -1,8 +1,13 @@
+ #!/usr/bin/python
+ 
+-import rdw_helpers, page_main, librdiff
++import subprocess
+ 
++import rdw_config
++import rdw_helpers
++import page_main
++import librdiff
+ 
++
+ class rdiffLocationsPage(page_main.rdiffPage):
+    ''' Shows the locations page. Will show all available destination
+    backup directories. This is the root (/) page '''
+@@ -43,7 +48,19 @@
+       # Make second pass through list, setting the 'altRow' attribute
+       for i in range(0, len(repoList)):
+          repoList[i]['altRow'] = (i % 2 == 0)
+-      return { "title" : "browse", "repos" : repoList }
++      # Calculate disk usage
++      diskUsage = ''
++      diskUsageCommand = rdw_config.getConfigSetting('diskUsageCommand')
++      if diskUsageCommand:
++         diskUsage = subprocess.Popen([diskUsageCommand, self.getUsername(), self.getUserDB().getUserRoot(self.getUsername())],
++                                    stdout=subprocess.PIPE).communicate()[0]
++         try:
++            diskUsageNum = int(diskUsage)
++         except:
++            pass
++         else:
++            diskUsage = rdw_helpers.formatFileSizeStr(diskUsageNum)
++      return { "title" : "browse", "repos" : repoList, "diskUsage": diskUsage }
+             
+             
+    def _sortLocations(self, locations):
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdiffWeb/templates/repo_listing.html	2009-02-20 14:49:08 UTC (rev 261)
+@@ -21,3 +21,7 @@
+       <!--EndRepeat:repos-->
+    </tbody>
+ </table>
++
++<!--StartIncludeIf:diskUsage-->
++<p>Total disk usage: ^diskUsage$</p>
++<!--EndIncludeIf:diskUsage-->
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdw.conf.sample	2009-02-20 14:49:08 UTC (rev 261)
+@@ -30,4 +30,21 @@
+ 
+ # rdiffWeb can automatically update all user repositories. Automatic updates can be be
+ # enabled by setting the interval in minutes between updates.
++#
+ # autoUpdateRepos=15 # Update user repositories every 15 minutes
++
++# rdiffWeb can optionally display total raw disk usage for a user. The
++# setting below specifies what command rdiffWeb should run to calculate disk
++# usage. The command will be passed the rdiffWeb username and user root dir.
++#
++# diskUsageCommand=/usr/bin/calc_usage.sh
++#
++# Sample scripts:
++# Simple script:
++# du -s $2 # Probably too slow
++#
++# Faster, but requires quotas:
++# USER=$1
++# USAGE=`repquota /chroot | grep "^$USER " | awk -F "--" '{print $2}' | awk '{print $1}'`
++# let "USAGE *= 1024"
++# echo $USAGE
+
+
+
+From commits at rdiffweb.org  Sat Feb 21 20:22:13 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 21 Feb 2009 20:22:13 +0100
+Subject: [Rdiffweb-commits] r262 - trunk/rdiffWeb
+Message-ID: <200902211922.n1LJMDC7004120@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-02-21 20:22:11 +0100 (Sat, 21 Feb 2009)
+New Revision: 262
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Always return an int in getAdminMonitoredRepoMaxAge.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-02-20 14:49:08 UTC (rev 261)
++++ trunk/rdiffWeb/db_sqlite.py	2009-02-21 19:22:11 UTC (rev 262)
+@@ -47,7 +47,7 @@
+ 
+    def getAdminMonitoredRepoMaxAge(self, username):
+       if not self.userExists(username): return 0
+-      return self._getUserField(username, "AdminMonitoredMaxAge")
++      return int(self._getUserField(username, "AdminMonitoredMaxAge"))
+ 
+    def getUserList(self):
+       query = "SELECT UserName FROM users"
+
+
+

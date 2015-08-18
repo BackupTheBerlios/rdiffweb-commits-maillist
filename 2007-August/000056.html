@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir	tests/deleted_file tests/simple
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-August/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r99%20-%20in%20trunk%3A%20rdiffWeb%20tests%20tests/deleted_dir%0A%09tests/deleted_file%20tests/simple&In-Reply-To=%3C200708231405.l7NE5jWB020220%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000055.html">
+   <LINK REL="Next"  HREF="000057.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir	tests/deleted_file tests/simple</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r99%20-%20in%20trunk%3A%20rdiffWeb%20tests%20tests/deleted_dir%0A%09tests/deleted_file%20tests/simple&In-Reply-To=%3C200708231405.l7NE5jWB020220%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir	tests/deleted_file tests/simple">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Aug 23 16:05:45 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000055.html">[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests
+</A></li>
+        <LI>Next message: <A HREF="000057.html">[Rdiffweb-commits] r100 - in trunk/tests: . initial_inprogress	initial_inprogress/repo	initial_inprogress/repo/rdiff-backup-data normal_inprogress	normal_inprogress/repo normal_inprogress/repo/rdiff-backup-data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#56">[ date ]</a>
+              <a href="thread.html#56">[ thread ]</a>
+              <a href="subject.html#56">[ subject ]</a>
+              <a href="author.html#56">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-08-23 16:05:32 +0200 (Thu, 23 Aug 2007)
+New Revision: 99
+
+Added:
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/simple/history_results.txt
+Modified:
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_main.py
+Log:
+Add tests for history page
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/rdiffWeb/page_history.py	2007-08-23 14:05:32 UTC (rev 99)
+@@ -16,12 +16,17 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+-      page = self.startPage(&quot;Backup History&quot;)
++      parms = {}
+       try:
+-         rdiffHistory = librdiff.getBackupHistory(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo))
++         parms = self.getParmsForPage(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), repo)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+-
++      
++      return self.startPage(&quot;Backup History&quot;) + self.compileTemplate(&quot;history.html&quot;, **parms) + self.endPage()
++   index.exposed = True
++   
++   def getParmsForPage(self, repoPath, repoName):
++      rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+       for historyItem in rdiffHistory:
+@@ -32,7 +37,23 @@
+                           &quot;inProgress&quot; : historyItem.inProgress,
+                           &quot;errors&quot; : historyItem.errors,
+                           &quot;size&quot; : sizeStr })
+-      page = page + self.compileTemplate(&quot;history.html&quot;, title=&quot;Backup history for &quot;+repo, history=entries)
+-      page = page + self.endPage()
+-      return page
+-   index.exposed = True
++      return {&quot;title&quot; : &quot;Backup history for &quot;+repoName, &quot;history&quot; : entries}
++      
++
++class historyPageTest(page_main.pageTest, rdiffHistoryPage):
++   def getTemplateName(self):
++      return &quot;history_template.txt&quot;
++   
++   def getExpectedResultsName(self):
++      return &quot;history_results.txt&quot;
++      
++   def getParmsForTemplate(self, repoParentPath, repoName):
++      return self.getParmsForPage(rdw_helpers.joinPaths(repoParentPath, repoName), repoName)
++
++if __name__ == &quot;__main__&quot;:
++   print &quot;Called as standalone program; running unit tests...&quot;
++
++   import unittest
++   testSuite = unittest.makeSuite(historyPageTest, 'test')
++   testRunner = unittest.TextTestRunner()
++   testRunner.run(testSuite)
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/rdiffWeb/page_main.py	2007-08-23 14:05:32 UTC (rev 99)
+@@ -155,5 +155,5 @@
+          expectedText = self._getFileText(test, self.getExpectedResultsName())
+          
+          self.assertEquals(encounteredText, expectedText)
+-         #assert encounteredText == expectedText, &quot;Got:\n&quot; + encounteredText + &quot;\nExpected:\n&quot; + expectedText
++         #assert encounteredText == expectedText, &quot;Got:\n&quot; + encounteredText + &quot;\nExpected:\n&quot; + expectedText + &quot;\nEnd&quot;
+       
+
+Added: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/deleted_dir/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 21:55:35	0 bytes		False
++2007-08-21 21:55:24	0 bytes		False
++2007-08-21 21:55:17	0 bytes		False
+
+Added: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/deleted_file/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 16:31:27	0 bytes		False
++2007-08-21 16:31:24	0 bytes		False
++2007-08-21 16:31:23	141 bytes		False
+
+Added: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/history_template.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: ^title$
++
++Date	Size	Errors	In Progress?
++&lt;!--StartRepeat:history--&gt;
++^date$	^size$	^errors$	^inProgress$
++&lt;!--EndRepeat:history--&gt;
+
+Added: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/simple/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 14:01:42	0 bytes		False
++2007-08-21 14:01:32	0 bytes		False
++2007-08-21 14:01:21	141 bytes		False
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000055.html">[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests
+</A></li>
+	<LI>Next message: <A HREF="000057.html">[Rdiffweb-commits] r100 - in trunk/tests: . initial_inprogress	initial_inprogress/repo	initial_inprogress/repo/rdiff-backup-data normal_inprogress	normal_inprogress/repo normal_inprogress/repo/rdiff-backup-data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#56">[ date ]</a>
+              <a href="thread.html#56">[ thread ]</a>
+              <a href="subject.html#56">[ subject ]</a>
+              <a href="author.html#56">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

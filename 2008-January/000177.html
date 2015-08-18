@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r220%20-%20tags/release-0.5.1/rdiffWeb&In-Reply-To=%3C200801111551.m0BFpWFL011449%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000176.html">
+   <LINK REL="Next"  HREF="000178.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r220%20-%20tags/release-0.5.1/rdiffWeb&In-Reply-To=%3C200801111551.m0BFpWFL011449%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Jan 11 16:51:32 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000176.html">[Rdiffweb-commits] r219 - tags
+</A></li>
+        <LI>Next message: <A HREF="000178.html">[Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb	rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-11 16:51:30 +0100 (Fri, 11 Jan 2008)
+New Revision: 220
+
+Modified:
+   tags/release-0.5.1/rdiffWeb/db_file.py
+Log:
+Fix exception when restoring directories.
+
+Modified: tags/release-0.5.1/rdiffWeb/db_file.py
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/db_file.py	2008-01-11 15:41:31 UTC (rev 219)
++++ tags/release-0.5.1/rdiffWeb/db_file.py	2008-01-11 15:51:30 UTC (rev 220)
+@@ -31,7 +31,10 @@
+    def userIsAdmin(self, username):
+       return False
+ 
++   def useZipFormat(self, username):
++      return False
+ 
++
+ ##################### Unit Tests #########################
+ 
+ import unittest, os
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000176.html">[Rdiffweb-commits] r219 - tags
+</A></li>
+	<LI>Next message: <A HREF="000178.html">[Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb	rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

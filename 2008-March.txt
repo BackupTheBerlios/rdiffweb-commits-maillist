@@ -1,0 +1,265 @@
+From commits at rdiffweb.org  Wed Mar  5 17:45:45 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 5 Mar 2008 17:45:45 +0100
+Subject: [Rdiffweb-commits] r246 - trunk
+Message-ID: <200803051645.m25GjjWR016600@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-03-05 17:45:42 +0100 (Wed, 05 Mar 2008)
+New Revision: 246
+
+Modified:
+   trunk/setup.py
+Log:
+Bump version in preparation for release.
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2008-02-09 20:30:02 UTC (rev 245)
++++ trunk/setup.py	2008-03-05 16:45:42 UTC (rev 246)
+@@ -10,7 +10,7 @@
+    sys.exit(1)
+    
+ setup(name='rdiffWeb',
+-   version='0.6.2',
++   version='0.6.3',
+    description='A web interface to rdiff-backup repositories',
+    author='Josh Nisly',
+    author_email='rdiffweb at joshnisly.com',
+
+
+
+From commits at rdiffweb.org  Wed Mar  5 17:46:18 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 5 Mar 2008 17:46:18 +0100
+Subject: [Rdiffweb-commits] r247 - tags
+Message-ID: <200803051646.m25GkIR7016891@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-03-05 17:46:15 +0100 (Wed, 05 Mar 2008)
+New Revision: 247
+
+Added:
+   tags/release-0.6.3/
+Log:
+Tagging version 0.6.3.
+
+
+Copied: tags/release-0.6.3 (from rev 246, trunk)
+
+
+
+From commits at rdiffweb.org  Fri Mar  7 02:32:56 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 7 Mar 2008 02:32:56 +0100
+Subject: [Rdiffweb-commits] r248 - trunk/debian
+Message-ID: <200803070132.m271WuiR012855@sheep.berlios.de>
+
+Author: mukidohime
+Date: 2008-03-07 02:32:51 +0100 (Fri, 07 Mar 2008)
+New Revision: 248
+
+Removed:
+   trunk/debian/rdiff-web.init
+Modified:
+   trunk/debian/changelog
+Log:
+* Updated debian dir for 0.6.3
+
+I'm not sure what to do with the deb packages, how can they make it to the site?
+
+
+Modified: trunk/debian/changelog
+===================================================================
+--- trunk/debian/changelog	2008-03-05 16:46:15 UTC (rev 247)
++++ trunk/debian/changelog	2008-03-07 01:32:51 UTC (rev 248)
+@@ -1,3 +1,9 @@
++rdiff-web (0.6.3-1) unstable; urgency=low
++
++  * New upstream testing release.
++
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Thu, 06 Mar 2008 19:42:18 -0500
++
+ rdiff-web (0.6.2-1) unstable; urgency=low
+ 
+   * New upstream testing release.
+
+Deleted: trunk/debian/rdiff-web.init
+===================================================================
+--- trunk/debian/rdiff-web.init	2008-03-05 16:46:15 UTC (rev 247)
++++ trunk/debian/rdiff-web.init	2008-03-07 01:32:51 UTC (rev 248)
+@@ -1 +0,0 @@
+-link ../init/rdiff-web
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Fri Mar 28 00:06:12 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Mar 2008 00:06:12 +0100
+Subject: [Rdiffweb-commits] r249 - tags/release-0.6.3/debian trunk/debian
+Message-ID: <200803272306.m2RN6CcY007248@sheep.berlios.de>
+
+Author: mukidohime
+Date: 2008-03-28 00:06:12 +0100 (Fri, 28 Mar 2008)
+New Revision: 249
+
+Modified:
+   tags/release-0.6.3/debian/changelog
+   tags/release-0.6.3/debian/control
+   tags/release-0.6.3/debian/rdiff-web.install
+   tags/release-0.6.3/debian/rules
+   trunk/debian/changelog
+   trunk/debian/control
+   trunk/debian/rdiff-web.install
+   trunk/debian/rules
+Log:
+* fix debian info for 0.6.3
+
+
+Modified: tags/release-0.6.3/debian/changelog
+===================================================================
+--- tags/release-0.6.3/debian/changelog	2008-03-07 01:32:51 UTC (rev 248)
++++ tags/release-0.6.3/debian/changelog	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,3 +1,10 @@
++rdiff-web (0.6.3-1) unstable; urgency=low
++
++  * New upstream testing release.
++  * Changed init script handling again.
++
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Thu, 27 Mar 2008 18:57:03 -0400
++
+ rdiff-web (0.6.2-1) unstable; urgency=low
+ 
+   * New upstream testing release.
+
+Modified: tags/release-0.6.3/debian/control
+===================================================================
+--- tags/release-0.6.3/debian/control	2008-03-07 01:32:51 UTC (rev 248)
++++ tags/release-0.6.3/debian/control	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,5 +1,5 @@
+ Source: rdiff-web
+-Section: www
++Section: web
+ Priority: extra
+ Maintainer: Matthew Rosewarne <mrosewarne at inoutbox.com>
+ Build-Depends: cdbs, debhelper (>= 5), python-all-dev, python-central
+@@ -8,6 +8,7 @@
+ XS-Python-Version: all
+ 
+ Package: python-rdiff-web
++Section: python
+ Architecture: all
+ XB-Python-Version: ${python:Versions}
+ Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+@@ -21,7 +22,7 @@
+ 
+ Package: rdiff-web
+ Architecture: all
+-Depends: ${shlibs:Depends}, ${misc:Depends}, python-rdiff-web (= ${source:Version})
++Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-rdiff-web (= ${source:Version})
+ Description: Web interface to rdiff-backup repositories
+  rdiffWeb is a web interface for browsing and restoring from rdiff-backup
+  repositories.
+
+Modified: tags/release-0.6.3/debian/rdiff-web.install
+===================================================================
+--- tags/release-0.6.3/debian/rdiff-web.install	2008-03-07 01:32:51 UTC (rev 248)
++++ tags/release-0.6.3/debian/rdiff-web.install	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,3 +1,2 @@
+-etc/init.d/rdiff-web
+ usr/bin/rdiff-web
+ usr/bin/rdiff-web-config
+
+Modified: tags/release-0.6.3/debian/rules
+===================================================================
+--- tags/release-0.6.3/debian/rules	2008-03-07 01:32:51 UTC (rev 248)
++++ tags/release-0.6.3/debian/rules	2008-03-27 23:06:12 UTC (rev 249)
+@@ -8,6 +8,10 @@
+ 
+ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+ 
+-DEB_DH_INSTALLINIT_ARGS = --onlyscripts
++DEB_INSTALL_DOCS_ALL = 
+ 
+-DEB_INSTALL_DOCS_ALL = 
++cleanbuilddir/rdiff-web::
++	rm -f $(CURDIR)/debian/rdiff-web.init
++
++install/rdiff-web::
++	cp -a $(CURDIR)/init/rdiff-web $(CURDIR)/debian/rdiff-web.init
+
+Modified: trunk/debian/changelog
+===================================================================
+--- trunk/debian/changelog	2008-03-07 01:32:51 UTC (rev 248)
++++ trunk/debian/changelog	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,8 +1,9 @@
+ rdiff-web (0.6.3-1) unstable; urgency=low
+ 
+   * New upstream testing release.
++  * Changed init script handling again.
+ 
+- -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Thu, 06 Mar 2008 19:42:18 -0500
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Thu, 27 Mar 2008 18:57:03 -0400
+ 
+ rdiff-web (0.6.2-1) unstable; urgency=low
+ 
+
+Modified: trunk/debian/control
+===================================================================
+--- trunk/debian/control	2008-03-07 01:32:51 UTC (rev 248)
++++ trunk/debian/control	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,5 +1,5 @@
+ Source: rdiff-web
+-Section: www
++Section: web
+ Priority: extra
+ Maintainer: Matthew Rosewarne <mrosewarne at inoutbox.com>
+ Build-Depends: cdbs, debhelper (>= 5), python-all-dev, python-central
+@@ -8,6 +8,7 @@
+ XS-Python-Version: all
+ 
+ Package: python-rdiff-web
++Section: python
+ Architecture: all
+ XB-Python-Version: ${python:Versions}
+ Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+@@ -21,7 +22,7 @@
+ 
+ Package: rdiff-web
+ Architecture: all
+-Depends: ${shlibs:Depends}, ${misc:Depends}, python-rdiff-web (= ${source:Version})
++Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-rdiff-web (= ${source:Version})
+ Description: Web interface to rdiff-backup repositories
+  rdiffWeb is a web interface for browsing and restoring from rdiff-backup
+  repositories.
+
+Modified: trunk/debian/rdiff-web.install
+===================================================================
+--- trunk/debian/rdiff-web.install	2008-03-07 01:32:51 UTC (rev 248)
++++ trunk/debian/rdiff-web.install	2008-03-27 23:06:12 UTC (rev 249)
+@@ -1,3 +1,2 @@
+-etc/init.d/rdiff-web
+ usr/bin/rdiff-web
+ usr/bin/rdiff-web-config
+
+Modified: trunk/debian/rules
+===================================================================
+--- trunk/debian/rules	2008-03-07 01:32:51 UTC (rev 248)
++++ trunk/debian/rules	2008-03-27 23:06:12 UTC (rev 249)
+@@ -8,6 +8,10 @@
+ 
+ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+ 
+-DEB_DH_INSTALLINIT_ARGS = --onlyscripts
++DEB_INSTALL_DOCS_ALL = 
+ 
+-DEB_INSTALL_DOCS_ALL = 
++cleanbuilddir/rdiff-web::
++	rm -f $(CURDIR)/debian/rdiff-web.init
++
++install/rdiff-web::
++	cp -a $(CURDIR)/init/rdiff-web $(CURDIR)/debian/rdiff-web.init
+
+
+

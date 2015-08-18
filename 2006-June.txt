@@ -1,0 +1,98 @@
+From commits at rdiffweb.org  Tue Jun  6 00:45:20 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 6 Jun 2006 00:45:20 +0200
+Subject: [Rdiffweb-commits] r60 - in trunk: . rdiffWeb
+Message-ID: <200606052245.k55MjK4X013425@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-06-06 00:45:16 +0200 (Tue, 06 Jun 2006)
+New Revision: 60
+
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Fix static paths for installed versions
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2006-05-31 21:23:41 UTC (rev 59)
++++ trunk/rdiff-web	2006-06-05 22:45:16 UTC (rev 60)
+@@ -65,7 +65,7 @@
+       'server.logFile' : logFile,
+       '/static' : {
+          'staticFilter.on' : True,
+-         'staticFilter.root': rdiffWeb.rdw_helpers.joinPaths(os.path.abspath(os.path.dirname(__file__)), "rdiffWeb"),
++         'staticFilter.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+          'staticFilter.dir': "static",
+          'rdwAuthenticateFilter.on' : False
+       },
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2006-05-31 21:23:41 UTC (rev 59)
++++ trunk/rdiffWeb/rdw_helpers.py	2006-06-05 22:45:16 UTC (rev 60)
+@@ -12,6 +12,9 @@
+    args = [x.lstrip("/") for x in args]
+    return os.path.join(parentPath, *args)
+ 
++def getStaticRootPath():
++   return os.path.abspath(os.path.dirname(__file__))
++
+ class accessDeniedError:
+    def __str__(self):
+       return "Access is denied."
+
+
+
+From commits at rdiffweb.org  Sun Jun 11 19:48:46 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 11 Jun 2006 19:48:46 +0200
+Subject: [Rdiffweb-commits] r61 - trunk
+Message-ID: <200606111748.k5BHmkpT000753@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-06-11 19:48:43 +0200 (Sun, 11 Jun 2006)
+New Revision: 61
+
+Modified:
+   trunk/setup.py
+Log:
+Version bump
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2006-06-05 22:45:16 UTC (rev 60)
++++ trunk/setup.py	2006-06-11 17:48:43 UTC (rev 61)
+@@ -3,7 +3,7 @@
+ from distutils.core import setup
+ 
+ setup(name='rdiffWeb',
+-      version='0.3.1',
++      version='0.3.2',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Sun Jun 11 19:50:42 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 11 Jun 2006 19:50:42 +0200
+Subject: [Rdiffweb-commits] r62 - tags
+Message-ID: <200606111750.k5BHogSg001424@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-06-11 19:49:43 +0200 (Sun, 11 Jun 2006)
+New Revision: 62
+
+Added:
+   tags/release-0.3.2/
+Log:
+Tagging version 0.3.2
+
+Copied: tags/release-0.3.2 (from rev 61, trunk)
+
+
+

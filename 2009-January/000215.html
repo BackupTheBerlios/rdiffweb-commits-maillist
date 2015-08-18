@@ -1,0 +1,673 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r258 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r258%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200901210602.n0L62kvr005743%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000214.html">
+   <LINK REL="Next"  HREF="000216.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r258 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r258%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200901210602.n0L62kvr005743%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r258 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Jan 21 07:02:46 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000214.html">[Rdiffweb-commits] r257 - in trunk/rdiffWeb: . templates
+</A></li>
+        <LI>Next message: <A HREF="000216.html">[Rdiffweb-commits] r259 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#215">[ date ]</a>
+              <a href="thread.html#215">[ thread ]</a>
+              <a href="subject.html#215">[ subject ]</a>
+              <a href="author.html#215">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-01-21 07:02:22 +0100 (Wed, 21 Jan 2009)
+New Revision: 258
+
+Added:
+   trunk/rdiffWeb/templates/admin_email_notification.txt
+   trunk/rdiffWeb/templates/notifications_table.html
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/rdw_templating.py
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Allow admins to monitor the backups of individual users, independently of the monitoring set up for those users. This is interfaced on the Admin page.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/db_sqlite.py	2009-01-21 06:02:22 UTC (rev 258)
+@@ -12,6 +12,7 @@
+       self.userRootCache = {}
+       self._connect()
+       self._migrateExistingData()
++      self._handleFormatChanges()
+ 
+    def modificationsSupported(self):
+       return True
+@@ -44,6 +45,10 @@
+       if not self.userExists(username): return False
+       return bool(self._getUserField(username, &quot;restoreFormat&quot;))
+ 
++   def getAdminMonitoredRepoMaxAge(self, username):
++      if not self.userExists(username): return 0
++      return self._getUserField(username, &quot;AdminMonitoredMaxAge&quot;)
++
+    def getUserList(self):
+       query = &quot;SELECT UserName FROM users&quot;
+       users = [x[0] for x in self._executeQuery(query)]
+@@ -103,6 +108,10 @@
+       if not self.userExists(username): raise ValueError
+       self._setUserField(username, 'RestoreFormat', bool(useZip))
+       
++   def setAdminMonitoredRepoMaxAge(self, username, maxAge):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'AdminMonitoredMaxAge', maxAge)
++
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+       query = &quot;UPDATE repos SET MaxAge=? WHERE RepoPath=? AND UserID = &quot; + str(self._getUserID(username))
+@@ -176,6 +185,9 @@
+    def _getTables(self):
+       return [column[0] for column in self._executeQuery('select name from sqlite_master where type=&quot;table&quot;')]
+ 
++   def _getFieldNames(self, table):
++      return [field[1] for field in self._executeQuery('pragma table_info ( users )')]
++
+    def _getCreateStatements(self):
+       return [
+ &quot;&quot;&quot;create table users (
+@@ -185,7 +197,8 @@
+ UserRoot varchar (255) NOT NULL DEFAULT &quot;&quot;,
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT &quot;&quot;,
+-RestoreFormat tinyint NOT NULL DEFAULT TRUE)&quot;&quot;&quot;,
++RestoreFormat tinyint NOT NULL DEFAULT TRUE),
++AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE)&quot;&quot;&quot;,
+ &quot;&quot;&quot;create table repos (
+ RepoID integer primary key autoincrement,
+ UserID int(11) NOT NULL, 
+@@ -228,9 +241,15 @@
+          
+       cursor.execute(&quot;COMMIT TRANSACTION&quot;)
+ 
++   def _handleFormatChanges(self):
++      # Handle the addition of adminMonitoredMaxAge
++      if not u'AdminMonitoredMaxAge' in self._getFieldNames('users'):
++         print 'Adding AdminMonitoredMaxAge column to users table...'
++         self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE')
+ 
++
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+-   &quot;&quot;&quot;Unit tests for the sqliteUserDBTeste class&quot;&quot;&quot;
++   &quot;&quot;&quot;Unit tests for the sqliteUserDB class&quot;&quot;&quot;
+    
+    def _getUserDBObject(self):
+       return sqliteUserDB(&quot;:memory:&quot;, autoConvertDatabase=False)
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/email_notification.py	2009-01-21 06:02:22 UTC (rev 258)
+@@ -41,17 +41,19 @@
+          except Exception:
+             rdw_logging.log_exception()
+ 
++def notificationsEnabled(userDB):
++   notifier = emailNotifier()
++   return notifier.getEmailHost() != &quot;&quot; and\
++          notifier.getEmailSender() != &quot;&quot; and\
++          notifier.getNotificationTimeStr() != &quot;&quot; and\
++          userDB.modificationsSupported()
++
+ class emailNotifier:
+    def __init__(self):
+       self.userDB = db.userDB().getUserDBModule()
+       
+-   def notificationsEnabled(self):
+-      return self._getEmailHost() != &quot;&quot; and\
+-             self._getEmailSender() != &quot;&quot; and\
+-             self._getNotificationTimeStr() != &quot;&quot; and\
+-             self.userDB.modificationsSupported()
+-
+    def sendEmails(self):
++      # Send emails to each user, if requested
+       for user in self.userDB.getUserList():
+          try:
+             userRepos = self.userDB.getUserRepoPaths(user)
+@@ -61,45 +63,140 @@
+                if maxDaysOld != 0:
+                   # get the last backup date
+                   repoPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(user), repo)
+-                  try:
+-                     lastBackup = librdiff.getLastBackupHistoryEntry(repo_path, False)
+-                  except librdiff.FileError:
+-                     pass # Skip repos that have never been successfully backed up
+-                  except Exception:
+-                     rdw_logging.log_exception()
+-                     rdw_logging.log('(Previous exception occurred for repo %s.)' % repoPath)
+-                  else:
+-                     if lastBackup:
+-                        oldestGoodBackupTime = rdw_helpers.rdwTime()
+-                        oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
+-                        if lastBackup.date &lt; oldestGoodBackupTime:
+-                           oldRepos.append({&quot;repo&quot; : repo, &quot;lastBackupDate&quot; : lastBackup.date.getDisplayString(), &quot;maxAge&quot; : maxDaysOld })
++                  oldRepoInfo = self._getOldRepoInfo(repo, repoPath, maxDaysOld)
++                  if not oldRepoInfo is None:
++                     oldRepos.append(oldRepoInfo)
+                         
+             if oldRepos:
+                userEmailAddress = self.userDB.getUserEmail(user)
+                emailText = rdw_helpers.compileTemplate(&quot;email_notification.txt&quot;, repos=oldRepos,
+-                                                       sender=self._getEmailSender(), user=user, to=userEmailAddress)
++                                                       sender=self.getEmailSender(), user=user, to=userEmailAddress)
+       
+-               session = smtplib.SMTP(self._getEmailHost())
++               session = smtplib.SMTP(self.getEmailHost())
+                if self._getEmailUsername():
+                   session.login(self._getEmailUsername(), self._getEmailPassword())
+-               smtpresult = session.sendmail(self._getEmailSender(), userEmailAddress.split(&quot;;&quot;), emailText)
++               smtpresult = session.sendmail(self.getEmailSender(), userEmailAddress.split(&quot;;&quot;), emailText)
+                session.quit()
+          except Exception:
+             rdw_logging.log_exception()
+-             
+-   def _getEmailHost(self):
++
++      # Send admin-level emails, if requested
++      adminEmails = []
++      for user in self.userDB.getUserList():
++         if self.userDB.userIsAdmin(user):
++            userEmail = self.userDB.getUserEmail(user)
++            if userEmail:
++               adminEmails.append(userEmail)
++
++      if adminEmails:
++         oldUserRepos = []
++
++         for user in self.userDB.getUserList():
++            userRepos = self.userDB.getUserRepoPaths(user)
++            maxAge = self.userDB.getAdminMonitoredRepoMaxAge(user)
++            oldRepos = []
++            for repo in userRepos:
++               repoPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(user), repo)
++               oldRepoInfo = self._getOldRepoInfo(repo, repoPath, maxAge)
++               if not oldRepoInfo is None:
++                  oldRepos.append(oldRepoInfo)
++
++            if oldRepos:
++               oldUserRepos.append({
++                  'user': user,
++                  'maxAge': maxAge,
++                  'repos': oldRepos
++               })
++
++         session = smtplib.SMTP(self.getEmailHost())
++         if self._getEmailUsername():
++            session.login(self._getEmailUsername(), self._getEmailPassword())
++         for email in adminEmails:
++            emailText = rdw_helpers.compileTemplate(&quot;admin_email_notification.txt&quot;,
++                                                    users=oldUserRepos,
++                                                    sender=self.getEmailSender(),
++                                                    date=datetime.date.today().strftime('%m/%d/%Y'),
++                                                    to=email)
++            smtpresult = session.sendmail(self.getEmailSender(), email.split(&quot;;&quot;), emailText)
++         session.quit()
++
++   def notificationsEnabled(self):
++      return notificationsEnabled(self.userDB)
++ 
++   def getEmailHost(self):
+       return rdw_config.getConfigSetting(&quot;emailHost&quot;)
+ 
+-   def _getEmailSender(self):
++   def getEmailSender(self):
+       return rdw_config.getConfigSetting(&quot;emailSender&quot;)
+    
++   def getNotificationTimeStr(self):
++      return rdw_config.getConfigSetting(&quot;emailNotificationTime&quot;)
++   
++   def _getOldRepoInfo(self, repoName, repoPath, maxDaysOld):
++      try:
++         lastBackup = librdiff.getLastBackupHistoryEntry(repoPath, False)
++      except librdiff.FileError:
++         return {
++            &quot;repo&quot; : repoName,
++            &quot;lastBackupDate&quot; : &quot;never&quot;,
++            &quot;maxAge&quot; : maxDaysOld
++         }
++      except Exception:
++         rdw_logging.log_exception()
++         rdw_logging.log('(Previous exception occurred for repo %s.)' % repoPath)
++      else:
++         if lastBackup:
++            oldestGoodBackupTime = rdw_helpers.rdwTime()
++            oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
++            if lastBackup.date &lt; oldestGoodBackupTime:
++               return {
++                  &quot;repo&quot; : repoName,
++                  &quot;lastBackupDate&quot; : lastBackup.date.getDisplayString(),
++                  &quot;maxAge&quot; : maxDaysOld
++               }
++      return None
++
+    def _getEmailUsername(self):
+       return rdw_config.getConfigSetting(&quot;emailUsername&quot;)
+    
+    def _getEmailPassword(self):
+       return rdw_config.getConfigSetting(&quot;emailPassword&quot;)
++
++def buildNotificationsTable(notify_options):
++   &quot;&quot;&quot; options should be a dictionary of optionName to selectedOptionNum &quot;&quot;&quot;
+    
+-   def _getNotificationTimeStr(self):
+-      return rdw_config.getConfigSetting(&quot;emailNotificationTime&quot;)
++   options = []
++   keys = notify_options.keys()
++   keys.sort()
++   for key in keys:
++      notifyOptions = []
++      for i in range(0, 8):
++         notifyStr = &quot;Don't notify&quot;
++         if i == 1:
++            notifyStr = &quot;1 day&quot;
++         elif i &gt; 1:
++            notifyStr = str(i) + &quot; days&quot;
++            
++         selectedStr = &quot;&quot;
++         if i == notify_options[key]:
++            selectedStr = &quot;selected&quot;
++         
++         notifyOptions.append({ &quot;optionStr&quot;: notifyStr, &quot;selectedStr&quot;: selectedStr })
++      options.append({ &quot;key&quot; : key, &quot;notifyOptions&quot; : notifyOptions })
+ 
++   return rdw_helpers.compileTemplate(&quot;notifications_table.html&quot;, options=options)
++
++def loadNotificationsTableResults(post_parms):
++   &quot;&quot;&quot; Returns a dictionary like is taken above, loaded from postdata. &quot;&quot;&quot;
++
++   options = {}
++   for parmName in post_parms.keys():
++      if parmName.endswith(&quot;numDays&quot;):
++         backupName = parmName[:-7]
++         if post_parms[parmName] == &quot;Don't notify&quot;:
++            maxDays = 0
++         else:
++            maxDays = int(post_parms[parmName][0])
++         options[backupName] = maxDays
++   return options
++
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/page_admin.py	2009-01-21 06:02:22 UTC (rev 258)
+@@ -19,9 +19,10 @@
+       
+       # We need to change values. Change them, then give back that main page again, with a message
+       action = cherrypy.request.params[&quot;action&quot;]
+-      username = cherrypy.request.params[&quot;username&quot;]
+-      userRoot = cherrypy.request.params[&quot;userRoot&quot;]
+-      userIsAdmin = cherrypy.request.params.get(&quot;isAdmin&quot;, False) != False
++      if action == &quot;edit&quot; or action == &quot;add&quot;:
++         username = cherrypy.request.params[&quot;username&quot;]
++         userRoot = cherrypy.request.params[&quot;userRoot&quot;]
++         userIsAdmin = cherrypy.request.params.get(&quot;isAdmin&quot;, False) != False
+       
+       if action == &quot;edit&quot;:
+          if not self.getUserDB().userExists(username):
+@@ -38,6 +39,10 @@
+          self.getUserDB().setUserPassword(username, cherrypy.request.params[&quot;password&quot;])
+          self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml(&quot;User added successfully.&quot;, &quot;&quot;)
++      elif action == &quot;sendEmails&quot;:
++         return self._sendEmails()
++      elif action == &quot;changeNotifications&quot;:
++         return self._changeNotifications(kwargs)
+       
+    index.exposed = True
+ 
+@@ -54,8 +59,7 @@
+       return self._generatePageHtml(&quot;User account removed.&quot;, &quot;&quot;)
+    deleteUser.exposed = True
+ 
+-   @cherrypy.expose
+-   def sendEmails(self):
++   def _sendEmails(self):
+       if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
+ 
+       emailNotifier = email_notification.emailNotifier()
+@@ -65,6 +69,19 @@
+       else:
+          return self._generatePageHtml(&quot;&quot;, &quot;Email notifications are disabled.&quot;)
+ 
++   def _changeNotifications(self, parms):
++      if not self.getUserDB().modificationsSupported():
++         return self._getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
++
++      users = self.getUserDB().getUserList()
++      notify_options = email_notification.loadNotificationsTableResults(parms)
++      for option in notify_options:
++         if option in users:
++            self.getUserDB().setAdminMonitoredRepoMaxAge(option, notify_options[option])
++
++      return self._generatePageHtml(&quot;Successfully changed notifications.&quot;, &quot;&quot;)
++      
++
+    ############### HELPER FUNCTIONS #####################
+    def _userIsAdmin(self):
+       return self.getUserDB().userIsAdmin(self.getUsername())
+@@ -74,12 +91,28 @@
+ 
+    def _generatePageHtml(self, message, error, username=&quot;&quot;, userRoot=&quot;&quot;, isAdmin=False):
+       userNames = self.getUserDB().getUserList()
+-      users = [ { &quot;username&quot; : user, &quot;isAdmin&quot; : self.getUserDB().userIsAdmin(user), &quot;userRoot&quot; : self.getUserDB().getUserRoot(user) } for user in userNames ]
++      users = [{
++         &quot;username&quot; : user,
++         &quot;isAdmin&quot; : self.getUserDB().userIsAdmin(user),
++         &quot;userRoot&quot; : self.getUserDB().getUserRoot(user)
++      } for user in userNames]
++
++      notificationsEnabled = email_notification.notificationsEnabled(self.getUserDB())
++      notificationsTable = ''
++      if notificationsEnabled:
++         options = {}
++         for user in userNames:
++            options[user] = self.getUserDB().getAdminMonitoredRepoMaxAge(user)
++         notificationsTable = email_notification.buildNotificationsTable(options)
++
+       parms = { &quot;users&quot; : users, 
+                 &quot;username&quot; : username, 
+                 &quot;userRoot&quot; : userRoot, 
+                 &quot;isAdmin&quot; : isAdmin,
+                 &quot;message&quot; : message,
++                &quot;notificationsEnabled&quot; : notificationsEnabled,
++                &quot;notificationsTable&quot; : notificationsTable,
++                &quot;userEmail&quot; : self.getUserDB().getUserEmail(user),
+                 &quot;error&quot; : error }
+       return self.startPage(&quot;Administration&quot;) + self.compileTemplate(&quot;admin_main.html&quot;, **parms) + self.endPage()
+ 
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/page_main.py	2009-01-21 06:02:22 UTC (rev 258)
+@@ -92,8 +92,10 @@
+    def getUsername(self):
+       username = cherrypy.session['username']
+       return username
+-   
+ 
++
++
++
+ import unittest, shutil, tempfile, os.path
+ class pageTest(unittest.TestCase):
+    # The dirs containing source data for automated tests are set up in the following format:
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/rdw_templating.py	2009-01-21 06:02:22 UTC (rev 258)
+@@ -76,9 +76,13 @@
+       isMultiline = matchText.startswith(multilineKeyword)
+       if isMultiline:
+          matchText = matchText[len(multilineKeyword):]
++      rawKeyword = &quot;raw:&quot;
++      isRaw = matchText.startswith(rawKeyword)
++      if isRaw:
++         matchText = matchText[len(rawKeyword):]
+       if not matchText in replacements.keys():
+          raise templateDataError, matchText
+-      replacementText = self._getReplacementText(replacements[matchText])
++      replacementText = self._getReplacementText(replacements[matchText], isRaw)
+       if isMultiline:
+          replacementText = replacementText.replace(&quot;\n&quot;, &quot;\n&lt;br/&gt;&quot;)
+       return replacementText
+@@ -100,10 +104,13 @@
+          return textToInclude
+       return &quot;&quot;
+    
+-   def _getReplacementText(self, replacement):
++   def _getReplacementText(self, replacement, isRaw):
+       if isinstance(replacement, unicode):
+          replacement = replacement.encode('utf-8')
+-      return rdw_helpers.encodeText(str(replacement))
++      if isRaw:
++         return replacement
++      else:
++         return rdw_helpers.encodeText(str(replacement))
+ 
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+
+Added: trunk/rdiffWeb/templates/admin_email_notification.txt
+===================================================================
+--- trunk/rdiffWeb/templates/admin_email_notification.txt	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/templates/admin_email_notification.txt	2009-01-21 06:02:22 UTC (rev 258)
+@@ -0,0 +1,13 @@
++From: ^sender$
++To: ^to$
++Subject: Backup Failures for ^date$
++
++The following users have repositories which have not been backed up recently:
++
++&lt;!--StartRepeat:users--&gt;
++^user$ (backup locations older than ^maxAge$ days):
++   Backup Location	Last Backup Date
++&lt;!--StartRepeat:repos--&gt;
++   ^repo$	^lastBackupDate$
++&lt;!--EndRepeat:repos--&gt;
++&lt;!--EndRepeat:users--&gt;
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/templates/admin_main.html	2009-01-21 06:02:22 UTC (rev 258)
+@@ -12,6 +12,43 @@
+ &lt;h2&gt;Admin Panel&lt;/h2&gt;
+ &lt;!--StartIncludeIf:error--&gt;&lt;p class=&quot;error&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
+ &lt;!--StartIncludeIf:message--&gt;&lt;p class=&quot;message&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
++
++&lt;!-- Add User portion --&gt;
++&lt;form action=&quot;/admin/&quot; method=&quot;post&quot;&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++&lt;div class=&quot;roundedBorderContents&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;action&quot; value=&quot;add&quot; /&gt;
++&lt;h3&gt;Add User&lt;/h3&gt;
++&lt;table&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Username:&lt;/td&gt;
++      &lt;td&gt;&lt;input name=&quot;username&quot; value=&quot;^username$&quot; /&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Password:&lt;/td&gt;
++      &lt;td&gt;&lt;input name=&quot;password&quot;&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;tr&gt;
++      &lt;td&gt;User Root Directory:&lt;/td&gt;
++      &lt;td&gt;&lt;input name=&quot;userRoot&quot; value=&quot;^userRoot$&quot; /&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;tr&gt;
++      &lt;td&gt;
++         &lt;!--StartIncludeIf:isAdmin--&gt;&lt;input checked type=&quot;checkbox&quot; name=&quot;isAdmin&quot; /&gt;&lt;!--EndIncludeIf:isAdmin--&gt;
++         &lt;!--StartDeleteIf:isAdmin--&gt;&lt;input type=&quot;checkbox&quot; name=&quot;isAdmin&quot; /&gt;&lt;!--EndDeleteIf:isAdmin--&gt;
++         User is admin?
++      &lt;/td&gt;
++   &lt;/tr&gt;
++&lt;/table&gt;
++&lt;br&gt;
++&lt;input type=&quot;submit&quot; value=&quot;Add User&quot; /&gt;
++&lt;/div&gt;
++&lt;/div&gt;
++&lt;/form&gt;
++
++&lt;!-- Manage User portion --&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++&lt;div class=&quot;roundedBorderContents&quot;&gt;
+ &lt;h3&gt;Manage Users&lt;/h3&gt;
+ &lt;table class=&quot;usersTable&quot;&gt;
+ &lt;!--StartRepeat:users--&gt;
+@@ -40,41 +77,34 @@
+    &lt;/tr&gt;
+ &lt;!--EndRepeat:users--&gt;
+ &lt;/table&gt;
++&lt;/div&gt;
++&lt;/div&gt;
++&lt;br/&gt;
+ 
+-&lt;br&gt;
+-&lt;form action=&quot;/admin/&quot; method=&quot;post&quot;&gt;
+-&lt;input style=&quot;display:none&quot; name=&quot;action&quot; value=&quot;add&quot; /&gt;
+-&lt;h3&gt;Add User&lt;/h3&gt;
+-&lt;table&gt;
+-   &lt;tr&gt;
+-      &lt;td&gt;Username:&lt;/td&gt;
+-      &lt;td&gt;&lt;input name=&quot;username&quot; value=&quot;^username$&quot; /&gt;&lt;/td&gt;
+-   &lt;/tr&gt;
+-   &lt;tr&gt;
+-      &lt;td&gt;Password:&lt;/td&gt;
+-      &lt;td&gt;&lt;input name=&quot;password&quot;&gt;&lt;/td&gt;
+-   &lt;/tr&gt;
+-   &lt;tr&gt;
+-      &lt;td&gt;User Root Directory:&lt;/td&gt;
+-      &lt;td&gt;&lt;input name=&quot;userRoot&quot; value=&quot;^userRoot$&quot; /&gt;&lt;/td&gt;
+-   &lt;/tr&gt;
+-   &lt;tr&gt;
+-      &lt;td&gt;
+-         &lt;!--StartIncludeIf:isAdmin--&gt;&lt;input checked type=&quot;checkbox&quot; name=&quot;isAdmin&quot; /&gt;&lt;!--EndIncludeIf:isAdmin--&gt;
+-         &lt;!--StartDeleteIf:isAdmin--&gt;&lt;input type=&quot;checkbox&quot; name=&quot;isAdmin&quot; /&gt;&lt;!--EndDeleteIf:isAdmin--&gt;
+-         User is admin?
+-      &lt;/td&gt;
+-   &lt;/tr&gt;
+-&lt;/table&gt;
+-&lt;br&gt;
+-&lt;input type=&quot;submit&quot; value=&quot;Add User&quot; /&gt;
++&lt;!-- Email Notifications portion --&gt;
++&lt;!--StartIncludeIf:notificationsEnabled--&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input type=&quot;hidden&quot; name=&quot;action&quot; value=&quot;changeNotifications&quot;/&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++&lt;div class=&quot;roundedBorderContents&quot;&gt;
++   &lt;h3 class=&quot;groupboxHeader&quot;&gt;Site-wide Backup Notifications&lt;/h3&gt;
++   &lt;p style=&quot;margin-bottom: 0.25em&quot;&gt;Notify me at ^userEmail$ when the following users' backups do not get backed up for:&lt;/p&gt;
++   ^raw:notificationsTable$
++   &lt;div&gt;&lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Change Notifications&quot; /&gt;&lt;/div&gt;
++&lt;/div&gt;
++&lt;/div&gt;
+ &lt;/form&gt;
+ 
+-&lt;br&gt;
+-&lt;form action=&quot;/admin/sendEmails/&quot; method=&quot;post&quot;&gt;
++&lt;!-- Send Emails portion --&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++&lt;div class=&quot;roundedBorderContents&quot;&gt;
++&lt;input type=&quot;hidden&quot; name=&quot;action&quot; value=&quot;sendEmails&quot;/&gt;
+ &lt;h3&gt;Send Email Notifications&lt;/h3&gt;
+ &lt;p&gt;Note that this will not affect the normally scheduled email notifications.&lt;/p&gt;
+ &lt;input type=&quot;submit&quot; value=&quot;Send Emails&quot; /&gt;
++&lt;/div&gt;
++&lt;/div&gt;
+ &lt;/form&gt;
+ 
+ 
+
+Added: trunk/rdiffWeb/templates/notifications_table.html
+===================================================================
+--- trunk/rdiffWeb/templates/notifications_table.html	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/templates/notifications_table.html	2009-01-21 06:02:22 UTC (rev 258)
+@@ -0,0 +1,16 @@
++   &lt;table class=&quot;notificationsTable&quot;&gt;
++      &lt;tr&gt;&lt;/tr&gt;
++      &lt;!--StartRepeat:options--&gt;
++      &lt;tr class=&quot;notificationsRow&quot;&gt;
++         &lt;td&gt;^key$ : &lt;/td&gt;
++         &lt;td&gt;
++            &lt;select name=&quot;^key$numDays&quot; id=&quot;^key$Select&quot;&gt;
++               &lt;!--StartRepeat:notifyOptions--&gt;
++               &lt;option ^selectedStr$&gt;^optionStr$&lt;/option&gt;
++               &lt;!--EndRepeat:notifyOptions--&gt;
++            &lt;/select&gt;
++         &lt;/td&gt;
++      &lt;/tr&gt;
++      &lt;!--EndRepeat:options--&gt;
++   &lt;/table&gt;
++
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2009-01-20 23:34:38 UTC (rev 257)
++++ trunk/rdiffWeb/templates/user_prefs.html	2009-01-21 06:02:22 UTC (rev 258)
+@@ -80,24 +80,8 @@
+          &lt;/td&gt;
+       &lt;/tr&gt;
+    &lt;/table&gt;
+-   &lt;table class=&quot;notificationsTable&quot;&gt;
+-      &lt;tr&gt;&lt;/tr&gt;
+-      &lt;!--StartRepeat:backups--&gt;
+-      &lt;tr class=&quot;notificationsRow&quot;&gt;
+-         &lt;td&gt;^backupName$ : &lt;/td&gt;
+-         &lt;td&gt;
+-            &lt;select name=&quot;^backupName$numDays&quot; id=&quot;^backupName$Select&quot;&gt;
+-               &lt;!--StartRepeat:notifyOptions--&gt;
+-               &lt;option ^selectedStr$&gt;^optionStr$&lt;/option&gt;
+-               &lt;!--EndRepeat:notifyOptions--&gt;
+-            &lt;/select&gt;
+-         &lt;/td&gt;
+-      &lt;/tr&gt;
+-      &lt;!--EndRepeat:backups--&gt;
+-      &lt;tr style=&quot;height: 2em&quot;&gt;
+-         &lt;td&gt;&lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Change Notifications&quot; /&gt;&lt;/td&gt;
+-      &lt;/tr&gt;
+-   &lt;/table&gt;
++   ^raw:notificationsTable$
++   &lt;div&gt;&lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Change Notifications&quot; /&gt;&lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/form&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000214.html">[Rdiffweb-commits] r257 - in trunk/rdiffWeb: . templates
+</A></li>
+	<LI>Next message: <A HREF="000216.html">[Rdiffweb-commits] r259 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#215">[ date ]</a>
+              <a href="thread.html#215">[ thread ]</a>
+              <a href="subject.html#215">[ subject ]</a>
+              <a href="author.html#215">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

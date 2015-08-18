@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r153 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r153%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710140448.l9E4mOZ0025704%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000109.html">
+   <LINK REL="Next"  HREF="000111.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r153 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r153%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710140448.l9E4mOZ0025704%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r153 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 14 06:48:24 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000109.html">[Rdiffweb-commits] r152 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000111.html">[Rdiffweb-commits] r154 - in trunk: . rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-14 06:48:21 +0200 (Sun, 14 Oct 2007)
+New Revision: 153
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Really turn on encoding filter.
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-10-14 04:43:54 UTC (rev 152)
++++ trunk/rdiffWeb/page_main.py	2007-10-14 04:48:21 UTC (rev 153)
+@@ -7,13 +7,14 @@
+ import rdw_templating
+ import rdw_helpers
+ import rdw_config
+-from filter_https import rdwHttpsFilter
+-from filter_authentication import rdwAuthenticationFilter
++import filter_https
++import filter_authentication
++import cherrypy.filters.encodingfilter
+ 
+ def getFilters():
+-   filters = [rdwAuthenticationFilter()]
++   filters = [filter_authentication.rdwAuthenticationFilter(), cherrypy.filters.encodingfilter.EncodingFilter()]
+    if rdw_config.getConfigSetting(&quot;UseHttps&quot;).upper() == &quot;TRUE&quot;:
+-      filters.append(rdwHttpsFilter())
++      filters.append(filter_https.rdwHttpsFilter())
+    return filters
+ 
+ 
+@@ -130,7 +131,7 @@
+ 
+    def setUp(self):
+       self.destRoot = rdw_helpers.joinPaths(os.path.realpath(tempfile.gettempdir()), &quot;rdiffWeb&quot;)
+-      self.masterDirPath = os.path.realpath(&quot;tests&quot;) # TODO: do this right, including tying tests into &quot;python setup.py test&quot;
++      self.masterDirPath = os.path.realpath(&quot;tests&quot;)
+       self.tearDown()
+       
+       # Copy and set up each test
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000109.html">[Rdiffweb-commits] r152 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000111.html">[Rdiffweb-commits] r154 - in trunk: . rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r46 - in trunk: rdiffWeb tests/basic tests/basic/2006-01-04T01:49:50Z tests/basic/2006-01-05T01:49:50Z tests/basic/2006-01-06T01:49:50Z
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r46%20-%20in%20trunk%3A%20rdiffWeb%20tests/basic%20tests/basic/2006-01-04T01%3A49%3A50Z%20tests/basic/2006-01-05T01%3A49%3A50Z%20tests/basic/2006-01-06T01%3A49%3A50Z&In-Reply-To=%3C200605262122.k4QLMUcI029614%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000002.html">
+   <LINK REL="Next"  HREF="000004.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r46 - in trunk: rdiffWeb tests/basic tests/basic/2006-01-04T01:49:50Z tests/basic/2006-01-05T01:49:50Z tests/basic/2006-01-06T01:49:50Z</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r46%20-%20in%20trunk%3A%20rdiffWeb%20tests/basic%20tests/basic/2006-01-04T01%3A49%3A50Z%20tests/basic/2006-01-05T01%3A49%3A50Z%20tests/basic/2006-01-06T01%3A49%3A50Z&In-Reply-To=%3C200605262122.k4QLMUcI029614%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r46 - in trunk: rdiffWeb tests/basic tests/basic/2006-01-04T01:49:50Z tests/basic/2006-01-05T01:49:50Z tests/basic/2006-01-06T01:49:50Z">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri May 26 23:22:30 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000002.html">[Rdiffweb-commits] r45 - in trunk: . rdiffWeb tests tests/basic tests/basic/2006-01-03T01:49:50Z tests/basic/2006-01-04T01:49:50Z tests/basic/2006-01-05T01:49:50Z
+</A></li>
+        <LI>Next message: <A HREF="000004.html">[Rdiffweb-commits] r47 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-05-26 23:22:25 +0200 (Fri, 26 May 2006)
+New Revision: 46
+
+Added:
+   trunk/tests/basic/2006-01-04T01:49:50Z/test4.txt
+   trunk/tests/basic/2006-01-05T01:49:50Z/test4.txt
+   trunk/tests/basic/2006-01-06T01:49:50Z/
+   trunk/tests/basic/2006-01-06T01:49:50Z/test4.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+More enhancements to automated tests
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-05-18 22:40:58 UTC (rev 45)
++++ trunk/rdiffWeb/librdiff.py	2006-05-26 21:22:25 UTC (rev 46)
+@@ -58,8 +58,14 @@
+       self.entryName = incrementName
+ 
+    def shouldShowIncrement(self):
+-      return self.hasIncrementSuffix(self.entryName) and not self.entryName.endswith(self.missingSuffix)
++      return self.hasIncrementSuffix(self.entryName) and not self.isMissingIncrement()
+ 
++   def isMissingIncrement(self):
++      return self.entryName.endswith(self.missingSuffix)
++   
++   def isSnapshotIncrement(self):
++      return self.entryName.endswith(&quot;.snapshot.gz&quot;)
++
+    def getFilename(self):
+       filename = self._removeSuffix(self.entryName)
+       return rsplit(filename, &quot;.&quot;, 1)[0]
+@@ -145,14 +151,19 @@
+       # Go through the increments dir.  If we find any files that didn't exist in dirPath (i.e. have been deleted), add them
+       for entryFile in self.incrementEntries:
+          entry = incrementEntry(entryFile)
++         entryName = entry.getFilename()
++         entryDate = entry.getDate()
++         if not entry.isSnapshotIncrement():
++            entryDate = self._getFirstBackupAfterDate(entry.getDate())
+          if entry.shouldShowIncrement():
+-            entryName = entry.getFilename()
+             if (not entryName in entriesDict.keys()):
+                entryPath = joinPaths(self.repo, rdiffIncrementsDirName, self.dirPath, entryName)
+-               newEntry = dirEntry(entryName, os.path.isdir(entryPath), 0, False, [entry.getDate()])
++               newEntry = dirEntry(entryName, os.path.isdir(entryPath), 0, False, [entryDate])
+                entriesDict[entryName] = newEntry
+             else:
+-               bisect.insort_left(entriesDict[entryName].changeDates, entry.getDate())
++               bisect.insort_left(entriesDict[entryName].changeDates, entryDate)
++         elif entry.isMissingIncrement():
++            bisect.insort_left(entriesDict[entryName].changeDates, entryDate)
+ 
+       return entriesDict
+ 
+@@ -171,7 +182,7 @@
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+          files = filter((lambda x: incrementEntry(x).getFilename() == filename and x.endswith(&quot;.dir&quot;)), self.incrementEntries)
+       else:
+-         files = filter((lambda x: incrementEntry(x).getFilename() == filename and incrementEntry(x).shouldShowIncrement()), self.incrementEntries)
++         files = filter((lambda x: incrementEntry(x).getFilename() == filename), self.incrementEntries)
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+@@ -359,7 +370,7 @@
+    # Force a null TZ for backups, to keep rdiff-backup from mangling the times
+    environ = os.environ;
+    environ['TZ'] = &quot;&quot;
+-   os.spawnlp(os.P_WAIT, &quot;rdiff-backup&quot;, &quot;rdiff-backup&quot;, &quot;--current-time=&quot;+str(time.getSeconds()), src, dest)
++   os.spawnlp(os.P_WAIT, &quot;rdiff-backup&quot;, &quot;rdiff-backup&quot;, &quot;--no-compare-inode&quot;, &quot;--current-time=&quot;+str(time.getSeconds()), src, dest)
+ 
+ def getMatchingDirEntry(entries, filename):
+ #    for entry in entries:
+@@ -410,6 +421,16 @@
+ 
+    def getBackupStates(self, backupTestDir):
+       return filter(lambda x: not x.startswith(&quot;.&quot;), os.listdir(backupTestDir))
++   
++   def fileChangedBetweenBackups(self, backupTest, filename, lastBackup, allBackups):
++      prevRevisions = filter(lambda x: x &lt; lastBackup, allBackups)
++      if not prevRevisions: return False
++      oldVersion = prevRevisions[-1]
++      oldFilePath = joinPaths(self.masterDirPath, backupTest, oldVersion, filename)
++      newFilePath = joinPaths(self.masterDirPath, backupTest, lastBackup, filename)
++      
++      if not os.access(oldFilePath, os.F_OK): return False
++      return open(oldFilePath, &quot;r&quot;).read() == open(newFilePath, &quot;r&quot;).read()
+ 
+    ################  Start actual tests ###################
+    def testGetDirEntries(self):
+@@ -418,7 +439,7 @@
+          # Get a list of backup entries for the root folder
+          rdiffDestDir = joinPaths(self.destRoot, testDir)
+          entries = getDirEntries(rdiffDestDir, &quot;/&quot;)
+-
++         
+          # Go back through all backup states and make sure that the backup entries match the files that exist
+          origStateDir = joinPaths(self.masterDirPath, testDir)
+          backupStates = self.getBackupStates(origStateDir)
+@@ -440,9 +461,12 @@
+                assertionErrorMessage = assertionErrorMessage + &quot;\nIncrements dir: &quot;+str(os.listdir(joinPaths(rdiffDestDir, &quot;rdiff-backup-data&quot;, &quot;increments&quot;)))
+                for entryDate in entry.changeDates:
+                   if backupTime.getSeconds() == entryDate.getSeconds():
++                     if self.fileChangedBetweenBackups(testDir, entry.name, backupState, backupStates):
++                        assert False, assertionErrorMessage
+                      break
+                else:
+-                  assert False, assertionErrorMessage
++                  if not self.fileChangedBetweenBackups(testDir, entry.name, backupState, backupStates):
++                     assert False or False, assertionErrorMessage
+                assert os.path.isdir(origFilePath) == entry.isDir
+                #assert os.lstat(origFilePath)[6] == entry.fileSize, &quot;Real size: &quot;+str(os.lstat(origFilePath)[6])+&quot; Reported size: &quot;+str(entry.fileSize)
+ 
+@@ -466,6 +490,7 @@
+             for file in os.listdir(origBackupStateDir):
+                totalBackupSize = totalBackupSize + os.lstat(joinPaths(origBackupStateDir, file))[6]
+ 
++            #TODO: fix this to handle subdirs
+             #assert totalBackupSize == entries[backupNum].size, &quot;Calculated: &quot;+str(totalBackupSize)+&quot; Reported: &quot;+str(entries[backupNum].size)+&quot; State: &quot;+str(backupNum)
+             backupNum = backupNum + 1
+ 
+
+Added: trunk/tests/basic/2006-01-04T01:49:50Z/test4.txt
+===================================================================
+--- trunk/tests/basic/2006-01-04T01:49:50Z/test4.txt	2006-05-18 22:40:58 UTC (rev 45)
++++ trunk/tests/basic/2006-01-04T01:49:50Z/test4.txt	2006-05-26 21:22:25 UTC (rev 46)
+@@ -0,0 +1 @@
++unchanging
+
+Added: trunk/tests/basic/2006-01-05T01:49:50Z/test4.txt
+===================================================================
+--- trunk/tests/basic/2006-01-05T01:49:50Z/test4.txt	2006-05-18 22:40:58 UTC (rev 45)
++++ trunk/tests/basic/2006-01-05T01:49:50Z/test4.txt	2006-05-26 21:22:25 UTC (rev 46)
+@@ -0,0 +1 @@
++unchanging
+
+Added: trunk/tests/basic/2006-01-06T01:49:50Z/test4.txt
+===================================================================
+--- trunk/tests/basic/2006-01-06T01:49:50Z/test4.txt	2006-05-18 22:40:58 UTC (rev 45)
++++ trunk/tests/basic/2006-01-06T01:49:50Z/test4.txt	2006-05-26 21:22:25 UTC (rev 46)
+@@ -0,0 +1 @@
++This file now changes
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000002.html">[Rdiffweb-commits] r45 - in trunk: . rdiffWeb tests tests/basic tests/basic/2006-01-03T01:49:50Z tests/basic/2006-01-04T01:49:50Z tests/basic/2006-01-05T01:49:50Z
+</A></li>
+	<LI>Next message: <A HREF="000004.html">[Rdiffweb-commits] r47 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r126 - trunk/rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r126%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200709280247.l8S2lMuB032303%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000082.html">
+   <LINK REL="Next"  HREF="000084.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r126 - trunk/rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r126%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200709280247.l8S2lMuB032303%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r126 - trunk/rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Sep 28 04:47:23 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000082.html">[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+</A></li>
+        <LI>Next message: <A HREF="000084.html">[Rdiffweb-commits] r127 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-28 04:47:19 +0200 (Fri, 28 Sep 2007)
+New Revision: 126
+
+Modified:
+   trunk/rdiffWeb/templates/status.html
+Log:
+Fix terminology on the status page for backups with errors
+
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-09-25 21:53:33 UTC (rev 125)
++++ trunk/rdiffWeb/templates/status.html	2007-09-28 02:47:19 UTC (rev 126)
+@@ -16,10 +16,10 @@
+ &lt;!--EndDeleteIf:failuresOnly--&gt;
+ 
+ &lt;!--StartIncludeIf:failuresOnly--&gt;
+-&lt;a href=&quot;^statusLink$&quot;&gt;Include Successful Backups&lt;/a&gt;
++&lt;a href=&quot;^statusLink$&quot;&gt;Include successful backups&lt;/a&gt;
+ &lt;!--EndIncludeIf:failuresOnly--&gt;
+ &lt;!--StartDeleteIf:failuresOnly--&gt;
+-&lt;a href=&quot;^failuresOnlyLink$&quot;&gt;Show Only Errors&lt;/a&gt;
++&lt;a href=&quot;^failuresOnlyLink$&quot;&gt;Show only backups with errors&lt;/a&gt;
+ &lt;!--EndDeleteIf:failuresOnly--&gt;
+ &lt;!--StartDeleteIf:messages--&gt;&lt;p&gt;There are no recent backups to display.&lt;/p&gt;&lt;!--EndDeleteIf:messages--&gt;
+ &lt;!--StartRepeat:messages--&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000082.html">[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+</A></li>
+	<LI>Next message: <A HREF="000084.html">[Rdiffweb-commits] r127 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

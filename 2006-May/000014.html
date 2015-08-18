@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r57 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r57%20-%20trunk/rdiffWeb&In-Reply-To=%3C200605292324.k4TNO6QG007567%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000013.html">
+   <LINK REL="Next"  HREF="000015.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r57 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r57%20-%20trunk/rdiffWeb&In-Reply-To=%3C200605292324.k4TNO6QG007567%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r57 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue May 30 01:24:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000013.html">[Rdiffweb-commits] r56 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000015.html">[Rdiffweb-commits] r58 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#14">[ date ]</a>
+              <a href="thread.html#14">[ thread ]</a>
+              <a href="subject.html#14">[ subject ]</a>
+              <a href="author.html#14">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-05-30 01:22:58 +0200 (Tue, 30 May 2006)
+New Revision: 57
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix dir listings with subdirectories
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-05-29 17:35:05 UTC (rev 56)
++++ trunk/rdiffWeb/librdiff.py	2006-05-29 23:22:58 UTC (rev 57)
+@@ -178,7 +178,7 @@
+    def _getLastChangedBackupTime(self, filename):
+       files = self.groupedIncrementEntries.get(filename, [])
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+-         files = files.filter(lambda x: x.endswith(&quot;.dir&quot;), self.incrementEntries)
++         files = filter(lambda x: x.endswith(&quot;.dir&quot;), files)
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000013.html">[Rdiffweb-commits] r56 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000015.html">[Rdiffweb-commits] r58 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#14">[ date ]</a>
+              <a href="thread.html#14">[ thread ]</a>
+              <a href="subject.html#14">[ subject ]</a>
+              <a href="author.html#14">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

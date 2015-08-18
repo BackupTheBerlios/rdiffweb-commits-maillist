@@ -1,0 +1,398 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r193 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r193%20-%20trunk/rdiffWeb&In-Reply-To=%3C200712271715.lBRHFh7W003778%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000149.html">
+   <LINK REL="Next"  HREF="000151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r193 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r193%20-%20trunk/rdiffWeb&In-Reply-To=%3C200712271715.lBRHFh7W003778%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r193 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Dec 27 18:15:43 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000149.html">[Rdiffweb-commits] r192 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000151.html">[Rdiffweb-commits] r194 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-12-27 18:15:36 +0100 (Thu, 27 Dec 2007)
+New Revision: 193
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/page_status.py
+Log:
+Start wrapping database object. This will let us use thread-specific db ojects.
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_admin.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -22,18 +22,18 @@
+       userIsAdmin = cherrypy.request.params.get(&quot;isAdmin&quot;, False) != False
+       
+       if action == &quot;edit&quot;:
+-         if not self.userDB.userExists(username):
++         if not self.getUserDB().userExists(username):
+             return self._generatePageHtml(&quot;&quot;, &quot;The user does not exist.&quot;)
+          
+-         self.userDB.setUserInfo(username, userRoot, userIsAdmin)
++         self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml(&quot;User information modified successfully&quot;, &quot;&quot;)
+       elif action == &quot;add&quot;:
+-         if self.userDB.userExists(username):
++         if self.getUserDB().userExists(username):
+             return self._generatePageHtml(&quot;&quot;, &quot;The specified user already exists.&quot;, username, userRoot, userIsAdmin)
+          if username == &quot;&quot;:
+             return self._generatePageHtml(&quot;&quot;, &quot;The username is invalid.&quot;, username, userRoot, userIsAdmin)
+-         self.userDB.addUser(username)
+-         self.userDB.setUserInfo(username, userRoot, userIsAdmin)
++         self.getUserDB().addUser(username)
++         self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml(&quot;User added successfully.&quot;, &quot;&quot;)
+       
+    index.exposed = True
+@@ -41,26 +41,26 @@
+    def deleteUser(self, user):
+       if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
+ 
+-      if not self.userDB.userExists(user):
++      if not self.getUserDB().userExists(user):
+          return self._generatePageHtml(&quot;&quot;, &quot;The user does not exist.&quot;)
+ 
+       if user == self.getUsername():
+          return self._generatePageHtml(&quot;&quot;, &quot;You cannot remove your own account!.&quot;)
+ 
+-      self.userDB.deleteUser(user)
++      self.getUserDB().deleteUser(user)
+       return self._generatePageHtml(&quot;User account removed.&quot;, &quot;&quot;)
+    deleteUser.exposed = True
+ 
+    ############### HELPER FUNCTIONS #####################
+    def _userIsAdmin(self):
+-      return self.userDB.userIsAdmin(self.getUsername())
++      return self.getUserDB().userIsAdmin(self.getUsername())
+ 
+    def _isSubmit(self):
+       return cherrypy.request.method == &quot;POST&quot;
+ 
+    def _generatePageHtml(self, message, error, username=&quot;&quot;, userRoot=&quot;&quot;, isAdmin=False):
+-      userNames = self.userDB.getUserList()
+-      users = [ { &quot;username&quot; : user, &quot;isAdmin&quot; : self.userDB.userIsAdmin(user), &quot;userRoot&quot; : self.userDB.getUserRoot(user) } for user in userNames ]
++      userNames = self.getUserDB().getUserList()
++      users = [ { &quot;username&quot; : user, &quot;isAdmin&quot; : self.getUserDB().userIsAdmin(user), &quot;userRoot&quot; : self.getUserDB().getUserRoot(user) } for user in userNames ]
+       parms = { &quot;users&quot; : users, 
+                 &quot;username&quot; : username, 
+                 &quot;userRoot&quot; : userRoot, 
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_browse.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -16,11 +16,11 @@
+ 
+       # NOTE: a blank path parm is allowed, since that just results in a listing of the repo root
+       if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+-      if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
++      if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+       try:
+-         parms = self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), repo, path, restore)
++         parms = self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()), repo, path, restore)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(str(error))
+       page = self.startPage(parms[&quot;title&quot;])
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_history.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -13,12 +13,12 @@
+          return self.writeErrorPage(str(error))
+ 
+       if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+-      if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
++      if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+       parms = {}
+       try:
+-         parms = self.getParmsForPage(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), repo)
++         parms = self.getParmsForPage(joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo), repo)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+       
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_main.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -10,9 +10,6 @@
+ 
+ class rdiffPage:
+ 
+-   def __init__(self):
+-      self.userDB = db.userDB().getUserDBModule()
+-
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+       url = &quot;/browse/?repo=&quot;+rdw_helpers.encodeUrl(repo, &quot;/&quot;)+&quot;&amp;path=&quot;+rdw_helpers.encodeUrl(path, &quot;/&quot;)
+@@ -34,7 +31,7 @@
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
+-      path = rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), path)
++      path = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), path)
+       path = path.rstrip(&quot;/&quot;)
+       realPath = os.path.realpath(path)
+       if realPath != path:
+@@ -43,8 +40,14 @@
+       # Make sure that the path starts with the user root
+       # This check should be accomplished by ensurePathValid, but adding for a sanity check
+       realDestPath = os.path.realpath(path)
+-      if realDestPath.find(self.userDB.getUserRoot(self.getUsername())) != 0:      
++      if realDestPath.find(self.getUserDB().getUserRoot(self.getUsername())) != 0:      
+          raise rdw_helpers.accessDeniedError
++      
++      
++   def getUserDB(self):
++      if not hasattr(cherrypy.thread_data, 'db'):
++         cherrypy.thread_data.db = db.userDB().getUserDBModule()
++      return cherrypy.thread_data.db
+ 
+ 
+    ########################## PAGE HELPER FUNCTIONS ##################################
+@@ -56,9 +59,9 @@
+ 
+    def writeTopLinks(self):
+       pages = [(&quot;/status/&quot;, &quot;Backup Status&quot;)]
+-      if self.userDB.modificationsSupported():
++      if self.getUserDB().modificationsSupported():
+          pages.append((&quot;/prefs&quot;, &quot;Preferences&quot;))
+-      if self.userDB.userIsAdmin(self.getUsername()):
++      if self.getUserDB().userIsAdmin(self.getUsername()):
+          pages.append((&quot;/admin&quot;, &quot;Admin&quot;))
+       pages.append((&quot;/logout&quot;, &quot;Log Out&quot;))
+       links = []
+@@ -82,7 +85,7 @@
+ 
+    ########## SESSION INFORMATION #############
+    def checkAuthentication(self, username, password):
+-      if self.userDB.areUserCredentialsValid(username, password):
++      if self.getUserDB().areUserCredentialsValid(username, password):
+          cherrypy.session['username'] = username
+          return None
+       return &quot;Invalid username or password.&quot;
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_prefs.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -30,16 +30,16 @@
+    index.exposed = True
+    
+    def _changePassword(self, currentPassword, newPassword, confirmPassword):
+-      if not self.userDB.modificationsSupported():
++      if not self.getUserDB().modificationsSupported():
+          return self._getPrefsPage(errorMessage=&quot;Password changing is not supported with the active user database.&quot;)
+       
+-      if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
++      if not self.getUserDB().areUserCredentialsValid(self.getUsername(), currentPassword):
+          return self._getPrefsPage(errorMessage=&quot;The 'Current Password' is invalid.&quot;)
+       
+       if newPassword != confirmPassword:
+          return self._getPrefsPage(errorMessage=&quot;The passwords do not match.&quot;)
+ 
+-      self.userDB.setUserPassword(self.getUsername(), newPassword)      
++      self.getUserDB().setUserPassword(self.getUsername(), newPassword)      
+       return self._getPrefsPage(statusMessage=&quot;Password updated successfully.&quot;)
+    
+    def _updateRepos(self):
+@@ -47,16 +47,16 @@
+       return self._getPrefsPage(statusMessage=&quot;Successfully updated backup locations.&quot;)
+ 
+    def _setNotifications(self, parms):
+-      if not self.userDB.modificationsSupported():
++      if not self.getUserDB().modificationsSupported():
+          return self._getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
+       
+-      repos = self.userDB.getUserRepoPaths(self.getUsername())
++      repos = self.getUserDB().getUserRepoPaths(self.getUsername())
+       
+       for parmName in parms.keys():
+          if parmName == &quot;userEmail&quot;:
+             if parms[parmName] == self.sampleEmail:
+                parms[parmName] = ''
+-            self.userDB.setUserEmail(self.getUsername(), parms[parmName])
++            self.getUserDB().setUserEmail(self.getUsername(), parms[parmName])
+          if parmName.endswith(&quot;numDays&quot;):
+             backupName = parmName[:-7]
+             if backupName in repos:
+@@ -64,23 +64,23 @@
+                   maxDays = 0
+                else:
+                   maxDays = int(parms[parmName][0])
+-               self.userDB.setRepoMaxAge(self.getUsername(), backupName, maxDays)
++               self.getUserDB().setRepoMaxAge(self.getUsername(), backupName, maxDays)
+                
+       return self._getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
+    
+    def _setRestoreType(self, restoreType):
+-      if not self.userDB.modificationsSupported():
++      if not self.getUserDB().modificationsSupported():
+          return self.getPrefsPage(errorMessage=&quot;Setting the restore format is not supported with the active user database.&quot;)
+       
+       if restoreType == 'zip' or restoreType == 'tgz':
+-         self.userDB.setUseZipFormat(self.getUsername(), restoreType == 'zip')
++         self.getUserDB().setUseZipFormat(self.getUsername(), restoreType == 'zip')
+       else:
+          return self._getPrefsPage(errorMessage='Invalid restore format.')
+       return self._getPrefsPage(statusMessage=&quot;Successfully set restore format.&quot;)
+    
+    def _getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+-      email = self.userDB.getUserEmail(self.getUsername());
++      email = self.getUserDB().getUserEmail(self.getUsername());
+       parms = {
+          &quot;title&quot; : title,
+          &quot;error&quot; : errorMessage,
+@@ -88,14 +88,14 @@
+          &quot;userEmail&quot; : email,
+          &quot;notificationsEnabled&quot; : False,
+          &quot;backups&quot; : [],
+-         &quot;useZipFormat&quot;: self.userDB.useZipFormat(self.getUsername()),
++         &quot;useZipFormat&quot;: self.getUserDB().useZipFormat(self.getUsername()),
+          &quot;sampleEmail&quot;: self.sampleEmail
+       }
+       if email_notification.emailNotifier().notificationsEnabled():
+-         repos = self.userDB.getUserRepoPaths(self.getUsername())
++         repos = self.getUserDB().getUserRepoPaths(self.getUsername())
+          backups = []
+          for repo in repos:
+-            maxAge = self.userDB.getRepoMaxAge(self.getUsername(), repo)
++            maxAge = self.getUserDB().getRepoMaxAge(self.getUsername(), repo)
+             notifyOptions = []
+             for i in range(0, 8):
+                notifyStr = &quot;Don't notify&quot;
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_restore.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -19,10 +19,10 @@
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+       if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+-      if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
++      if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+-      if librdiff.backupIsInProgressForRepo(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
++      if librdiff.backupIsInProgressForRepo(rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)):
+          return self.writeErrorPage(&quot;A backup is currently in progress to this location.  Restores are disabled until this backup is complete.&quot;)
+ 
+       try:
+@@ -32,8 +32,8 @@
+          if not file:
+             file = path
+             path = &quot;/&quot;
+-         fullPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)
+-         useZipFormat = self.userDB.useZipFormat(self.getUsername())
++         fullPath = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)
++         useZipFormat = self.getUserDB().useZipFormat(self.getUsername())
+          filePath = librdiff.restoreFileOrDir(fullPath, path, file, restoreTime, useZipFormat)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-12-18 02:14:48 UTC (rev 192)
++++ trunk/rdiffWeb/page_status.py	2007-12-27 17:15:36 UTC (rev 193)
+@@ -23,7 +23,7 @@
+          userMessages = self._getUserMessagesForDay(entryTime)
+       else:
+          # Validate repo parameter
+-         if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
++         if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+             return self.writeErrorPage(&quot;Access is denied.&quot;)
+          try:
+             self.validateUserPath(repo)
+@@ -83,7 +83,7 @@
+       return self._buildAbsolutePageUrl(False) + &quot;entry?repo=&quot;+rdw_helpers.encodeUrl(repo)+&quot;&amp;date=&quot;+rdw_helpers.encodeUrl(date.getUrlString())
+    
+    def _getUserMessagesForDay(self, date):
+-      userRepos = self.userDB.getUserRepoPaths(self.getUsername())
++      userRepos = self.getUserDB().getUserRepoPaths(self.getUsername())
+ 
+       # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
+       startTime = rdw_helpers.rdwTime()
+@@ -99,14 +99,14 @@
+       return self._getUserMessages(userRepos, True, False, startTime, endTime)
+ 
+    def _getRecentUserMessages(self, failuresOnly):
+-      userRepos = self.userDB.getUserRepoPaths(self.getUsername())
++      userRepos = self.getUserDB().getUserRepoPaths(self.getUsername())
+       asOfDate = rdw_helpers.rdwTime()
+       asOfDate.initFromMidnightUTC(-5)
+ 
+       return self._getUserMessages(userRepos, not failuresOnly, True, asOfDate, None)
+ 
+    def _getUserMessages(self, repos, includeSuccess, includeFailure, earliestDate, latestDate):
+-      userRoot = self.userDB.getUserRoot(self.getUsername())
++      userRoot = self.getUserDB().getUserRoot(self.getUsername())
+ 
+       repoErrors = []
+       allBackups = []
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000149.html">[Rdiffweb-commits] r192 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000151.html">[Rdiffweb-commits] r194 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r187 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r187%20-%20trunk/rdiffWeb&In-Reply-To=%3C200712051509.lB5F9uAI008686%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000143.html">
+   <LINK REL="Next"  HREF="000145.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r187 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r187%20-%20trunk/rdiffWeb&In-Reply-To=%3C200712051509.lB5F9uAI008686%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r187 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Dec  5 16:09:56 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000143.html">[Rdiffweb-commits] r186 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000145.html">[Rdiffweb-commits] r188 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#144">[ date ]</a>
+              <a href="thread.html#144">[ thread ]</a>
+              <a href="subject.html#144">[ subject ]</a>
+              <a href="author.html#144">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-12-05 16:09:54 +0100 (Wed, 05 Dec 2007)
+New Revision: 187
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+Remove bogus check for repo in status page
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-12-03 20:38:00 UTC (rev 186)
++++ trunk/rdiffWeb/page_status.py	2007-12-05 15:09:54 UTC (rev 187)
+@@ -23,7 +23,6 @@
+          userMessages = self._getUserMessagesForDay(entryTime)
+       else:
+          # Validate repo parameter
+-         if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+          if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+             return self.writeErrorPage(&quot;Access is denied.&quot;)
+          try:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000143.html">[Rdiffweb-commits] r186 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000145.html">[Rdiffweb-commits] r188 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#144">[ date ]</a>
+              <a href="thread.html#144">[ thread ]</a>
+              <a href="subject.html#144">[ subject ]</a>
+              <a href="author.html#144">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

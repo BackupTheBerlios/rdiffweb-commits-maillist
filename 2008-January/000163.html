@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r206 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r206%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031304.m03D4sK6025444%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000162.html">
+   <LINK REL="Next"  HREF="000164.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r206 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r206%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031304.m03D4sK6025444%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r206 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Jan  3 14:04:54 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000162.html">[Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+</A></li>
+        <LI>Next message: <A HREF="000164.html">[Rdiffweb-commits] r207 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#163">[ date ]</a>
+              <a href="thread.html#163">[ thread ]</a>
+              <a href="subject.html#163">[ subject ]</a>
+              <a href="author.html#163">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-03 14:04:51 +0100 (Thu, 03 Jan 2008)
+New Revision: 206
+
+Modified:
+   trunk/rdiffWeb/rdw_config.py
+Log:
+Fix unit test broken by r202
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2008-01-01 21:41:02 UTC (rev 205)
++++ trunk/rdiffWeb/rdw_config.py	2008-01-03 13:04:51 UTC (rev 206)
+@@ -76,10 +76,8 @@
+          os.remove(self.configFilePath)
+ 
+    def testBadParms(self):
+-      try:
+-         getConfigSetting(&quot;setting&quot;, &quot;/tmp/rdw_bogus.conf&quot;)
+-      except ParameterError: pass
+-      else: assert(False)
++      value = getConfigSetting(&quot;setting&quot;, &quot;/tmp/rdw_bogus.conf&quot;)
++      assert(value == &quot;&quot;)
+       self.writeGoodFile()
+       try:
+          getConfigSetting(&quot;setting=&quot;, &quot;/tmp/rdw_config.conf&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000162.html">[Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+</A></li>
+	<LI>Next message: <A HREF="000164.html">[Rdiffweb-commits] r207 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#163">[ date ]</a>
+              <a href="thread.html#163">[ thread ]</a>
+              <a href="subject.html#163">[ subject ]</a>
+              <a href="author.html#163">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

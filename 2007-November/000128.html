@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r171 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r171%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711120301.lAC31k7d002148%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000127.html">
+   <LINK REL="Next"  HREF="000129.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r171 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r171%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711120301.lAC31k7d002148%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r171 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Nov 12 04:01:46 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000127.html">[Rdiffweb-commits] r170 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000129.html">[Rdiffweb-commits] r172 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#128">[ date ]</a>
+              <a href="thread.html#128">[ thread ]</a>
+              <a href="subject.html#128">[ subject ]</a>
+              <a href="author.html#128">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-11-12 04:01:42 +0100 (Mon, 12 Nov 2007)
+New Revision: 171
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Better detect rdiff-backup failures when restoring.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-11-12 03:00:58 UTC (rev 170)
++++ trunk/rdiffWeb/librdiff.py	2007-11-12 03:01:42 UTC (rev 171)
+@@ -10,21 +10,23 @@
+ ##### Error definitions #####
+ class FileError:
+    def getErrorString(self):
+-      return self.errorString
++      return self.error
+    def __str__(self):
+       return self.getErrorString()
+ 
+ class AccessDeniedError(FileError):
+    def __init__(self):
+-      self.errorString = &quot;Access is denied.&quot;
++      self.error = &quot;Access is denied.&quot;
+ 
+ class DoesNotExistError(FileError):
+    def __init__(self):
+-      self.errorString = &quot;The backup location does not exist.&quot;
++      self.error = &quot;The backup location does not exist.&quot;
+ 
+ class UnknownError(FileError):
+-   def __init__(self):
+-      self.errorString = &quot;An unknown error occurred.&quot;
++   def __init__(self, error=None):
++      self.error = error
++      if not self.error:
++         self.error = &quot;An unknown error occurred.&quot;
+ 
+ ##### Helper Functions #####
+ def rsplit(string, sep, count=-1):
+@@ -285,10 +287,12 @@
+    fileToRestore = joinPaths(repoRoot, dirPath, filename)
+    dateString = str(restoreDate.getSeconds())
+    rdiffOutputFile = joinPaths(tempfile.mkdtemp(), restoredFilename) # TODO: make so this includes the username
+-   args = [ &quot;rdiff-backup&quot;, &quot;--restore-as-of=&quot;+dateString, fileToRestore, rdiffOutputFile ]
+-   os.spawnvp(os.P_WAIT, args[0], args)
+-   if not os.access(rdiffOutputFile, os.F_OK):
+-      raise UnknownError()
++   results = rdw_helpers.execute(&quot;rdiff-backup&quot;, &quot;--restore-as-of=&quot;+dateString, fileToRestore, rdiffOutputFile)
++   if results['exitCode'] != 0 or not os.access(rdiffOutputFile, os.F_OK):
++      error = results['stderr']
++      if not error:
++         error = 'rdiff-backup claimed success, but did not restore anything. This indicates a bug in rdiffWeb. Please report this to a developer.'
++      raise UnknownError('Unable to restore! rdiff-backup output:\n'+error)
+    if os.path.isdir(rdiffOutputFile):
+       rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+&quot;.zip&quot;)
+       rdw_helpers.removeDir(rdiffOutputFile)
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-12 03:00:58 UTC (rev 170)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-12 03:01:42 UTC (rev 171)
+@@ -7,6 +7,7 @@
+ import time
+ import urllib
+ import zipfile
++import subprocess
+ 
+ import rdw_templating
+ 
+@@ -252,8 +253,19 @@
+          assert fullPath.startswith(dirPath)
+          relPath = fullPath[len(dirPath):]
+          zipObj.write(fullPath, relPath)
++
++def execute(command, *args):
++   parms = [command]
++   parms.extend(args)
++   execution = subprocess.Popen(parms, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+ 
++   results = {}
++   results['exitCode'] = execution.wait()
++   (results['stdout'], results['stderr']) = execution.communicate()
++   print results, parms
++   return results
+ 
++
+ import unittest
+ class helpersTest(unittest.TestCase):
+    def testJoinPaths(self):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000127.html">[Rdiffweb-commits] r170 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000129.html">[Rdiffweb-commits] r172 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#128">[ date ]</a>
+              <a href="thread.html#128">[ thread ]</a>
+              <a href="subject.html#128">[ subject ]</a>
+              <a href="author.html#128">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,35 @@
+From commits at rdiffweb.org  Tue Jul 31 01:53:52 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 31 Jul 2007 01:53:52 +0200
+Subject: [Rdiffweb-commits] r95 - trunk/rdiffWeb
+Message-ID: <200707302353.l6UNrqWQ009079@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-07-31 01:53:49 +0200 (Tue, 31 Jul 2007)
+New Revision: 95
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+Allow specifying username to allow multiple watched feeds
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-06-15 10:42:50 UTC (rev 94)
++++ trunk/rdiffWeb/page_status.py	2007-07-30 23:53:49 UTC (rev 95)
+@@ -52,8 +52,10 @@
+       return page
+    entry.exposed = True
+ 
+-   def feed(self):
++   def feed(self, user=""):
+       cherrypy.response.headerMap["Content-Type"] = "text/xml"
++      if user and user != self.getUsername():
++         return self.writeErrorPage("Invalid username.")
+       userMessages = self._getRecentUserMessages()
+       statusUrl = self._buildAbsoluteStatusUrl()
+       return self.compileTemplate("status.xml", username=self.getUsername(), link=statusUrl, messages=userMessages)
+
+
+

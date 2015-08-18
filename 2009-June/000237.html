@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r278 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r278%20-%20trunk/rdiffWeb&In-Reply-To=%3C200906291227.n5TCRdVo013444%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000236.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r278 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r278%20-%20trunk/rdiffWeb&In-Reply-To=%3C200906291227.n5TCRdVo013444%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r278 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Jun 29 14:27:39 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000236.html">[Rdiffweb-commits] r277 - in trunk/rdiffWeb: . templates
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#237">[ date ]</a>
+              <a href="thread.html#237">[ thread ]</a>
+              <a href="subject.html#237">[ subject ]</a>
+              <a href="author.html#237">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-06-29 14:27:33 +0200 (Mon, 29 Jun 2009)
+New Revision: 278
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/db_sqlite.py
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/rdw_spider_repos.py
+Log:
+Cleanup: we can now assume that the user database supports modifications.
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/db_mysql.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -15,9 +15,6 @@
+       self._connect()
+       self._updateToLatestFormat()
+ 
+-   def modificationsSupported(self):
+-      return True
+-
+    def userExists(self, username):
+       results = self._executeQuery(&quot;SELECT Username FROM users WHERE Username = %(user)s&quot;, user=username)
+       return len(results) == 1
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/db_sqlite.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -14,9 +14,6 @@
+       self._migrateExistingData()
+       self._handleFormatChanges()
+ 
+-   def modificationsSupported(self):
+-      return True
+-
+    def userExists(self, username):
+       results = self._executeQuery(&quot;SELECT Username FROM users WHERE Username = ?&quot;, (username,))
+       return len(results) == 1
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/email_notification.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -45,8 +45,7 @@
+    notifier = emailNotifier()
+    return notifier.getEmailHost() != &quot;&quot; and\
+           notifier.getEmailSender() != &quot;&quot; and\
+-          notifier.getNotificationTimeStr() != &quot;&quot; and\
+-          userDB.modificationsSupported()
++          notifier.getNotificationTimeStr()
+ 
+ class emailNotifier:
+    def __init__(self):
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/page_admin.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -70,9 +70,6 @@
+          return self._generatePageHtml(&quot;&quot;, &quot;Email notifications are disabled.&quot;)
+ 
+    def _changeNotifications(self, parms):
+-      if not self.getUserDB().modificationsSupported():
+-         return self._getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
+-
+       users = self.getUserDB().getUserList()
+       notify_options = email_notification.loadNotificationsTableResults(parms)
+       for option in notify_options:
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/page_main.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -58,8 +58,7 @@
+ 
+    def writeTopLinks(self):
+       pages = [(&quot;/status/&quot;, &quot;Backup Status&quot;)]
+-      if self.getUserDB().modificationsSupported():
+-         pages.append((&quot;/prefs&quot;, &quot;Preferences&quot;))
++      pages.append((&quot;/prefs&quot;, &quot;Preferences&quot;))
+       if self.getUserDB().userIsAdmin(self.getUsername()):
+          pages.append((&quot;/admin&quot;, &quot;Admin&quot;))
+       pages.append((&quot;/logout&quot;, &quot;Log Out&quot;))
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/page_prefs.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -7,8 +7,6 @@
+ import rdw_spider_repos
+ import email_notification
+ 
+-#TODO: remove all the modificationsSupported calls
+-
+ class rdiffPreferencesPage(page_main.rdiffPage):
+    
+    def index(self, **parms):
+@@ -31,9 +29,6 @@
+    index.exposed = True
+    
+    def _changePassword(self, currentPassword, newPassword, confirmPassword):
+-      if not self.getUserDB().modificationsSupported():
+-         return self._getPrefsPage(errorMessage=&quot;Password changing is not supported with the active user database.&quot;)
+-      
+       if not self.getUserDB().areUserCredentialsValid(self.getUsername(), currentPassword):
+          return self._getPrefsPage(errorMessage=&quot;The 'Current Password' is invalid.&quot;)
+       
+@@ -68,9 +63,6 @@
+       return self._getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
+    
+    def _setRestoreType(self, restoreType):
+-      if not self.getUserDB().modificationsSupported():
+-         return self.getPrefsPage(errorMessage=&quot;Setting the restore format is not supported with the active user database.&quot;)
+-      
+       if restoreType == 'zip' or restoreType == 'tgz':
+          self.getUserDB().setUseZipFormat(self.getUsername(), restoreType == 'zip')
+       else:
+
+Modified: trunk/rdiffWeb/rdw_spider_repos.py
+===================================================================
+--- trunk/rdiffWeb/rdw_spider_repos.py	2009-06-28 22:04:34 UTC (rev 277)
++++ trunk/rdiffWeb/rdw_spider_repos.py	2009-06-29 12:27:33 UTC (rev 278)
+@@ -60,7 +60,6 @@
+ 
+ def findReposForAllUsers(verbose):
+    userDBModule = db.userDB().getUserDBModule()
+-   if not userDBModule.modificationsSupported(): return
+    
+    users = userDBModule.getUserList()
+    for user in users:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000236.html">[Rdiffweb-commits] r277 - in trunk/rdiffWeb: . templates
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#237">[ date ]</a>
+              <a href="thread.html#237">[ thread ]</a>
+              <a href="subject.html#237">[ subject ]</a>
+              <a href="author.html#237">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

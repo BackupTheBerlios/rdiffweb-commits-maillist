@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r134 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r134%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709292327.l8TNRASn023440%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000090.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r134 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r134%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709292327.l8TNRASn023440%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r134 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Sep 30 01:27:10 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000090.html">[Rdiffweb-commits] r133 - trunk/rdiffWeb
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-30 01:27:06 +0200 (Sun, 30 Sep 2007)
+New Revision: 134
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Optimization for getting backup history
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-29 23:16:30 UTC (rev 133)
++++ trunk/rdiffWeb/librdiff.py	2007-09-29 23:27:06 UTC (rev 134)
+@@ -280,11 +280,9 @@
+    mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
+    return not mirrorMarkers or len(mirrorMarkers) &gt; 1
+ 
+-def backupIsInProgress(repo, date):
+-   rdiffDir = joinPaths(repo, rdiffDataDirName)
+-   mirrorMarkers = os.listdir(rdiffDir)
++def backupIsInProgress(repo, date, rdiffDirListing):
++   mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), rdiffDirListing)
+    mirrorMarkers.sort()
+-   mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
+    if not mirrorMarkers:
+       return True
+    mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
+@@ -318,8 +316,8 @@
+ 
+    # Get a listing of error log files, and use that to build backup history
+    rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
+-   curEntries = os.listdir(rdiffDir)
+-   curEntries = filter(lambda x: x.startswith(&quot;error_log.&quot;), curEntries)
++   rdiffDirEntries = os.listdir(rdiffDir)
++   curEntries = filter(lambda x: x.startswith(&quot;error_log.&quot;), rdiffDirEntries)
+    curEntries.sort()
+ 
+    entries = []
+@@ -347,7 +345,7 @@
+          expression = 0
+       newEntry = backupHistoryEntry()
+       newEntry.date = entry.getDate()
+-      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate())
++      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate(), rdiffDirEntries)
+       if newEntry.inProgress:
+          newEntry.errors = &quot;&quot;
+       else:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000090.html">[Rdiffweb-commits] r133 - trunk/rdiffWeb
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

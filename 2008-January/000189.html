@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r232 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r232%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801290205.m0T25L6S001178%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000188.html">
+   <LINK REL="Next"  HREF="000190.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r232 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r232%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801290205.m0T25L6S001178%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r232 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 03:05:21 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000188.html">[Rdiffweb-commits] r231 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000190.html">[Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo	encoding/repo/rdiff-backup-data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 03:05:17 +0100 (Tue, 29 Jan 2008)
+New Revision: 232
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Fix errors in last commit.
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:54:45 UTC (rev 231)
++++ trunk/rdiffWeb/rdw_templating.py	2008-01-29 02:05:17 UTC (rev 232)
+@@ -3,7 +3,7 @@
+ import rdw_helpers
+ import re
+ 
+-class templateError:
++class templateError(BaseException):
+    pass
+ class templateDataError(templateError):
+    pass
+@@ -28,7 +28,7 @@
+       regEx = re.compile(r&quot;&lt;!--StartRepeat:(.*?)--&gt;(.*?)&lt;!--EndRepeat:\1--&gt;&quot;, re.S)
+       workingText = regEx.sub(self._handleListMatch, templateString)
+       if &quot;&lt;!--StartRepeat&quot; in workingText or &quot;&lt;!--EndRepeat&quot; in workingText:
+-         raise templateDefinitionError(workingText)
++         raise templateDefinitionError, workingText
+ 
+       # handle all other single replacements
+       workingText = self.parseSingleTemplate(workingText)
+@@ -60,7 +60,7 @@
+       listName = match.group(1)
+       textToReplace = match.group(2).rstrip(&quot;\n&quot;)
+       if not replacements.get(listName) and replacements.get(listName) != []: # allow empty dictionaries
+-         raise templateDataError(listName)
++         raise templateDataError, listName
+       entireResult = &quot;&quot;
+       listToReplaceWith = replacements[listName]
+       for listInList in listToReplaceWith[:-1]:
+@@ -77,7 +77,7 @@
+       if isMultiline:
+          matchText = matchText[len(multilineKeyword):]
+       if not matchText in replacements.keys():
+-         raise templateDataError(matchText)
++         raise templateDataError, matchText
+       replacementText = self._getReplacementText(replacements[matchText])
+       if isMultiline:
+          replacementText = replacementText.replace(&quot;\n&quot;, &quot;\n&lt;br/&gt;&quot;)
+@@ -103,7 +103,7 @@
+    def _getReplacementText(self, replacement):
+       if isinstance(replacement, unicode):
+          replacement = replacement.encode('utf-8')
+-      return rdw_helpers.encodeText(replacement)
++      return rdw_helpers.encodeText(str(replacement))
+ 
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000188.html">[Rdiffweb-commits] r231 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000190.html">[Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo	encoding/repo/rdiff-backup-data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

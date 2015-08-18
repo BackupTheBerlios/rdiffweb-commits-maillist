@@ -1,0 +1,36 @@
+From informatica at istitutodeglinnocenti.it  Wed Mar 25 12:33:33 2009
+From: informatica at istitutodeglinnocenti.it (Ufficio Sistemi Informativi - Istituto degli Innocenti)
+Date: Wed, 25 Mar 2009 12:33:33 +0100
+Subject: [Rdiffweb-commits] Rdiff web 0.6.3 and cherrypy error
+Message-ID: <49CA168D.3000700@istitutodeglinnocenti.it>
+
+Hello everybody,
+ i have installed Rdiff web 0.6.3 on a linux debian 64 machine, with 
+rdiff-backup 1.2.8, python 2.5.4 and python-cherrypy 3.1.1.
+Running rdiff-web i get this error:
+
+Traceback (most recent call last):
+ File "/usr/bin/rdiff-web", line 107, in <module>
+   cherrypy.config.update(global_settings)
+ File "/var/lib/python-support/python2.5/cherrypy/_cpconfig.py", line 
+286, in update
+   self.namespaces(config)
+ File "/var/lib/python-support/python2.5/cherrypy/_cpconfig.py", line 
+222, in __call__
+   handler(k, v)
+ File "/var/lib/python-support/python2.5/cherrypy/_cpconfig.py", line 
+245, in <lambda>
+   **{"server": lambda k, v: setattr(cherrypy.server, k, v),
+ File "/var/lib/python-support/python2.5/cherrypy/_cpserver.py", line 
+30, in _set_socket_host
+   raise ValueError("Host values of '' or None are not allowed. "
+ValueError: Host values of '' or None are not allowed. Use '0.0.0.0' 
+instead to listen on all active interfaces (INADDR_ANY).
+
+
+Any ideas?
+
+Thanks
+Leonardo
+
+

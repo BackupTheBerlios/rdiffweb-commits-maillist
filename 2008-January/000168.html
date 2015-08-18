@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r211 - trunk/rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r211%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200801031446.m03EkdYl032644%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000167.html">
+   <LINK REL="Next"  HREF="000169.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r211 - trunk/rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r211%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200801031446.m03EkdYl032644%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r211 - trunk/rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Jan  3 15:46:39 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000167.html">[Rdiffweb-commits] r210 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000169.html">[Rdiffweb-commits] r212 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#168">[ date ]</a>
+              <a href="thread.html#168">[ thread ]</a>
+              <a href="subject.html#168">[ subject ]</a>
+              <a href="author.html#168">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-03 15:46:37 +0100 (Thu, 03 Jan 2008)
+New Revision: 211
+
+Modified:
+   trunk/rdiffWeb/templates/admin_main.html
+Log:
+Fix adding a user after deleting a user.
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2008-01-03 14:46:17 UTC (rev 210)
++++ trunk/rdiffWeb/templates/admin_main.html	2008-01-03 14:46:37 UTC (rev 211)
+@@ -42,7 +42,7 @@
+ &lt;/table&gt;
+ 
+ &lt;br&gt;
+-&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;form action=&quot;/admin/&quot; method=&quot;post&quot;&gt;
+ &lt;input style=&quot;display:none&quot; name=&quot;action&quot; value=&quot;add&quot; /&gt;
+ &lt;h3&gt;Add User&lt;/h3&gt;
+ &lt;table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000167.html">[Rdiffweb-commits] r210 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000169.html">[Rdiffweb-commits] r212 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#168">[ date ]</a>
+              <a href="thread.html#168">[ thread ]</a>
+              <a href="subject.html#168">[ subject ]</a>
+              <a href="author.html#168">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r201 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r201%20-%20trunk&In-Reply-To=%3C200801012134.m01LY0SZ012565%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000157.html">
+   <LINK REL="Next"  HREF="000159.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r201 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r201%20-%20trunk&In-Reply-To=%3C200801012134.m01LY0SZ012565%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r201 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  1 22:34:00 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000157.html">[Rdiffweb-commits] r200 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000159.html">[Rdiffweb-commits] r202 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#158">[ date ]</a>
+              <a href="thread.html#158">[ thread ]</a>
+              <a href="subject.html#158">[ subject ]</a>
+              <a href="author.html#158">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-01 22:33:58 +0100 (Tue, 01 Jan 2008)
+New Revision: 201
+
+Modified:
+   trunk/rdw.conf.sample
+Log:
+Remove old database variables from sample config file
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2008-01-01 17:51:18 UTC (rev 200)
++++ trunk/rdw.conf.sample	2008-01-01 21:33:58 UTC (rev 201)
+@@ -5,23 +5,6 @@
+ # This is the port that the server should listen on
+ # ServerPort=8080
+ 
+-# There are two options for user databases: file and MySQL.
+-# The main limitation of the file-based user database is that it only supports
+-# one user, while the MySQL-based user database has no limit. Automatic updating
+-# of user repositories and email notifications are also not supported for
+-# file-based databases.
+-# UserDB=mysql
+-
+-
+-# The following variables for only for file-based backends (they are stored
+-# in the database when using MySQL.)
+-#
+-# Username=user
+-# Password=pass
+-# UserRoot=/var/backups
+-# UserRepoPaths=/home_backup|/work_backup # A pipe-delimited list of repositories, relative to UserRoot
+-
+-
+ # The server can be configured to email user when their repositories have not
+ # been backed up for a user-specified period of time. To enable this feature,
+ # set below settings to correct values.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000157.html">[Rdiffweb-commits] r200 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000159.html">[Rdiffweb-commits] r202 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#158">[ date ]</a>
+              <a href="thread.html#158">[ thread ]</a>
+              <a href="subject.html#158">[ subject ]</a>
+              <a href="author.html#158">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

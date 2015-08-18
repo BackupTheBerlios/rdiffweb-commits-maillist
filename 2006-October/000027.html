@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r70 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r70%20-%20trunk&In-Reply-To=%3C200610301907.k9UJ7ggV027355%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000026.html">
+   <LINK REL="Next"  HREF="000028.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r70 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r70%20-%20trunk&In-Reply-To=%3C200610301907.k9UJ7ggV027355%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r70 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Oct 30 20:07:42 CET 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000026.html">[Rdiffweb-commits] r69 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000028.html">[Rdiffweb-commits] r71 - in trunk/rdiffWeb: static templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27">[ date ]</a>
+              <a href="thread.html#27">[ thread ]</a>
+              <a href="subject.html#27">[ subject ]</a>
+              <a href="author.html#27">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-10-30 20:07:39 +0100 (Mon, 30 Oct 2006)
+New Revision: 70
+
+Modified:
+   trunk/setup.py
+Log:
+Corrections to packaging
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2006-10-28 03:18:49 UTC (rev 69)
++++ trunk/setup.py	2006-10-30 19:07:39 UTC (rev 70)
+@@ -14,7 +14,7 @@
+       author_email='<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at rdiffweb.org</A>',
+       url='<A HREF="http://www.rdiffweb.org">http://www.rdiffweb.org</A>',
+       packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css' 'static/images/*']},
++      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+@@ -40,7 +40,10 @@
+                   ('/etc/init.d', ['init/rdiff-web']),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
++                  (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+                   ],
+       scripts=['rdiff-web', 'rdiff-web-config']
+      )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000026.html">[Rdiffweb-commits] r69 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000028.html">[Rdiffweb-commits] r71 - in trunk/rdiffWeb: static templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27">[ date ]</a>
+              <a href="thread.html#27">[ thread ]</a>
+              <a href="subject.html#27">[ subject ]</a>
+              <a href="author.html#27">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

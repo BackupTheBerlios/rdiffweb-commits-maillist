@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r140%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200710041701.l94H1kjT021454%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000096.html">
+   <LINK REL="Next"  HREF="000098.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r140%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200710041701.l94H1kjT021454%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Oct  4 19:01:46 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000096.html">[Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates
+</A></li>
+        <LI>Next message: <A HREF="000098.html">[Rdiffweb-commits] r141 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-04 19:01:42 +0200 (Thu, 04 Oct 2007)
+New Revision: 140
+
+Modified:
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/templates/history.html
+Log:
+Another take on increment sizes
+
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-10-04 15:55:43 UTC (rev 139)
++++ trunk/rdiffWeb/page_history.py	2007-10-04 17:01:42 UTC (rev 140)
+@@ -29,20 +29,22 @@
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+-      totalIncrementSize = 0
++      cumulativeSize = 0
++      if len(rdiffHistory) &gt; 0: cumulativeSize = rdiffHistory[0].size
++      
+       for historyItem in rdiffHistory:
+          fileSize = &quot;&quot;
+          incrementSize = &quot;&quot;
+          if not historyItem.inProgress:
+             fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
+             incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
+-            totalIncrementSize += historyItem.incrementSize
++            cumulativeSize += historyItem.incrementSize
+          entries.append({ &quot;date&quot; : historyItem.date.getDisplayString(),
+                           &quot;inProgress&quot; : historyItem.inProgress,
+                           &quot;errors&quot; : historyItem.errors,
+-                          &quot;incrementSize&quot; : incrementSize,
++                          &quot;cumulativeSize&quot; : rdw_helpers.formatFileSizeStr(cumulativeSize),
+                           &quot;size&quot; : fileSize })
+-      return {&quot;title&quot; : &quot;Backup history for &quot;+repoName, &quot;history&quot; : entries, &quot;totalBackups&quot; : len(rdiffHistory), &quot;totalIncrementSize&quot; : rdw_helpers.formatFileSizeStr(totalIncrementSize)}
++      return {&quot;title&quot; : &quot;Backup history for &quot;+repoName, &quot;history&quot; : entries, &quot;totalBackups&quot; : len(rdiffHistory)}
+       
+ 
+ class historyPageTest(page_main.pageTest, rdiffHistoryPage):
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-10-04 15:55:43 UTC (rev 139)
++++ trunk/rdiffWeb/templates/history.html	2007-10-04 17:01:42 UTC (rev 140)
+@@ -17,11 +17,10 @@
+       &lt;td&gt;&lt;/td&gt;
+       &lt;td&gt;Date&lt;/td&gt;
+       &lt;td&gt;Size&lt;/td&gt;
+-      &lt;td&gt;Increment Size&lt;a class=&quot;PopupLink&quot; href=&quot;javascript:void 0&quot;&gt;?&lt;/a&gt;&lt;/td&gt;
++      &lt;td&gt;Cumulative Size&lt;a class=&quot;PopupLink&quot; href=&quot;javascript:void 0&quot;&gt;?&lt;/a&gt;&lt;/td&gt;
+       &lt;td class=&quot;FlyoutContainer&quot;&gt;
+          &lt;div id=&quot;incrementSizePopup&quot;&gt;
+-            For each backup entry, the &lt;b&gt;increment size&lt;/b&gt; is the amount of data that changed in the subsequent backup. Said another way, the increment size is the amount of disk space that could be freed if the ability to restore to that backup date would be removed.&lt;br&gt;
+-            &lt;b&gt;You would free ^totalIncrementSize$ if you removed the ability to restore from any prior backup.&lt;/b&gt;
++            For each backup entry, the &lt;b&gt;cumulative size&lt;/b&gt; is the size of the current backup, plus the amount of data that is required to restore to that point in time.
+          &lt;/div&gt;
+       &lt;/td&gt;
+       &lt;td&gt;Result&lt;/td&gt;
+@@ -33,7 +32,7 @@
+       &lt;td class=&quot;Icon&quot; valign=&quot;middle&quot;&gt;&lt;img src=&quot;/static/images/history.png&quot;&gt;&lt;/img&gt;&lt;/td&gt;
+       &lt;td&gt;^date$&lt;/td&gt;
+       &lt;td&gt;^size$&lt;/td&gt;
+-      &lt;td&gt;^incrementSize$&lt;/td&gt;
++      &lt;td&gt;^cumulativeSize$&lt;/td&gt;
+       &lt;td class=&quot;FlyoutContainer&quot;&gt;&lt;/td&gt;
+       &lt;!--StartIncludeIf:errors--&gt;
+       &lt;td class=&quot;BackupResult&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000096.html">[Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates
+</A></li>
+	<LI>Next message: <A HREF="000098.html">[Rdiffweb-commits] r141 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

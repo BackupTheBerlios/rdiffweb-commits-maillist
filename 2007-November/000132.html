@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r175%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200711242316.lAONGe6a027362%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000131.html">
+   <LINK REL="Next"  HREF="000133.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r175%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200711242316.lAONGe6a027362%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Nov 25 00:16:40 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000131.html">[Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates
+</A></li>
+        <LI>Next message: <A HREF="000133.html">[Rdiffweb-commits] r176 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-11-25 00:16:35 +0100 (Sun, 25 Nov 2007)
+New Revision: 175
+
+Modified:
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Add preference to restore directories using .tar.gz instead of .zip. This preference is not yet respected, but will be soon.
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/db.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -28,6 +28,9 @@
+    def getUserEmail(self, username):
+       raise NotImplementedError
+    
++   def useZipFormat(self, username):
++      raise NotImplementedError
++   
+    def getUserList(self):
+       raise NotImplementedError
+ 
+@@ -48,6 +51,9 @@
+ 
+    def setUserPassword(self, username, password):
+       raise NotImplementedError
++   
++   def setUseZipFormat(self, username, useZip):
++      raise NotImplementedError
+ 
+    def getUserRoot(self, username):
+       raise NotImplementedError
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/db_mysql.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -1,6 +1,7 @@
+ #!/usr/bin/python
+ 
+ import rdw_config
++import types
+ 
+ &quot;&quot;&quot;We do no length validation for incoming parameters, since truncated values will
+ at worst lead to slightly confusing results, but no security risks&quot;&quot;&quot;
+@@ -39,6 +40,10 @@
+    def getUserEmail(self, username):
+       if not self.userExists(username): return None
+       return self._getUserField(username, &quot;userEmail&quot;)
++   
++   def useZipFormat(self, username):
++      if not self.userExists(username): return False
++      return bool(self._getUserField(username, &quot;restoreFormat&quot;))
+ 
+    def getUserList(self):
+       query = &quot;SELECT UserName FROM users&quot;
+@@ -68,8 +73,7 @@
+ 
+    def setUserEmail(self, username, userEmail):
+       if not self.userExists(username): raise ValueError
+-      query = &quot;UPDATE users SET UserEmail=%(userEmail)s WHERE Username = %(user)s&quot;
+-      self._executeQuery(query, userEmail=userEmail, user=username)
++      self._setUserField(username, 'UserEmail', userEmail)
+       
+    def setUserRepos(self, username, repoPaths):
+       if not self.userExists(username): raise ValueError
+@@ -94,8 +98,11 @@
+ 
+    def setUserPassword(self, username, password):
+       if not self.userExists(username): raise ValueError
+-      query = &quot;UPDATE users SET Password=%(password)s WHERE Username=%(user)s&quot;
+-      self._executeQuery(query, password=self._hashPassword(password), user=username)
++      self._setUserField(username, 'Password', self._hashPassword(password))
++   
++   def setUseZipFormat(self, username, useZip):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'RestoreFormat', bool(useZip))
+       
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+@@ -116,20 +123,29 @@
+       if not self.userExists(username): raise ValueError
+       self._executeQuery(&quot;DELETE FROM repos WHERE UserID=%d&quot; % self._getUserID(username))
+ 
++   def _getUserID(self, username):
++      assert self.userExists(username)
++      return self._getUserField(username, 'UserID')
++
+    def _getUserField(self, username, fieldName):
+       if not self.userExists(username): return None
+       query = &quot;SELECT &quot;+fieldName+&quot; FROM users WHERE Username = %(user)s&quot;
+       results = self._executeQuery(query, user=username)
+       assert len(results) == 1
+       return results[0][0]
++      
++   def _setUserField(self, username, fieldName, value):
++      if not self.userExists(username): raise ValueError
++      if type(value) == types.BooleanType:
++         if value:
++            valueStr = '1'
++         else:
++            valueStr = '0'
++      else:
++         valueStr = str(value)
++      query = 'UPDATE users SET '+fieldName+'=%(value)s WHERE Username=%(user)s'
++      self._executeQuery(query, value=valueStr, user=username)
+ 
+-   def _getUserID(self, username):
+-      assert self.userExists(username)
+-      query = &quot;SELECT UserID FROM users WHERE Username = %(user)s&quot;
+-      results = self._executeQuery(query, user=username)
+-      assert len(results) == 1
+-      return int(results[0][0])
+-
+    def _internalExecuteQuery(self, query, **kwargs):
+       cursor = self.sqlConnection.cursor()
+       cursor.execute(query, kwargs)
+@@ -167,11 +183,13 @@
+ UserRoot varchar (255) NOT NULL DEFAULT &quot;&quot;,
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT &quot;&quot;,
++RestoreFormat tinyint NOT NULL DEFAULT TRUE,
+ primary key (UserID) )&quot;&quot;&quot;,
+ &quot;&quot;&quot;create table repos (
+ RepoID int(11) NOT NULL auto_increment,
+ UserID int(11) NOT NULL, 
+ RepoPath varchar (255) NOT NULL,
++MaxAge tinyint NOT NULL DEFAULT 0,
+ primary key (RepoID))&quot;&quot;&quot;
+  ]
+                
+@@ -189,6 +207,11 @@
+       columnNames = [column[0].lower() for column in self._executeQuery(&quot;describe repos&quot;)]
+       if not &quot;maxage&quot; in columnNames:
+          self._executeQuery('alter table repos add column MaxAge tinyint NOT NULL DEFAULT 0')
++      
++      # Make sure that the users table has a &quot;restoreFormat&quot; column
++      columnNames = [column[0].lower() for column in self._executeQuery(&quot;describe users&quot;)]
++      if not &quot;restoreformat&quot; in columnNames:
++         self._executeQuery('alter table users add column RestoreFormat tinyint NOT NULL DEFAULT TRUE')
+ 
+ 
+ ##################### Unit Tests #########################
+@@ -221,8 +244,11 @@
+ 
+    def tearDown(self):
+       userData = mysqlUserDB(self.configFilePath)
+-      userData._executeQuery(&quot;DROP TABLE IF EXISTS users;&quot;)
+-      userData._executeQuery(&quot;DROP TABLE IF EXISTS repos;&quot;)
++      tableNames = [table[0].lower() for table in userData._executeQuery(&quot;show tables&quot;)]
++      if 'users' in tableNames:
++         userData._executeQuery(&quot;DROP TABLE IF EXISTS users;&quot;)
++      if 'repos' in tableNames:
++         userData._executeQuery(&quot;DROP TABLE IF EXISTS repos;&quot;)
+       if (os.access(self.configFilePath, os.F_OK)):
+          os.remove(self.configFilePath)
+ 
+@@ -286,6 +312,13 @@
+       userDataModule.setUserRepos(&quot;test&quot;, [&quot;b&quot;, &quot;c&quot;, &quot;d&quot;])
+       self.assertEquals(userDataModule.getRepoMaxAge(&quot;test&quot;, &quot;b&quot;), 1)
+       self.assertEquals(userDataModule.getUserRepoPaths(&quot;test&quot;), [&quot;b&quot;, &quot;c&quot;, &quot;d&quot;])
++      
++   def testRestoreFormat(self):
++      userDataModule = mysqlUserDB(self.configFilePath)
++      assert(userDataModule.useZipFormat('test')) # Should default to using zip format
++      userDataModule.setUseZipFormat('test', False)
++      assert(not userDataModule.useZipFormat('test'))
++      
+ 
+ if __name__ == &quot;__main__&quot;:
+    print &quot;Called as standalone program; running unit tests...&quot;
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/page_prefs.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -21,6 +21,8 @@
+             return self._updateRepos()
+          elif action == 'setNotifications':
+             return self._setNotifications(parms)
++         elif action == 'setRestoreType':
++            return self._setRestoreType(parms['restoreType'])
+          else:
+             return self._getPrefsPage(errorMessage='Invalid setting.')
+          
+@@ -66,6 +68,16 @@
+                
+       return self._getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
+    
++   def _setRestoreType(self, restoreType):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage(errorMessage=&quot;Setting the restore format is not supported with the active user database.&quot;)
++      
++      if restoreType == 'zip' or restoreType == 'tgz':
++         self.userDB.setUseZipFormat(self.getUsername(), restoreType == 'zip')
++      else:
++         return self._getPrefsPage(errorMessage='Invalid restore format.')
++      return self._getPrefsPage(statusMessage=&quot;Successfully set restore format.&quot;)
++   
+    def _getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+       email = self.userDB.getUserEmail(self.getUsername());
+@@ -76,6 +88,7 @@
+          &quot;userEmail&quot; : email,
+          &quot;notificationsEnabled&quot; : False,
+          &quot;backups&quot; : [],
++         &quot;useZipFormat&quot;: self.userDB.useZipFormat(self.getUsername()),
+          &quot;sampleEmail&quot;: self.sampleEmail
+       }
+       if email_notification.emailNotifier().notificationsEnabled():
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 23:16:35 UTC (rev 175)
+@@ -47,15 +47,16 @@
+ &lt;/div&gt;
+ &lt;/form&gt;
+ 
+-&lt;!--StartDelete--&gt;
+ &lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
+ &lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;setRestoreType&quot;/&gt;
+ &lt;div class=&quot;groupboxDiv&quot;&gt;
+    &lt;div class=&quot;roundedBorderContents&quot;&gt;
+       &lt;h3 class=&quot;groupboxHeader&quot;&gt;Directory Restore Format&lt;/h3&gt;
+-         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;zipRestoreType&quot;&gt;&lt;/input&gt;Restore my directories in &lt;b&gt;.zip&lt;/b&gt; format&lt;/label&gt;
++         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;restoreType&quot; StartIncludeIf:useZipFormat- checked='checked' EndIncludeIf:useZipFormat- value=&quot;zip&quot;&gt;
++                &lt;/input&gt;Restore my directories in &lt;b&gt;.zip&lt;/b&gt; format&lt;/label&gt;
+       &lt;br/&gt;
+-         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tgzRestoreType&quot;&gt;&lt;/input&gt;Restore my directories in &lt;b&gt;.tar.gz&lt;/b&gt; format&lt;/label&gt;
++         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;restoreType&quot; StartDeleteIf:useZipFormat- checked='checked' EndDeleteIf:useZipFormat- value=&quot;tgz&quot;&gt;
++                &lt;/input&gt;Restore my directories in &lt;b&gt;.tar.gz&lt;/b&gt; format&lt;/label&gt;
+       &lt;br/&gt;&lt;br/&gt;
+          (If unsure, select the .zip format.)
+       &lt;br/&gt;
+@@ -63,7 +64,6 @@
+    &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/form&gt;
+-&lt;!--EndDelete--&gt;
+ 
+ &lt;!--StartIncludeIf:notificationsEnabled--&gt;
+ &lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000131.html">[Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates
+</A></li>
+	<LI>Next message: <A HREF="000133.html">[Rdiffweb-commits] r176 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

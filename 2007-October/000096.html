@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r139%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200710041555.l94FtnuI002199%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000095.html">
+   <LINK REL="Next"  HREF="000097.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r139%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200710041555.l94FtnuI002199%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Oct  4 17:55:49 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000095.html">[Rdiffweb-commits] r138 - trunk/rdiffWeb/static
+</A></li>
+        <LI>Next message: <A HREF="000097.html">[Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-04 17:55:43 +0200 (Thu, 04 Oct 2007)
+New Revision: 139
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/status.html
+Log:
+Improve UI in status page, including adding links to repos listed
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/page_status.py	2007-10-04 15:55:43 UTC (rev 139)
+@@ -20,7 +20,7 @@
+          return self.writeErrorPage(&quot;Invalid date parameter.&quot;)
+ 
+       if not repo:
+-         userMessages = self._getUserMessagesForDay(date)
++         userMessages = self._getUserMessagesForDay(entryTime)
+       else:
+          # Validate repo parameter
+          if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+@@ -58,7 +58,14 @@
+          feedTitle = &quot;Backup status for &quot;+self.getUsername()
+       
+       page = self.startPage(&quot;Backup Status&quot;, rssUrl=feedLink, rssTitle = feedTitle)
+-      page = page + self.compileTemplate(&quot;status.html&quot;, messages=messages, feedLink=feedLink, statusLink=mainStatusLink, failuresOnlyLink=failuresStatusLink, failuresOnly=failuresOnly, title=title)
++      page = page + self.compileTemplate(&quot;status.html&quot;, 
++                                         messages=messages,
++                                         feedLink=feedLink,
++                                         statusLink=mainStatusLink,
++                                         failuresOnlyLink=failuresStatusLink,
++                                         failuresOnly=failuresOnly,
++                                         title=title,
++                                         isEntry=not isMainPage)
+       return page + self.endPage()
+ 
+    def _buildAbsolutePageUrl(self, failuresOnly):
+@@ -81,13 +88,13 @@
+ 
+       # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
+       startTime = rdw_helpers.rdwTime()
+-      startTime.timeInSeconds = entryTime.timeInSeconds
+-      startTime.tzOffset = entryTime.tzOffset
++      startTime.timeInSeconds = date.timeInSeconds
++      startTime.tzOffset = date.tzOffset
+       startTime.setTime(0, 0, 0)
+       
+       endTime = rdw_helpers.rdwTime() 	 
+-      endTime.timeInSeconds = entryTime.timeInSeconds 	 
+-      endTime.tzOffset = entryTime.tzOffset
++      endTime.timeInSeconds = date.timeInSeconds 	 
++      endTime.tzOffset = date.tzOffset
+       endTime.setTime(23, 59, 59)
+       
+       print startTime.getDisplayString(), endTime.getDisplayString()
+@@ -110,9 +117,10 @@
+          try:
+             backups = librdiff.getBackupHistoryForDateRange(rdw_helpers.joinPaths(userRoot, repo), earliestDate, latestDate);
+             allBackups += [{&quot;repo&quot;: repo, &quot;date&quot;: backup.date, &quot;displayDate&quot;: backup.date.getDisplayString(),
+-               &quot;size&quot;: rdw_helpers.formatFileSizeStr(backup.size), &quot;errors&quot;: backup.errors} for backup in backups]
++               &quot;size&quot;: rdw_helpers.formatFileSizeStr(backup.size), &quot;errors&quot;: backup.errors,
++               &quot;repoLink&quot; : self.buildBrowseUrl(repo, &quot;/&quot;, False)} for backup in backups]
+          except librdiff.FileError, error:
+-            repoErrors.append({&quot;repo&quot;: repo, &quot;error&quot;: error.getErrorString()})
++            repoErrors.append({&quot;repo&quot;: repo, &quot;error&quot;: error.getErrorString(), &quot;repoLink&quot; : self.buildBrowseUrl(repo, &quot;/&quot;, False)})
+ 
+       allBackups.sort(lambda x, y: cmp(y[&quot;date&quot;], x[&quot;date&quot;]))
+       failedBackups = filter(lambda x: x[&quot;errors&quot;], allBackups)
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/static/main.css	2007-10-04 15:55:43 UTC (rev 139)
+@@ -6,7 +6,12 @@
+ a
+ {
+    text-decoration: none;
++   color: blue;
+ }
++a:hover
++{
++   text-decoration: underline;
++}
+ 
+ #NavBar .roundedBorderBackground,
+ #NavBar .roundedBorderContents
+@@ -102,7 +107,7 @@
+ }
+ 
+ 
+-
++/* Status Page */
+ .backupStatus_success,
+ .backupStatus_success a:link,
+ .backupStatus_success a:visited
+@@ -117,6 +122,10 @@
+    color: red;
+    text-decoration: none;
+ }
++.statusRepoLink
++{
++   color: black;
++}
+ 
+ /* Prefs page */
+ p.warning,
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/templates/status.html	2007-10-04 15:55:43 UTC (rev 139)
+@@ -15,28 +15,29 @@
+ &lt;!--EndIncludeIf:statusLink--&gt;
+ &lt;!--EndDeleteIf:failuresOnly--&gt;
+ 
++&lt;!--StartDeleteIf:isEntry--&gt;
+ &lt;!--StartIncludeIf:failuresOnly--&gt;
+ &lt;a href=&quot;^statusLink$&quot;&gt;Include successful backups&lt;/a&gt;
+ &lt;!--EndIncludeIf:failuresOnly--&gt;
+ &lt;!--StartDeleteIf:failuresOnly--&gt;
+ &lt;a href=&quot;^failuresOnlyLink$&quot;&gt;Show only backups with errors&lt;/a&gt;
+ &lt;!--EndDeleteIf:failuresOnly--&gt;
+-&lt;!--StartDeleteIf:messages--&gt;&lt;p&gt;There are no recent backups to display.&lt;/p&gt;&lt;!--EndDeleteIf:messages--&gt;
++&lt;!--EndDeleteIf:isEntry--&gt;
++
++&lt;!--StartDeleteIf:messages--&gt;&lt;p&gt;There are no recent backups&lt;!--StartDeleteIf:failuresOnly--&gt; to display&lt;!--EndDeleteIf:failuresOnly--&gt;&lt;!--StartIncludeIf:failuresOnly--&gt; with errors&lt;!--EndIncludeIf:failuresOnly--&gt;.&lt;/p&gt;&lt;!--EndDeleteIf:messages--&gt;
++
+ &lt;!--StartRepeat:messages--&gt;
+-
+-&lt;!-- BACKUP SUCCESS --&gt;
+-&lt;!--StartIncludeIf:isSuccess--&gt;&lt;h3 class=&quot;backupStatus_success&quot;&gt;&lt;a href=&quot;^link$&quot;&gt;Successful Backups for ^dateString$&lt;a&gt;&lt;/h3&gt;
++&lt;!--StartIncludeIf:isSuccess--&gt;&lt;h3 class=&quot;backupStatus_success&quot;&gt;&lt;a href=&quot;^link$&quot;&gt;Successful Backups for ^dateString$&lt;/a&gt;&lt;/h3&gt;
+ &lt;div&gt;
+ &lt;p&gt;The following backups have completed successfully:&lt;/p&gt;
+ &lt;ul&gt;
+    &lt;!--StartRepeat:backups--&gt;
+-   &lt;li&gt;^displayDate$ - ^repo$ - ^size$&lt;/li&gt;
++   &lt;li&gt;&lt;a class=&quot;statusRepoLink&quot; href=&quot;^repoLink$&quot;&gt;^displayDate$ - ^repo$ - ^size$&lt;/a&gt;&lt;/li&gt;
+    &lt;!--EndRepeat:backups--&gt;
+ &lt;/ul&gt;
+ &lt;/div&gt;
+ &lt;!--EndIncludeIf:isSuccess--&gt;
+ 
+-&lt;!-- BACKUP FAILURE --&gt;
+ &lt;!--StartDeleteIf:isSuccess--&gt;&lt;h3 class=&quot;backupStatus_failure&quot;&gt;&lt;a href=&quot;^link$&quot;&gt;Backup Completed with Errors: ^repo$&lt;/a&gt;&lt;/h3&gt;
+ &lt;div&gt;
+    &lt;p&gt;The backup to &lt;strong&gt;^repo$&lt;/strong&gt; on &lt;strong&gt;^displayDate$&lt;/strong&gt;
+@@ -49,7 +50,7 @@
+    &lt;p&gt;There following repositories contain errors:&lt;/p&gt;
+    &lt;ul&gt;
+       &lt;!--StartRepeat:repoErrors--&gt;
+-      &lt;li&gt;^repo$: ^multiline:error$&lt;/li&gt;
++      &lt;li&gt;&lt;a class=&quot;statusRepoLink&quot; href=&quot;^repoLink$&quot;&gt;^repo$: ^multiline:error$&lt;/a&gt;&lt;/li&gt;
+       &lt;!--EndRepeat:repoErrors--&gt;
+    &lt;/ul&gt;
+    &lt;!--EndIncludeIf:repoErrors--&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000095.html">[Rdiffweb-commits] r138 - trunk/rdiffWeb/static
+</A></li>
+	<LI>Next message: <A HREF="000097.html">[Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

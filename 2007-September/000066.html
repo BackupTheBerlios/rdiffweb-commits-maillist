@@ -1,0 +1,251 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r109%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/static%0A%09rdiffWeb/templates&In-Reply-To=%3C200709140143.l8E1hAd6021949%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000065.html">
+   <LINK REL="Next"  HREF="000067.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r109%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/static%0A%09rdiffWeb/templates&In-Reply-To=%3C200709140143.l8E1hAd6021949%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Sep 14 03:43:10 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000065.html">[Rdiffweb-commits] r108 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000067.html">[Rdiffweb-commits] r110 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#66">[ date ]</a>
+              <a href="thread.html#66">[ thread ]</a>
+              <a href="subject.html#66">[ subject ]</a>
+              <a href="author.html#66">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-14 03:43:03 +0200 (Fri, 14 Sep 2007)
+New Revision: 109
+
+Added:
+   trunk/rdiff-web-notify
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/templates/email_notification.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Add basic support for email notifications. A lot of polishing remains.
+
+
+Added: trunk/rdiff-web-notify
+===================================================================
+--- trunk/rdiff-web-notify	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiff-web-notify	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,18 @@
++#!/usr/bin/python
++
++import os
++import sys
++
++import rdiffWeb.email_notification
++
++if __name__ == &quot;__main__&quot;:
++   # Because this script manipulates files in the /etc directory, it must be run as root.
++#   if os.getuid() != 0:
++#      print &quot;Error: this script must be run as root.&quot;
++#      sys.exit(2)
++      
++   if not rdiffWeb.email_notification.emailNotificationIsEnabled():
++      print &quot;Email notifications do not seem to be configured. Exiting.&quot;
++      sys.exit(1)
++   
++   rdiffWeb.email_notification.emailNotifications()
+
+
+Property changes on: trunk/rdiff-web-notify
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/email_notification.py	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,70 @@
++#!/usr/bin/python
++
++import smtplib
++
++import rdw_config
++import db
++import librdiff
++import rdw_helpers
++
++def emailNotificationIsEnabled():
++   return getEmailHost() != &quot;&quot; and getEmailSender() != &quot;&quot; and db.userDB().getUserDBModule().modificationsSupported()
++
++def getEmailHost():
++   return rdw_config.getConfigSetting(&quot;emailHost&quot;)
++
++def getEmailSender():
++   return rdw_config.getConfigSetting(&quot;emailSender&quot;)
++
++def getEmailUsername():
++   return rdw_config.getConfigSetting(&quot;emailUsername&quot;)
++
++def getEmailPassword():
++   return rdw_config.getConfigSetting(&quot;emailPassword&quot;)
++
++def emailNotifications():
++   emailHost = getEmailHost()
++   emailSender = getEmailSender()
++   emailUsername = getEmailUsername()
++   emailPassword = getEmailPassword()
++      
++   dbBackend = db.userDB().getUserDBModule()
++   for user in dbBackend.getUserList():
++      userRepos = dbBackend.getUserRepoPaths(user)
++      oldRepos = []
++      for repo in userRepos:
++         maxDaysOld = dbBackend.getRepoMaxAge(user, repo)
++         if maxDaysOld != 0:
++            # get the last backup date
++            try:
++               lastBackup = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(dbBackend.getUserRoot(user), repo), False)
++            except librdiff.FileError:
++               pass # Skip repos that have never been successfully backed up
++            else:
++               if lastBackup:
++                  oldestGoodBackupTime = rdw_helpers.rdwTime()
++                  oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
++                  if lastBackup.date &lt; oldestGoodBackupTime:
++                     oldRepos.append({&quot;repo&quot; : repo, &quot;lastBackupDate&quot; : lastBackup.date.getDisplayString()})
++               
++      if oldRepos:
++         userEmailAddress = dbBackend.getUserEmail(user)
++         emailText = rdw_helpers.compileTemplate(&quot;email_notification.txt&quot;, repos=oldRepos, sender=emailSender, subject=&quot;Backup Failures&quot;)
++         #print emailText
++         #emailText = html_email.createhtmlmail(&quot;&quot;, textEmailPart, emailTitle)
++
++         session = smtplib.SMTP(emailHost)
++         session.login(emailUsername, emailPassword)
++         smtpresult = session.sendmail(emailSender, [userEmailAddress], emailText)
++         if smtpresult:
++            error = &quot;&quot;
++            for recipient in smtpresult.keys():
++               error = &quot;&quot;&quot;Could not delivery mail to: %s
++
++Server said: %s
++%s
++
++%s&quot;&quot;&quot; % (recipient, smtpresult[recipient][0], smtpresult[recipient][1], error)
++            raise smtplib.SMTPException, error
++         session.quit()
++
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/librdiff.py	2007-09-14 01:43:03 UTC (rev 109)
+@@ -293,8 +293,8 @@
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+-def getLastBackupHistoryEntry(repoRoot):
+-   history = _getBackupHistory(repoRoot, 1, None, None, True)
++def getLastBackupHistoryEntry(repoRoot, includeInProgress=True):
++   history = _getBackupHistory(repoRoot, 1, None, None, includeInProgress)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/static/main.css	2007-09-14 01:43:03 UTC (rev 109)
+@@ -94,13 +94,13 @@
+    text-decoration: none;
+ }
+ 
+-.warning,
+-.error
++p.warning,
++p.error
+ {
+    color: red
+ }
+ 
+-.message
++p.message
+ {
+    color: blue
+ }
+
+Added: trunk/rdiffWeb/templates/email_notification.txt
+===================================================================
+--- trunk/rdiffWeb/templates/email_notification.txt	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/templates/email_notification.txt	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,9 @@
++From: ^sender$
++Subject: ^subject$
++
++The following backup locations have not been backed up recently:
++
++Backup Location      Last Backup Date
++&lt;!--StartRepeat:repos--&gt;
++^repo$		^lastBackupDate$
++&lt;!--EndRepeat:repos--&gt;
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-14 01:43:03 UTC (rev 109)
+@@ -4,9 +4,7 @@
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;../static/main.css&quot; type=&quot;text/css&quot; /&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+-&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;../static/prefs.js&quot;&gt;&lt;/script&gt;
+ &lt;!--EndDelete--&gt;
+-&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;/static/prefs.js&quot;&gt;&lt;/script&gt;
+ 
+ &lt;!--StartIncludeIf:notificationsEnabled--&gt;
+ &lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000065.html">[Rdiffweb-commits] r108 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000067.html">[Rdiffweb-commits] r110 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#66">[ date ]</a>
+              <a href="thread.html#66">[ thread ]</a>
+              <a href="subject.html#66">[ subject ]</a>
+              <a href="author.html#66">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

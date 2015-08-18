@@ -1,0 +1,954 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir	deleted_dir/repo deleted_dir/repo/rdiff-backup-data	deleted_dir/repo/rdiff-backup-data/increments	deleted_dir/repo/rdiff-backup-data/increments/testdir2	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data	deleted_file/repo/rdiff-backup-data/increments simple	simple/repo simple/repo/rdiff-backup-data	simple/repo/rdiff-backup-data/increments
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-August/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r97%20-%20in%20trunk/tests%3A%20.%20deleted_dir%0A%09deleted_dir/repo%20deleted_dir/repo/rdiff-backup-data%0A%09deleted_dir/repo/rdiff-backup-data/increments%0A%09deleted_dir/repo/rdiff-backup-data/increments/testdir2%0A%09deleted_file%20deleted_file/repo%20deleted_file/repo/rdiff-backup-data%0A%09deleted_file/repo/rdiff-backup-data/increments%20simple%0A%09simple/repo%20simple/repo/rdiff-backup-data%0A%09simple/repo/rdiff-backup-data/increments&In-Reply-To=%3C200708220310.l7M3AbTi011766%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000053.html">
+   <LINK REL="Next"  HREF="000055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir	deleted_dir/repo deleted_dir/repo/rdiff-backup-data	deleted_dir/repo/rdiff-backup-data/increments	deleted_dir/repo/rdiff-backup-data/increments/testdir2	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data	deleted_file/repo/rdiff-backup-data/increments simple	simple/repo simple/repo/rdiff-backup-data	simple/repo/rdiff-backup-data/increments</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r97%20-%20in%20trunk/tests%3A%20.%20deleted_dir%0A%09deleted_dir/repo%20deleted_dir/repo/rdiff-backup-data%0A%09deleted_dir/repo/rdiff-backup-data/increments%0A%09deleted_dir/repo/rdiff-backup-data/increments/testdir2%0A%09deleted_file%20deleted_file/repo%20deleted_file/repo/rdiff-backup-data%0A%09deleted_file/repo/rdiff-backup-data/increments%20simple%0A%09simple/repo%20simple/repo/rdiff-backup-data%0A%09simple/repo/rdiff-backup-data/increments&In-Reply-To=%3C200708220310.l7M3AbTi011766%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir	deleted_dir/repo deleted_dir/repo/rdiff-backup-data	deleted_dir/repo/rdiff-backup-data/increments	deleted_dir/repo/rdiff-backup-data/increments/testdir2	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data	deleted_file/repo/rdiff-backup-data/increments simple	simple/repo simple/repo/rdiff-backup-data	simple/repo/rdiff-backup-data/increments">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Aug 22 05:10:37 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000053.html">[Rdiffweb-commits] r96 - trunk/tests
+</A></li>
+        <LI>Next message: <A HREF="000055.html">[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-08-22 05:09:27 +0200 (Wed, 22 Aug 2007)
+New Revision: 97
+
+Added:
+   trunk/tests/deleted_dir/
+   trunk/tests/deleted_dir/browse_results.txt
+   trunk/tests/deleted_dir/repo/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/backup.log
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data
+   trunk/tests/deleted_file/
+   trunk/tests/deleted_file/browse_results.txt
+   trunk/tests/deleted_file/repo/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/backup.log
+   trunk/tests/deleted_file/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/deleted_file/repo/rdiff-backup-data/current_mirror.2007-08-21T16:31:27-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data
+   trunk/tests/simple/
+   trunk/tests/simple/browse_results.txt
+   trunk/tests/simple/repo/
+   trunk/tests/simple/repo/file.txt
+   trunk/tests/simple/repo/rdiff-backup-data/
+   trunk/tests/simple/repo/rdiff-backup-data/backup.log
+   trunk/tests/simple/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+   trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+   trunk/tests/simple/repo/rdiff-backup-data/increments/
+   trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+   trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data
+Log:
+Adding in new test data
+
+Added: trunk/tests/deleted_dir/browse_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,6 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++testdir2	 	2007-08-21 21:55:24	0	False
+\ No newline at end of file
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1 @@
++PID 14154
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751317.00 (Tue Aug 21 21:55:17 2007)
++EndTime 1187751317.87 (Tue Aug 21 21:55:17 2007)
++ElapsedTime 0.87 (0.87 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751324.00 (Tue Aug 21 21:55:24 2007)
++EndTime 1187751324.37 (Tue Aug 21 21:55:24 2007)
++ElapsedTime 0.37 (0.37 seconds)
++SourceFiles 4
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 3
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751335.00 (Tue Aug 21 21:55:35 2007)
++EndTime 1187751335.69 (Tue Aug 21 21:55:35 2007)
++ElapsedTime 0.69 (0.69 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 4
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 3
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 258 (258 bytes)
++TotalDestinationSizeChange 258 (258 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/browse_results.txt
+===================================================================
+--- trunk/tests/deleted_file/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 16:31:24	1	False
++PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/current_mirror.2007-08-21T16:31:27-05:00.data
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731883.00 (Tue Aug 21 16:31:23 2007)
++EndTime 1187731883.05 (Tue Aug 21 16:31:23 2007)
++ElapsedTime 0.05 (0.05 seconds)
++SourceFiles 2
++SourceFileSize 141 (141 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 141 (141 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 141 (141 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731884.00 (Tue Aug 21 16:31:24 2007)
++EndTime 1187731884.96 (Tue Aug 21 16:31:24 2007)
++ElapsedTime 0.96 (0.96 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 141 (141 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 141 (141 bytes)
++IncrementFiles 2
++IncrementFileSize 211 (211 bytes)
++TotalDestinationSizeChange 70 (70 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731887.00 (Tue Aug 21 16:31:27 2007)
++EndTime 1187731887.39 (Tue Aug 21 16:31:27 2007)
++ElapsedTime 0.39 (0.39 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 1
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 2
++IncrementFileSize 120 (120 bytes)
++TotalDestinationSizeChange 120 (120 bytes)
++Errors 0
+
+Added: trunk/tests/simple/browse_results.txt
+===================================================================
+--- trunk/tests/simple/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,8 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 14:01:42	2	True
++PrevRevision	2007-08-21 14:01:32
++PrevRevision	2007-08-21 14:01:21
+\ No newline at end of file
+
+Added: trunk/tests/simple/repo/file.txt
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1 @@
++PID 12025
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722881.00 (Tue Aug 21 14:01:21 2007)
++EndTime 1187722881.79 (Tue Aug 21 14:01:21 2007)
++ElapsedTime 0.79 (0.79 seconds)
++SourceFiles 2
++SourceFileSize 141 (141 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 141 (141 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 141 (141 bytes)
++Errors 0
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722892.00 (Tue Aug 21 14:01:32 2007)
++EndTime 1187722892.11 (Tue Aug 21 14:01:32 2007)
++ElapsedTime 0.11 (0.11 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 141 (141 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 141 (141 bytes)
++IncrementFiles 2
++IncrementFileSize 200 (200 bytes)
++TotalDestinationSizeChange 59 (59 bytes)
++Errors 0
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722902.00 (Tue Aug 21 14:01:42 2007)
++EndTime 1187722902.72 (Tue Aug 21 14:01:42 2007)
++ElapsedTime 0.72 (0.72 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 2
++IncrementFileSize 110 (110 bytes)
++TotalDestinationSizeChange 110 (110 bytes)
++Errors 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000053.html">[Rdiffweb-commits] r96 - trunk/tests
+</A></li>
+	<LI>Next message: <A HREF="000055.html">[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

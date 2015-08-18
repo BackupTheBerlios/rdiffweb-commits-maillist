@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r115 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r115%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709151429.l8FETALO005934%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000071.html">
+   <LINK REL="Next"  HREF="000073.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r115 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r115%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709151429.l8FETALO005934%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r115 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Sep 15 16:29:10 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000071.html">[Rdiffweb-commits] r114 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000073.html">[Rdiffweb-commits] r116 - in trunk/rdiffWeb: . static templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#72">[ date ]</a>
+              <a href="thread.html#72">[ thread ]</a>
+              <a href="subject.html#72">[ subject ]</a>
+              <a href="author.html#72">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-15 16:29:08 +0200 (Sat, 15 Sep 2007)
+New Revision: 115
+
+Modified:
+   trunk/rdiffWeb/email_notification.py
+Log:
+Add ability to notify multiple recipients
+
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-14 19:39:23 UTC (rev 114)
++++ trunk/rdiffWeb/email_notification.py	2007-09-15 14:29:08 UTC (rev 115)
+@@ -53,7 +53,7 @@
+ 
+          session = smtplib.SMTP(emailHost)
+          session.login(emailUsername, emailPassword)
+-         smtpresult = session.sendmail(emailSender, [userEmailAddress], emailText)
++         smtpresult = session.sendmail(emailSender, userEmailAddress.split(&quot;;&quot;), emailText)
+          if smtpresult:
+             error = &quot;&quot;
+             for recipient in smtpresult.keys():
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000071.html">[Rdiffweb-commits] r114 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000073.html">[Rdiffweb-commits] r116 - in trunk/rdiffWeb: . static templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#72">[ date ]</a>
+              <a href="thread.html#72">[ thread ]</a>
+              <a href="subject.html#72">[ subject ]</a>
+              <a href="author.html#72">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

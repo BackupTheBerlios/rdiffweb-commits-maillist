@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r254 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r254%20-%20trunk&In-Reply-To=%3C200901202131.n0KLVCEB030865%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000210.html">
+   <LINK REL="Next"  HREF="000212.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r254 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r254%20-%20trunk&In-Reply-To=%3C200901202131.n0KLVCEB030865%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r254 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 20 22:31:12 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000210.html">[Rdiffweb-commits] r253 - in trunk: . rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000212.html">[Rdiffweb-commits] r255 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#211">[ date ]</a>
+              <a href="thread.html#211">[ thread ]</a>
+              <a href="subject.html#211">[ subject ]</a>
+              <a href="author.html#211">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-01-20 22:31:10 +0100 (Tue, 20 Jan 2009)
+New Revision: 254
+
+Modified:
+   trunk/rdw.conf.sample
+Log:
+Add documentation about SSL parameters.
+
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2009-01-16 14:52:54 UTC (rev 253)
++++ trunk/rdw.conf.sample	2009-01-20 21:31:10 UTC (rev 254)
+@@ -5,6 +5,15 @@
+ # This is the port that the server should listen on
+ # ServerPort=8080
+ 
++# SSL setup:
++# If these settings are specified, the server will server HTTPS.
++# sslCertificate = /var/certs/rdiffweb.crt
++# sslPublicKey = /var/certs/rdiffweb.key
++#
++# If the following setting is specified, the server will listen on
++# port 80 and redirect to port 443 (https).
++# redirectToHttps = true
++
+ # rdiffWeb can log to both an access and error file.
+ # accessLogFile = /var/log/rdiff-web-access.log
+ # errorLogFile = /var/log/rdiff-web-error.log
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000210.html">[Rdiffweb-commits] r253 - in trunk: . rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000212.html">[Rdiffweb-commits] r255 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#211">[ date ]</a>
+              <a href="thread.html#211">[ thread ]</a>
+              <a href="subject.html#211">[ subject ]</a>
+              <a href="author.html#211">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

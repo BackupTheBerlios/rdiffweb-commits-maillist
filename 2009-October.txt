@@ -1,0 +1,166 @@
+From commits at rdiffweb.org  Sat Oct 31 02:15:00 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 31 Oct 2009 02:15:00 +0100
+Subject: [Rdiffweb-commits] r288 - in trunk/rdiffWeb: . static templates
+Message-ID: <200910310115.n9V1F08w028076@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-10-31 02:14:55 +0100 (Sat, 31 Oct 2009)
+New Revision: 288
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/static/globals.js
+   trunk/rdiffWeb/static/locations.js
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Misc IE and email notification fixes.
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/page_admin.py	2009-10-31 01:14:55 UTC (rev 288)
+@@ -74,7 +74,9 @@
+       notify_options = email_notification.loadNotificationsTableResults(parms)
+       for option in notify_options:
+          if option in users:
+-            self.getUserDB().setAdminMonitoredRepoMaxAge(option, notify_options[option])
++            settings = self.getUserDB().getNotificationSettings(option)
++            settings['adminMaxAge'] = notify_options[option]
++            self.getUserDB().setNotificationSettings(option, settings)
+ 
+       return self._generatePageHtml("Successfully changed notifications.", "")
+       
+@@ -109,7 +111,7 @@
+                 "message" : message,
+                 "notificationsEnabled" : notificationsEnabled,
+                 "notificationsTable" : notificationsTable,
+-                "userEmail" : self.getUserDB().getNotificationSettings(user)['email'],
++                "userEmail" : self.getUserDB().getNotificationSettings(self.getUsername())['email'],
+                 "error" : error }
+       return self.startPage("Administration") + self.compileTemplate("admin_main.html", **parms) + self.endPage()
+ 
+
+Modified: trunk/rdiffWeb/static/globals.js
+===================================================================
+--- trunk/rdiffWeb/static/globals.js	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/globals.js	2009-10-31 01:14:55 UTC (rev 288)
+@@ -51,7 +51,4 @@
+    }
+ };
+ 
+-new function()
+-{
+-   $(Lightbox.init);
+-};
++window.$(Lightbox.init);
+
+Modified: trunk/rdiffWeb/static/locations.js
+===================================================================
+--- trunk/rdiffWeb/static/locations.js	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/locations.js	2009-10-31 01:14:55 UTC (rev 288)
+@@ -9,10 +9,12 @@
+       {
+          $(event.target).click();
+       }
++
++      var repo = $(event.target).siblings('input[type=hidden]')[0].value;
+       var warningElem = document.createDocumentFragment();
+       appendText(warningElem, 'You are about to ');
+       appendText(warningElem, 'permanently delete', true)
+-      appendText(warningElem, ' the "'+event.target.value+'" backup location. Any data contained within this backup will be ');
++      appendText(warningElem, ' the "'+repo+'" backup location. Any data contained within this backup will be ');
+       appendText(warningElem, 'irretrievably lost!', true);
+       warningElem.appendChild(document.createElement('BR'));
+       warningElem.appendChild(document.createElement('BR'));
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/static/main.css	2009-10-31 01:14:55 UTC (rev 288)
+@@ -1,6 +1,7 @@
+ body
+ {
+    font-family: sans-serif;
++   padding: 0;
+ }
+ 
+ a
+@@ -85,16 +86,19 @@
+    top: 0;
+    left: 0;
+    display: none;
++   z-index: 10;
++   margin: 0;
+ }
+ #LightboxForeground
+ {
+    text-align: center;
+-   position: fixed;
++   position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
++   z-index: 11;
+ }
+ #LightboxCenterer
+ {
+@@ -138,6 +142,15 @@
+    margin-right: 0.5em;
+ }
+ 
++.error
++{
++   color: red;
++}
++.message
++{
++   color: green;
++}
++
+ /* Listing pages */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2009-08-10 12:11:22 UTC (rev 287)
++++ trunk/rdiffWeb/templates/repo_listing.html	2009-10-31 01:14:55 UTC (rev 288)
+@@ -4,7 +4,6 @@
+ 
+ <!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
+ <!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+-<form action="." method="POST">
+ <table id="PopupTable">
+    <thead>
+       <tr>
+@@ -18,13 +17,20 @@
+    </thead>
+    <tbody>
+       <!--StartRepeat:repos-->
+-      <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
++         <!--StartIncludeIf:allowRepoDeletion--><form action="." method="POST"><!--EndIncludeIf:allowRepoDeletion-->
++         <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+          <td class="Icon"><img src="/static/images/repo.png"></img></td>
+          <td><!--StartDeleteIf:failed--><a href="^repoBrowseUrl$"><!--EndDeleteIf:failed-->^repoName$<!--StartDeleteIf:failed--></a><!--EndDeleteIf:failed--></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+-         <!--StartIncludeIf:allowRepoDeletion--><td><button type="submit" name="repo" value="^repoName$">Delete this backup</button></td><!--EndIncludeIf:allowRepoDeletion-->
++         <!--StartIncludeIf:allowRepoDeletion-->
++            <td>
++               <input type="hidden" name="repo" value="^repoName$">
++               <button type="submit">Delete this backup</button>
++            </td>
++         <!--EndIncludeIf:allowRepoDeletion-->
+       </tr>
++         <!--StartIncludeIf:allowRepoDeletion--></form><!--EndIncludeIf:allowRepoDeletion-->
+       <!--EndRepeat:repos-->
+    </tbody>
+ </table>
+
+
+

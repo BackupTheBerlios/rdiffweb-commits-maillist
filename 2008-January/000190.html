@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo	encoding/repo/rdiff-backup-data
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r233%20-%20in%20trunk/tests%3A%20.%20encoding%20encoding/repo%0A%09encoding/repo/rdiff-backup-data&In-Reply-To=%3C200801290206.m0T26IsW001193%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000189.html">
+   <LINK REL="Next"  HREF="000191.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo	encoding/repo/rdiff-backup-data</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r233%20-%20in%20trunk/tests%3A%20.%20encoding%20encoding/repo%0A%09encoding/repo/rdiff-backup-data&In-Reply-To=%3C200801290206.m0T26IsW001193%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo	encoding/repo/rdiff-backup-data">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 03:06:18 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000189.html">[Rdiffweb-commits] r232 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000191.html">[Rdiffweb-commits] r234 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 03:06:11 +0100 (Tue, 29 Jan 2008)
+New Revision: 233
+
+Added:
+   trunk/tests/encoding/
+   trunk/tests/encoding/.browse_results.txt.swp
+   trunk/tests/encoding/browse_results.txt
+   trunk/tests/encoding/history_results.txt
+   trunk/tests/encoding/locations_results.txt
+   trunk/tests/encoding/repo/
+   trunk/tests/encoding/repo/B?\195?\188ro.txt
+   trunk/tests/encoding/repo/B?\195?\188ro/
+   trunk/tests/encoding/repo/rdiff-backup-data/
+   trunk/tests/encoding/repo/rdiff-backup-data/backup.log
+   trunk/tests/encoding/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/encoding/repo/rdiff-backup-data/current_mirror.2008-01-28T18:00:09-06:00.data
+   trunk/tests/encoding/repo/rdiff-backup-data/error_log.2008-01-28T18:00:09-06:00.data.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/file_statistics.2008-01-28T18:00:09-06:00.data.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/increments/
+   trunk/tests/encoding/repo/rdiff-backup-data/mirror_metadata.2008-01-28T18:00:09-06:00.snapshot.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/session_statistics.2008-01-28T18:00:09-06:00.data
+Log:
+Add test for encoding.
+
+/usr/local/bin/commit-email.pl: `/usr/bin/svnlook diff /svnroot/repos/rdiffweb -r 233' failed with this output:
+Added: trunk/tests/encoding/.browse_results.txt.swp
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/encoding/.browse_results.txt.swp
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/encoding/browse_results.txt
+===================================================================
+--- trunk/tests/encoding/browse_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/browse_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++B&#252;ro	 	2008-01-28 18:00:09	0	True
++B&#252;ro.txt	0 bytes	2008-01-28 18:00:09	0	True
+
+Added: trunk/tests/encoding/history_results.txt
+===================================================================
+--- trunk/tests/encoding/history_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/history_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,4 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?	Cumulative Size
++2008-01-28 18:00:09	0 bytes		False	0 bytes
+
+Added: trunk/tests/encoding/locations_results.txt
+===================================================================
+--- trunk/tests/encoding/locations_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/locations_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2008-01-28 18:00:09	0 bytes
+
+svnlook: Can't convert string from 'UTF-8' to native encoding:
+svnlook: /tmp/svnlook.1/trunk/tests/encoding/repo/B?\195?\188ro.txt
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000189.html">[Rdiffweb-commits] r232 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000191.html">[Rdiffweb-commits] r234 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

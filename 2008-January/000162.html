@@ -1,0 +1,609 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r205%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/static%0A%09rdiffWeb/templates&In-Reply-To=%3C200801012141.m01LfBOQ012918%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000161.html">
+   <LINK REL="Next"  HREF="000163.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r205%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/static%0A%09rdiffWeb/templates&In-Reply-To=%3C200801012141.m01LfBOQ012918%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  1 22:41:11 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000161.html">[Rdiffweb-commits] r204 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000163.html">[Rdiffweb-commits] r206 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-01 22:41:02 +0100 (Tue, 01 Jan 2008)
+New Revision: 205
+
+Added:
+   trunk/rdiffWeb/filter_setup.py
+   trunk/rdiffWeb/page_setup.py
+   trunk/rdiffWeb/static/ajax.js
+   trunk/rdiffWeb/static/setup.css
+   trunk/rdiffWeb/static/setup.js
+   trunk/rdiffWeb/templates/setup.html
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/static/main.css
+Log:
+Instead of showing an error when rdiffWeb is not configured, redirect to a setup page. The user must enter the root password to configure rdiffWeb.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiff-web	2008-01-01 21:41:02 UTC (rev 205)
+@@ -11,25 +11,18 @@
+ import rdiffWeb.email_notification
+ import rdiffWeb.page_error
+ import rdiffWeb.filter_authentication
++import rdiffWeb.filter_setup
+ 
+-if __name__ == &quot;__main__&quot;:
+-   # First make sure we have a valid config file.  If not, tell the user to run the config script
+-   if not rdiffWeb.rdw_config.getConfigFile():
+-      if os.getuid() != 0:
+-         error = &quot;&lt;h2&gt;Error: rdiffWeb must be run as root.&lt;/h2&gt;&quot;
+-      else:
+-         error =  &quot;&lt;h2&gt;Error: rdiffWeb has been installed, but no configuration file exists.&lt;br/&gt;Please run 'rdiff-web-config' to configure settings, then restart rdiffWeb.&lt;/h2&gt;&quot;
+-      root = rdiffWeb.page_error.rdiffErrorPage(error)
+-      cherrypy.quickstart(root, config={
+-         '/static' : {
+-            'tools.staticdir.on' : True,
+-            'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+-            'tools.staticdir.dir': &quot;static&quot;,
+-         }
+-      })
+-      sys.exit(2)
++import rdiffWeb.page_admin
++import rdiffWeb.page_browse
++import rdiffWeb.page_history
++import rdiffWeb.page_locations
++import rdiffWeb.page_restore
++import rdiffWeb.page_setup
++import rdiffWeb.page_status
++import rdiffWeb.page_prefs
+ 
+-
++if __name__ == &quot;__main__&quot;:
+    # Parse command line options
+    verbose = True
+    debug = False
+@@ -56,20 +49,11 @@
+    if pidFile:
+       # Write our process id to specified file, so we can be killed later
+       open(pidFile, 'a').write(str(os.getpid())+&quot;\n&quot;)
+-      
+-   # We import the rdiffWeb modules now instead of at the top of the file because it needs to access
+-   # the config file, and the config file may not exist
+-   import rdiffWeb.page_admin
+-   import rdiffWeb.page_browse
+-   import rdiffWeb.page_history
+-   import rdiffWeb.page_locations
+-   import rdiffWeb.page_restore
+-   import rdiffWeb.page_status
+-   import rdiffWeb.page_prefs
+ 
+    serverPort = 8080
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;) != &quot;&quot;:
+       serverPort = int(rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;))
++         
+    environment = &quot;development&quot;
+    if not debug:
+       environment = &quot;production&quot;
+@@ -79,7 +63,7 @@
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+       'autoreload.on' : autoReload,
+-      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
++      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerHost&quot;),
+       'server.socket_port' : serverPort,
+       'server.log_file' : logFile,
+       'server.ssl_certificate': rdiffWeb.rdw_config.getConfigSetting(&quot;SslCertificate&quot;),
+@@ -92,6 +76,7 @@
+       '/': {
+          'tools.authenticate.checkAuth' : rdiffWeb.page_locations.rdiffLocationsPage().checkAuthentication,
+          'tools.authenticate.on' : True,
++         'tools.setup.on': True,
+       },
+       '/status/feed': {
+          'tools.authenticate.authMethod' : 'HTTP Header'
+@@ -104,9 +89,15 @@
+          'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+          'tools.staticdir.dir': &quot;static&quot;,
+          'tools.authenticate.on' : False,
++         'tools.setup.on': False,
++      },
++      '/setup': {
++         'tools.setup.on': False,
++         'tools.authenticate.on' : False,
++         'tools.sessions.on' : False,
+       }
+    }
+-
++   
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;SessionStorage&quot;).lower() == &quot;disk&quot;:
+       sessionDir = rdiffWeb.rdw_config.getConfigSetting(&quot;SessionDir&quot;)
+       if os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK):
+@@ -117,6 +108,7 @@
+ 
+    cherrypy.config.update(global_settings)
+    root = rdiffWeb.page_locations.rdiffLocationsPage()
++   root.setup = rdiffWeb.page_setup.rdiffSetupPage()
+    root.browse = rdiffWeb.page_browse.rdiffBrowsePage()
+    root.restore = rdiffWeb.page_restore.rdiffRestorePage()
+    root.history = rdiffWeb.page_history.rdiffHistoryPage()
+
+Added: trunk/rdiffWeb/filter_setup.py
+===================================================================
+--- trunk/rdiffWeb/filter_setup.py	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/filter_setup.py	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,10 @@
++import cherrypy
++import rdw_config
++
++
++def handle_setup():
++   if not rdw_config.getConfigFile():
++      print
++      raise cherrypy.HTTPRedirect(&quot;/setup/&quot;)
++
++cherrypy.tools.setup = cherrypy.Tool('before_handler', handle_setup)
+
+Added: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/page_setup.py	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,104 @@
++#!/usr/bin/python
++
++import cherrypy
++import json
++import spwd
++import os
++import stat
++import crypt
++
++import page_main
++import rdw_helpers
++
++
++class rdiffSetupPage(page_main.rdiffPage):
++   &quot;&quot;&quot;Helps the user through initial rdiffWeb setup.
++      This page is displayed with rdiffWeb is not yet configured.
++      &quot;&quot;&quot;
++   @cherrypy.expose
++   def index(self):
++      page = rdw_helpers.compileTemplate(&quot;page_start.html&quot;, title='Set up rdiffWeb', rssLink='', rssTitle='')
++      rootEnabled = False
++      error = &quot;&quot;
++      try:
++         rootEnabled = self._rootAccountEnabled()
++      except KeyError:
++         error = &quot;rdiffWeb setup must be run with root privileges.&quot;
++      page += rdw_helpers.compileTemplate(&quot;setup.html&quot;, rootEnabled=rootEnabled, error=error)
++      page += rdw_helpers.compileTemplate(&quot;page_end.html&quot;)
++      return page
++
++   @cherrypy.expose
++   def ajax(self):
++      postData = cherrypy.request.body.read()
++      request = json.JsonReader().read(postData)
++      print request
++      if not 'rootPassword' in request:
++         return json.JsonWriter().write({&quot;error&quot;: &quot;No password specified.&quot;})
++         
++      try:
++         self._ensureConfigFileExists()
++
++         self._validatePassword(request['rootPassword'])
++         if 'adminUsername' in request:
++            self._setAdminUser(request['adminUsername'], request['adminPassword'], request['adminConfirmPassword'])
++         if 'adminRoot' in request:
++            self._setAdminRoot(request['adminUsername'], request['adminRoot'])
++      except ValueError, error:
++         return json.JsonWriter().write({&quot;error&quot;: str(error)})
++
++      return json.JsonWriter().write({})
++         
++         
++   def _validatePassword(self, password):
++      if self._rootAccountEnabled():
++         # Check the root account
++         if (self._checkSystemPassword(&quot;root&quot;, password)):
++            return
++      else: 
++         raise ValueError, &quot;The root account has been disabled. Web-based setup is not supported.&quot;
++         # If the root account is disabled, check to see if another
++         # user set up the account, in which case their password is valid.
++         if password != &quot;billfrank&quot;:
++            raise ValueError, &quot;The password is invalid.&quot;
++         
++   def _checkSystemPassword(self, username, password):
++      cryptedpasswd = spwd.getspnam(username)[1]
++      if crypt.crypt(password, cryptedpasswd) != cryptedpasswd:
++         raise ValueError, &quot;Invalid password.&quot;
++   
++   def _setAdminUser(self, username, password, confirmPassword):
++      if not username:
++         raise ValueError, &quot;A username was not specified.&quot;
++      if not password:
++         raise ValueError, &quot;The administrative user must have a password.&quot;
++      if password != confirmPassword:
++         raise ValueError, &quot;The passwords do not match.&quot;
++      
++      self.getUserDB().addUser(username)
++      self.getUserDB().setUserPassword(username, password)
++   
++   def _setAdminRoot(self, username, userRoot):
++      if not username:
++         raise ValueError, &quot;A username was not specified.&quot;
++      if not userRoot:
++         raise ValueError, &quot;A root directory was not specified.&quot;
++      if not os.path.exists(userRoot):
++         raise ValueError, &quot;The specified directory does not exist.&quot;
++      
++      self.getUserDB().setUserRoot(username, userRoot)
++      
++   def _rootAccountEnabled(self):
++      cryptedpasswd = spwd.getspnam(&quot;root&quot;)[1]
++      return cryptedpasswd != '!'
++
++   def _ensureConfigFileExists(self):
++      try:
++         if not os.path.exists(&quot;/etc/rdiffweb&quot;):
++            os.mkdir(&quot;/etc/rdiffweb&quot;, stat.S_IRWXU)
++         if not os.path.exists(&quot;/etc/rdiffweb/rdw.conf&quot;):
++            open(&quot;/etc/rdiffweb/rdw.conf&quot;, &quot;a&quot;).close()
++            os.chmod(&quot;/etc/rdiffweb/rdw.conf&quot;, stat.S_IRWXU)
++      except OSError, error:
++         raise ValueError, str(error)
++
+
+Added: trunk/rdiffWeb/static/ajax.js
+===================================================================
+--- trunk/rdiffWeb/static/ajax.js	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/ajax.js	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,51 @@
++window.ajax = window.ajax || {
++   getUrl: function(url, onSuccess, onFailure)
++   {
++      this._doUrl(url, &quot;GET&quot;, null, onSuccess, onFailure);
++   },
++   
++   postUrl: function(url, postString, onSuccess, onFailure)
++   {
++      this._doUrl(url, &quot;POST&quot;, postString, onSuccess, onFailure);
++   },
++   
++   _doUrl: function(url, method, postString, onSuccess, onFailure)
++   {   
++      function _stateChange()
++      {
++         if (XHR.readyState == 4)
++         {
++            if (XHR.status == 200)  
++               onSuccess(XHR.responseText);
++            else
++               onFailure();
++         }
++      }
++      
++      var XHR = this._getXHR();
++      XHR.onreadystatechange = _stateChange;
++      XHR.open(method, url, true);
++      XHR.send(postString);
++   },
++   
++   _getXHR: function()
++   {
++      if (window.XMLHttpRequest)
++         return new XMLHttpRequest()
++      try
++      {
++         return new ActiveXObject(&quot;Msxml2.XMLHTTP&quot;);
++      }
++      catch (e)
++      {
++         try
++         {
++            return new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;);
++         }
++         catch (e)
++         {
++            return null;
++         }
++      }
++   }
++}
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/main.css	2008-01-01 21:41:02 UTC (rev 205)
+@@ -207,6 +207,7 @@
+    background-color: #FFF;
+ }
+ 
++h1,
+ h2,
+ h3,
+ table thead
+
+Added: trunk/rdiffWeb/static/setup.css
+===================================================================
+--- trunk/rdiffWeb/static/setup.css	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/setup.css	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,34 @@
++h3
++{
++   margin-bottom: 0.25em;
++}
++
++button
++{
++   border: 1px solid #888;
++   background-color: #DDD;
++   font-weight: bold;
++   font-size: 120%;
++   color: #555;
++}
++
++input
++{
++   font-size: 120%;
++   border: 1px solid #999;
++}
++
++.error
++{
++   color: red;
++}
++
++#SetupCompleteDiv
++{
++   color: green;
++}
++
++table td
++{
++   vertical-align: middle;
++}
+\ No newline at end of file
+
+Added: trunk/rdiffWeb/static/setup.js
+===================================================================
+--- trunk/rdiffWeb/static/setup.js	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/setup.js	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,85 @@
++
++function setText(parent, text)
++{
++   parent.innerHTML = &quot;&quot;;
++   parent.appendChild(document.createTextNode(text));
++}
++
++function getPassword()
++{
++   return document.getElementById(&quot;rootpassword&quot;).value;
++}
++
++function handleResponse(responseError, errorElem, nextStepElem)
++{
++   if (responseError)
++      setText(errorElem, responseError);
++   else
++   {
++      setText(errorElem, &quot;&quot;);
++      nextStepElem.style.display = 'block';
++   }
++}
++
++function handleRequestButton(request, errorElem, nextStepElem)
++{
++   function onSuccess(str)
++   {
++      var response = eval(&quot;(&quot;+str+&quot;)&quot;);
++      handleResponse(response.error, errorElem, nextStepElem);
++   }
++   function onFailure()
++   {
++      handleResponse(&quot;Unable to communicate with server.&quot;, errorElem, nextStepElem);
++   }
++   ajax.postUrl(&quot;/setup/ajax&quot;, JSON.stringify(request), onSuccess, onFailure);
++}
++
++function handleAdmin()
++{
++   var errorElem = document.getElementById(&quot;adminRootError&quot;);
++   var nextStepElem = document.getElementById(&quot;adminRoot&quot;);
++   
++   var adminUsername = document.getElementById(&quot;adminUsername&quot;).value;
++   var adminPassword = document.getElementById(&quot;adminPassword&quot;).value;
++   var adminConfirmPassword = document.getElementById(&quot;adminConfirmPassword&quot;).value;
++   
++   var request = {
++      &quot;rootPassword&quot;: getPassword(),
++      &quot;adminUsername&quot;: adminUsername,
++      &quot;adminPassword&quot;: adminPassword,
++      &quot;adminConfirmPassword&quot;: adminConfirmPassword
++   };
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function handleAdminRoot()
++{
++   var errorElem = document.getElementById(&quot;adminError&quot;);
++   var nextStepElem = document.getElementById(&quot;SetupCompleteDiv&quot;);
++   
++   var adminRoot = document.getElementById(&quot;adminRoot&quot;).value;
++   
++   var request = {
++      &quot;rootPassword&quot;: getPassword(),
++      &quot;adminRoot&quot;: adminRoot
++   };
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function handleRootPassword()
++{
++   var errorElem = document.getElementById(&quot;rootpassworderror&quot;);
++   var nextStepElem = document.getElementById(&quot;adminSetup&quot;);
++   var request = {&quot;rootPassword&quot;: getPassword()};
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function initEvents()
++{
++   document.getElementById(&quot;rootpasswordbtn&quot;).onclick = handleRootPassword;
++   document.getElementById(&quot;adminbtn&quot;).onclick = handleAdmin;
++   document.getElementById(&quot;adminRootBtn&quot;).onclick = handleAdminRoot;
++}
++
++addOnLoadEvent(initEvents)
+
+Added: trunk/rdiffWeb/templates/setup.html
+===================================================================
+--- trunk/rdiffWeb/templates/setup.html	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/templates/setup.html	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,90 @@
++&lt;!--StartDelete--&gt;
++&lt;html&gt;
++   &lt;head&gt;
++      &lt;title&gt;Setup rdiffWeb&lt;/title&gt;
++      &lt;link rel=&quot;stylesheet&quot; href=&quot;../static/main.css&quot;/&gt;
++      &lt;link rel=&quot;stylesheet&quot; href=&quot;../static/setup.css&quot;/&gt;
++   &lt;/head&gt;
++&lt;!--EndDelete--&gt;
++&lt;link rel=&quot;stylesheet&quot; href=&quot;../static/setup.css&quot;/&gt;
++&lt;!--StartIncludeIf:error--&gt;
++&lt;body&gt;
++&lt;h1 class=&quot;error&quot;&gt;Error: ^error$&lt;/h1&gt;
++&lt;/body&gt;
++&lt;!--EndIncludeIf:error--&gt;
++&lt;!--StartDeleteIf:error--&gt;
++&lt;body&gt;
++&lt;h1&gt;Set up rdiffWeb&lt;/h1&gt;
++&lt;div&gt;
++   &lt;div style=&quot;padding-bottom: 1em;&quot;&gt;
++      rdiffWeb has not been configured, so we need to do that before logging in. Configuration will only take a few minutes.
++   &lt;/div&gt;
++   &lt;div class=&quot;error&quot; id=&quot;rootpassworderror&quot;&gt;&lt;/div&gt;
++   &lt;div&gt;
++      &lt;!--StartIncludeIf:rootEnabled--&gt;
++      Enter the root password to continue: &lt;input type=&quot;password&quot; name=&quot;rootpassword&quot; id=&quot;rootpassword&quot;/&gt;
++      &lt;!--EndIncludeIf:rootEnabled--&gt;
++      &lt;!--StartDeleteIf:rootEnabled--&gt;
++      rdiffWeb has detected that the root account has been disabled.&lt;br/&gt;
++      Enter the password for the user that installed rdiffWeb: &lt;input type=&quot;password&quot; name=&quot;rootpassword&quot; id=&quot;rootpassword&quot;/&gt;
++      &lt;!--EndDeleteIf:rootEnabled--&gt;
++   &lt;/div&gt;
++   &lt;div&gt;
++      &lt;button type=&quot;button&quot; id=&quot;rootpasswordbtn&quot;&gt;Start setup&lt;/button&gt;
++   &lt;/div&gt;
++&lt;/div&gt;
++&lt;div id=&quot;adminSetup&quot; style=&quot;display: none&quot;&gt;
++   &lt;h3&gt;Add initial adminstrator account&lt;/h3&gt;
++   &lt;div class=&quot;error&quot; id=&quot;adminError&quot;&gt;&lt;/div&gt;
++      There must be one user account set up with adminstrative privileges.
++      This user account can then be used to add other user accounts.&lt;br/&gt;
++      Let's set up this user now.
++   &lt;table&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Username for the administrative user:&lt;/td&gt;
++      &lt;td&gt;&lt;input type=&quot;text&quot; id=&quot;adminUsername&quot;/&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Password for the administrative user:&lt;/td&gt;
++      &lt;td&gt;&lt;input type=&quot;password&quot; id=&quot;adminPassword&quot;/&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Confirm password for the administrative user:&lt;/td&gt;
++      &lt;td&gt;&lt;input type=&quot;password&quot; id=&quot;adminConfirmPassword&quot;/&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;/table&gt;
++   &lt;button type=&quot;button&quot; id=&quot;adminbtn&quot;&gt;Add administrative user&lt;/button&gt;
++&lt;/div&gt;
++&lt;div id=&quot;adminRoot&quot; style=&quot;display: none&quot;&gt;
++   &lt;h3&gt;Set user root directory&lt;/h3&gt;
++   &lt;div class=&quot;error&quot; id=&quot;adminRootError&quot;&gt;&lt;/div&gt;
++   &lt;div&gt;
++      Just one more step, and then we're done. We need to have a &quot;root&quot; directory for the newly-created user.&lt;br/&gt;
++      All rdiff-backup repositories for this user must be within this directory, and rdiffWeb will search within&lt;br/&gt;
++      this directory for repositories.
++   &lt;/div&gt;
++   &lt;table&gt;
++   &lt;tr&gt;
++      &lt;td&gt;Enter the root directory:&lt;/td&gt;
++      &lt;td&gt;&lt;input type=&quot;text&quot; id=&quot;adminRoot&quot;/&gt;&lt;/td&gt;
++   &lt;/tr&gt;
++   &lt;/table&gt;
++   &lt;button type=&quot;button&quot; id=&quot;adminRootBtn&quot;&gt;Set root directory&lt;/button&gt;
++&lt;/div&gt;
++&lt;div id=&quot;SetupCompleteDiv&quot; style=&quot;display: none&quot;&gt;
++   &lt;p&gt;
++   Congratulations, rdiffWeb setup is now complete! &lt;a href=&quot;/&quot;&gt;Click here&lt;/a&gt; to log into rdiffWeb.
++   &lt;/p&gt;
++&lt;/div&gt;
++&lt;/form&gt;
++&lt;/body&gt;
++&lt;script src=&quot;/static/ajax.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;script src=&quot;/static/setup.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;script src=&quot;/static/json2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;!--EndDeleteIf:error--&gt;
++&lt;!--StartDelete--&gt;
++&lt;/html&gt;
++&lt;script src=&quot;../static/globals.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;script src=&quot;../static/borders.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;script src=&quot;../static/setup.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;!--EndDelete--&gt;
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000161.html">[Rdiffweb-commits] r204 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000163.html">[Rdiffweb-commits] r206 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

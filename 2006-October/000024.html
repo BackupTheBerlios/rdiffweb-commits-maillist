@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r67 - in trunk: rdiffWeb	tests/deleted_dir/2006-01-05T01:49:50Z tests/deleted_dir/results
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r67%20-%20in%20trunk%3A%20rdiffWeb%0A%09tests/deleted_dir/2006-01-05T01%3A49%3A50Z%20tests/deleted_dir/results&In-Reply-To=%3C200610110359.k9B3xsCL018747%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000023.html">
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r67 - in trunk: rdiffWeb	tests/deleted_dir/2006-01-05T01:49:50Z tests/deleted_dir/results</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r67%20-%20in%20trunk%3A%20rdiffWeb%0A%09tests/deleted_dir/2006-01-05T01%3A49%3A50Z%20tests/deleted_dir/results&In-Reply-To=%3C200610110359.k9B3xsCL018747%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r67 - in trunk: rdiffWeb	tests/deleted_dir/2006-01-05T01:49:50Z tests/deleted_dir/results">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Oct 11 05:59:54 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000023.html">[Rdiffweb-commits] r66 - in trunk: rdiffWeb tests	tests/deleted_dir/results tests/deleted_file	tests/deleted_file/2006-01-03T01:49:50Z	tests/deleted_file/2006-01-04T01:49:50Z tests/deleted_file/results
+</A></li>
+        <LI>Next message: <A HREF="000025.html">[Rdiffweb-commits] r68 - in trunk/rdiffWeb: . static static/images	templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-10-11 05:59:48 +0200 (Wed, 11 Oct 2006)
+New Revision: 67
+
+Added:
+   trunk/tests/deleted_dir/results/dir_restore_dates.txt
+Removed:
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/
+   trunk/tests/deleted_dir/results/dir_entries.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix bugs in dir restore (thanks to Jan Hugo Prins for reporting this).
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/rdiffWeb/librdiff.py	2006-10-11 03:59:48 UTC (rev 67)
+@@ -347,11 +347,11 @@
+       entry = entries[0]
+ 
+       # Don't allow restores before the dir existed
+-      backupHistory = filter(lambda x: x &gt; entry.changeDates[0], backupHistory)
++      backupHistory = filter(lambda x: x &gt;= entry.changeDates[0], backupHistory)
+ 
+       if not entry.exists:
+          # If the dir has been deleted, don't allow restores after its deletion
+-         backupHistory = filter(lambda x: x &lt; entry.changeDates[-1], backupHistory)
++         backupHistory = filter(lambda x: x &lt;= entry.changeDates[-1], backupHistory)
+ 
+    return backupHistory
+ 
+@@ -421,6 +421,15 @@
+    def getBackupStates(self, backupTestDir):
+       return filter(lambda x: not x.startswith(&quot;.&quot;) and x != &quot;results&quot;, os.listdir(backupTestDir))
+    
++   def hasDirEntriesResults(self, testname):
++      return os.access(joinPaths(self.masterDirPath, testname, &quot;results&quot;, &quot;dir_entries.txt&quot;), os.F_OK)
++   
++   def hasDirRestoreDates(self, testname):
++      return os.access(joinPaths(self.masterDirPath, testname, &quot;results&quot;, &quot;dir_restore_dates.txt&quot;), os.F_OK)
++   
++   def getExpectedDirRestoreDates(self, testName):
++      return open(joinPaths(self.masterDirPath, testName, &quot;results&quot;, &quot;dir_restore_dates.txt&quot;)).read()
++
+    def getExpectedDirEntriesResults(self, testName):
+       return open(joinPaths(self.masterDirPath, testName, &quot;results&quot;, &quot;dir_entries.txt&quot;)).read()
+ 
+@@ -428,23 +437,35 @@
+    def testGetDirEntries(self):
+       tests = self.getBackupTests()
+       for testDir in tests:
+-         # Get a list of backup entries for the root folder
+-         rdiffDestDir = joinPaths(self.destRoot, testDir)
+-         entries = getDirEntries(rdiffDestDir, &quot;/&quot;)
++         if self.hasDirEntriesResults(testDir):
++            # Get a list of backup entries for the root folder
++            rdiffDestDir = joinPaths(self.destRoot, testDir)
++            entries = getDirEntries(rdiffDestDir, &quot;/&quot;)
++   
++            statusText = &quot;&quot;
++            for entry in entries:
++               if entry.name != &quot;.svn&quot;:
++                  for changeDate in entry.changeDates:
++                     size = entry.fileSize
++                     if entry.isDir: size = 0
++                     statusText = statusText + entry.name + &quot;\t&quot; + str(entry.isDir) + &quot;\t&quot; + str(size) + &quot;\t&quot; + str(entry.exists) + &quot;\t&quot; + changeDate.getUrlString()+&quot;\n&quot;
++               
++            assert statusText.replace(&quot;\n&quot;, &quot;&quot;) == self.getExpectedDirEntriesResults(testDir).replace(&quot;\n&quot;, &quot;&quot;), &quot;Got: &quot; + statusText + &quot;\nExpected:&quot; + self.getExpectedDirEntriesResults(testDir)
+ 
+-         statusText = &quot;&quot;
+-         for entry in entries:
+-            if entry.name != &quot;.svn&quot;:
+-               for changeDate in entry.changeDates:
+-                  size = entry.fileSize
+-                  if entry.isDir: size = 0
+-                  statusText = statusText + entry.name + &quot;\t&quot; + str(entry.isDir) + &quot;\t&quot; + str(size) + &quot;\t&quot; + str(entry.exists) + &quot;\t&quot; + changeDate.getUrlString()+&quot;\n&quot;
++   def testGetDirRestoreDates(self):
++      tests = self.getBackupTests()
++      for testDir in tests:
++         if self.hasDirRestoreDates(testDir):
++            rdiffDestDir = joinPaths(self.destRoot, testDir)
+             
+-         assert statusText.replace(&quot;\n&quot;, &quot;&quot;) == self.getExpectedDirEntriesResults(testDir).replace(&quot;\n&quot;, &quot;&quot;), &quot;Got: &quot; + statusText + &quot;\nExpected:&quot; + self.getExpectedDirEntriesResults(testDir)
++            #print rdiffDestDir
++            dates = getDirRestoreDates(rdiffDestDir, &quot;/testdir2&quot;)
++            statusText = &quot;&quot;
++            for date in dates:
++               statusText = statusText + date.getUrlString() + &quot;\n&quot;
++            
++            assert statusText.replace(&quot;\n&quot;, &quot;&quot;) == self.getExpectedDirRestoreDates(testDir).replace(&quot;\n&quot;, &quot;&quot;), &quot;Got: &quot; + statusText + &quot;\nExpected:&quot; + self.getExpectedDirRestoreDates(testDir)
+ 
+-   def testGetDirRestoreDates(self):
+-      pass
+-
+    def testGetBackupHistory(self):
+       tests = self.getBackupTests()
+       for testDir in tests:
+
+Deleted: trunk/tests/deleted_dir/results/dir_entries.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-11 03:59:48 UTC (rev 67)
+@@ -1,3 +0,0 @@
+-testdir2	True	0	True	2006-01-04T01:49:50Z
+-testdir2	True	0	True	2006-01-05T01:49:50Z
+-
+
+Added: trunk/tests/deleted_dir/results/dir_restore_dates.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_restore_dates.txt	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/tests/deleted_dir/results/dir_restore_dates.txt	2006-10-11 03:59:48 UTC (rev 67)
+@@ -0,0 +1,2 @@
++2006-01-04T01:49:50Z
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000023.html">[Rdiffweb-commits] r66 - in trunk: rdiffWeb tests	tests/deleted_dir/results tests/deleted_file	tests/deleted_file/2006-01-03T01:49:50Z	tests/deleted_file/2006-01-04T01:49:50Z tests/deleted_file/results
+</A></li>
+	<LI>Next message: <A HREF="000025.html">[Rdiffweb-commits] r68 - in trunk/rdiffWeb: . static static/images	templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

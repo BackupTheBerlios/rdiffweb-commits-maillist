@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r108 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r108%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709131416.l8DEGio9016605%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000064.html">
+   <LINK REL="Next"  HREF="000066.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r108 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r108%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709131416.l8DEGio9016605%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r108 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Sep 13 16:16:44 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000064.html">[Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates
+</A></li>
+        <LI>Next message: <A HREF="000066.html">[Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-13 16:16:41 +0200 (Thu, 13 Sep 2007)
+New Revision: 108
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+Log:
+Remove logic that was moved to the template
+
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-13 14:15:53 UTC (rev 107)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-13 14:16:41 UTC (rev 108)
+@@ -62,8 +62,6 @@
+    def getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+       email = self.userDB.getUserEmail(self.getUsername());
+-      if not email:
+-         email = &quot;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">joe at example.com</A>&quot;
+       parms = { &quot;title&quot; : title, &quot;error&quot; : errorMessage, &quot;message&quot; : statusMessage, &quot;userEmail&quot; : email, &quot;notificationsEnabled&quot; : False }
+       if email_notification.emailNotificationIsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000064.html">[Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates
+</A></li>
+	<LI>Next message: <A HREF="000066.html">[Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static	rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r287 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r287%20-%20trunk/rdiffWeb&In-Reply-To=%3C200908101211.n7ACBPdE012889%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r287 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r287%20-%20trunk/rdiffWeb&In-Reply-To=%3C200908101211.n7ACBPdE012889%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r287 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Aug 10 14:11:25 CEST 2009</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#246">[ date ]</a>
+              <a href="thread.html#246">[ thread ]</a>
+              <a href="subject.html#246">[ subject ]</a>
+              <a href="author.html#246">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-08-10 14:11:22 +0200 (Mon, 10 Aug 2009)
+New Revision: 287
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+Log:
+Hack to prefs page to fix IE. The proper fix is to consolidate all the submit buttons.
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2009-07-07 11:53:40 UTC (rev 286)
++++ trunk/rdiffWeb/page_prefs.py	2009-08-10 12:11:22 UTC (rev 287)
+@@ -12,15 +12,15 @@
+    def index(self, **parms):
+       if parms:
+          action = parms['form']
+-         if action == 'setPassword':
++         if action == 'setPassword' or action == 'Change Password':
+             return self._changePassword(parms['current'], parms['new'], parms['confirm'])
+-         elif action == 'updateRepos':
++         elif action == 'updateRepos' or action == 'Find and Update Backup Locations':
+             return self._updateRepos()
+-         elif action == 'setNotifications':
++         elif action == 'setNotifications' or action == 'Change Notifications':
+             return self._setNotifications(parms)
+-         elif action == 'setRestoreType':
++         elif action == 'setRestoreType' or action == 'Update Restore Preferences':
+             return self._setRestoreType(parms['restoreType'])
+-         elif action == 'setAllowRepoDeletion':
++         elif action == 'setAllowRepoDeletion' or action == 'Update':
+             return self._setAllowRepoDeletion('allowDeletion' in parms)
+          else:
+             return self._getPrefsPage(errorMessage='Invalid setting.')
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#246">[ date ]</a>
+              <a href="thread.html#246">[ thread ]</a>
+              <a href="subject.html#246">[ subject ]</a>
+              <a href="author.html#246">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

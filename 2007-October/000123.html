@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r166 - in trunk/tests: . extensions	extensions/repo extensions/repo/rdiff-backup-data	extensions/repo/rdiff-backup-data/increments	extensions/repo/rdiff-backup-data/increments/testdir.data	extensions/repo/testdir.data
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r166%20-%20in%20trunk/tests%3A%20.%20extensions%0A%09extensions/repo%20extensions/repo/rdiff-backup-data%0A%09extensions/repo/rdiff-backup-data/increments%0A%09extensions/repo/rdiff-backup-data/increments/testdir.data%0A%09extensions/repo/testdir.data&In-Reply-To=%3C200710272251.l9RMpU2v005002%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000122.html">
+   <LINK REL="Next"  HREF="000124.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r166 - in trunk/tests: . extensions	extensions/repo extensions/repo/rdiff-backup-data	extensions/repo/rdiff-backup-data/increments	extensions/repo/rdiff-backup-data/increments/testdir.data	extensions/repo/testdir.data</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r166%20-%20in%20trunk/tests%3A%20.%20extensions%0A%09extensions/repo%20extensions/repo/rdiff-backup-data%0A%09extensions/repo/rdiff-backup-data/increments%0A%09extensions/repo/rdiff-backup-data/increments/testdir.data%0A%09extensions/repo/testdir.data&In-Reply-To=%3C200710272251.l9RMpU2v005002%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r166 - in trunk/tests: . extensions	extensions/repo extensions/repo/rdiff-backup-data	extensions/repo/rdiff-backup-data/increments	extensions/repo/rdiff-backup-data/increments/testdir.data	extensions/repo/testdir.data">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 28 00:51:30 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000122.html">[Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images	templates
+</A></li>
+        <LI>Next message: <A HREF="000124.html">[Rdiffweb-commits] r167 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#123">[ date ]</a>
+              <a href="thread.html#123">[ thread ]</a>
+              <a href="subject.html#123">[ subject ]</a>
+              <a href="author.html#123">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-28 00:51:13 +0200 (Sun, 28 Oct 2007)
+New Revision: 166
+
+Added:
+   trunk/tests/extensions/
+   trunk/tests/extensions/browse_results.txt
+   trunk/tests/extensions/history_results.txt
+   trunk/tests/extensions/locations_results.txt
+   trunk/tests/extensions/repo/
+   trunk/tests/extensions/repo/rdiff-backup-data/
+   trunk/tests/extensions/repo/rdiff-backup-data/backup.log
+   trunk/tests/extensions/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data
+   trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/subfile.2007-10-19T18:12:44-05:00.missing
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data
+   trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data
+   trunk/tests/extensions/repo/testdir.data/
+   trunk/tests/extensions/repo/testdir.data/subfile
+   trunk/tests/extensions/repo/testfile.data
+Log:
+Add test case for r159
+
+Added: trunk/tests/extensions/browse_results.txt
+===================================================================
+--- trunk/tests/extensions/browse_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/browse_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,8 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++testdir.data	 	2007-10-19 18:13:10	0	True
++testfile.data	13 bytes	2007-10-19 18:13:10	1	True
++PrevRevision	2007-10-19 18:12:44
+\ No newline at end of file
+
+Added: trunk/tests/extensions/history_results.txt
+===================================================================
+--- trunk/tests/extensions/history_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/history_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?	Cumulative Size
++2007-10-19 18:13:10	13 bytes		False	125 bytes
++2007-10-19 18:12:44	0 bytes		False	125 bytes
+\ No newline at end of file
+
+Added: trunk/tests/extensions/locations_results.txt
+===================================================================
+--- trunk/tests/extensions/locations_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/locations_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-10-19 18:13:10	13 bytes
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1 @@
++PID 6806
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/subfile.2007-10-19T18:12:44-05:00.missing
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,18 @@
++StartTime 1192835564.00 (Fri Oct 19 18:12:44 2007)
++EndTime 1192835564.75 (Fri Oct 19 18:12:44 2007)
++ElapsedTime 0.75 (0.75 seconds)
++SourceFiles 3
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 2
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,18 @@
++StartTime 1192835590.00 (Fri Oct 19 18:13:10 2007)
++EndTime 1192835590.18 (Fri Oct 19 18:13:10 2007)
++ElapsedTime 0.18 (0.18 seconds)
++SourceFiles 4
++SourceFileSize 13 (13 bytes)
++MirrorFiles 3
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 3
++ChangedSourceSize 13 (13 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 112 (112 bytes)
++TotalDestinationSizeChange 125 (125 bytes)
++Errors 0
+
+Added: trunk/tests/extensions/repo/testdir.data/subfile
+===================================================================
+
+Added: trunk/tests/extensions/repo/testfile.data
+===================================================================
+--- trunk/tests/extensions/repo/testfile.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/testfile.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1 @@
++New contents
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000122.html">[Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images	templates
+</A></li>
+	<LI>Next message: <A HREF="000124.html">[Rdiffweb-commits] r167 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#123">[ date ]</a>
+              <a href="thread.html#123">[ thread ]</a>
+              <a href="subject.html#123">[ subject ]</a>
+              <a href="author.html#123">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

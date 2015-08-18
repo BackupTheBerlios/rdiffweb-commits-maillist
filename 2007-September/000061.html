@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r104 - in trunk: . rdiffWeb rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r104%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200709032107.l83L7fEs008457%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000062.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r104 - in trunk: . rdiffWeb rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r104%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200709032107.l83L7fEs008457%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r104 - in trunk: . rdiffWeb rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Sep  3 23:07:41 CEST 2007</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000062.html">[Rdiffweb-commits] r105 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#61">[ date ]</a>
+              <a href="thread.html#61">[ thread ]</a>
+              <a href="subject.html#61">[ subject ]</a>
+              <a href="author.html#61">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-03 23:07:11 +0200 (Mon, 03 Sep 2007)
+New Revision: 104
+
+Added:
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_main.py
+Log:
+Allow users to change their own passwords. (Administrators can still modify arbitrary passwords.)
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiff-web	2007-09-03 21:07:11 UTC (rev 104)
+@@ -54,6 +54,7 @@
+    import rdiffWeb.page_locations
+    import rdiffWeb.page_restore
+    import rdiffWeb.page_status
++   import rdiffWeb.page_prefs
+ 
+    # OK, we're good to go.  Start the server.
+    server = rdiffWeb.page_locations.rdiffLocationsPage()
+@@ -101,5 +102,6 @@
+    cherrypy.root.history = rdiffWeb.page_history.rdiffHistoryPage()
+    cherrypy.root.status = rdiffWeb.page_status.rdiffStatusPage()
+    cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
++   cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
+    cherrypy.server.start()
+ 
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/db.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -1,6 +1,9 @@
+ #!/usr/bin/python
+ 
+ class userDB:
++   def modificationsSupported(self):
++      return False
++
+    def areUserCredentialsValid(self, username, password):
+       raise NotImplementedError
+ 
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/db_mysql.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -12,6 +12,9 @@
+       self.userRootCache = {}
+       self._connect()
+ 
++   def modificationsSupported(self):
++      return True
++
+    def userExists(self, username):
+       results = self._executeQuery(&quot;SELECT Username FROM users WHERE Username = %(user)s&quot;, user=username)
+       return len(results) == 1
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/librdiff.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -3,6 +3,7 @@
+ &quot;&quot;&quot;All functions throw on error.&quot;&quot;&quot;
+ 
+ import os, bisect
++import gzip, re
+ from rdw_helpers import joinPaths, removeDir
+ import rdw_helpers
+ 
+@@ -289,7 +290,6 @@
+    mirrorMarkers = mirrorMarkers[1:]
+    return len(filter(lambda x: x.startswith(&quot;current_mirror.&quot;+date.getUrlString()), mirrorMarkers)) &gt; 0
+ 
+-import gzip, re
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_browse.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -108,12 +108,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(repoParentPath, repoName)
+-
+-if __name__ == &quot;__main__&quot;:
+-   print &quot;Called as standalone program; running unit tests...&quot;
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(browsePageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+-
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_history.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -49,11 +49,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(rdw_helpers.joinPaths(repoParentPath, repoName), repoName)
+-
+-if __name__ == &quot;__main__&quot;:
+-   print &quot;Called as standalone program; running unit tests...&quot;
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(historyPageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_locations.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -49,11 +49,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(repoParentPath, [repoName])
+-
+-if __name__ == &quot;__main__&quot;:
+-   print &quot;Called as standalone program; running unit tests...&quot;
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(locationsPageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_main.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -75,9 +75,12 @@
+       return self.compileTemplate(&quot;page_end.html&quot;)
+ 
+    def writeTopLinks(self):
+-      pages = [(&quot;/status/&quot;, &quot;Backup Status&quot;), (&quot;/doLogout&quot;, &quot;Log out&quot;)]
++      pages = [(&quot;/status/&quot;, &quot;Backup Status&quot;)]
++      if self.userDB.modificationsSupported():
++         pages.append((&quot;/prefs&quot;, &quot;Preferences&quot;))
+       if self.userDB.userIsAdmin(self.getUsername()):
+          pages.append((&quot;/admin&quot;, &quot;Admin&quot;))
++      pages.append((&quot;/doLogout&quot;, &quot;Log out&quot;))
+       links = []
+       for page in pages:
+          (url, title) = page
+
+Added: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -0,0 +1,33 @@
++#!/usr/bin/python
++
++from rdw_helpers import joinPaths
++import rdw_helpers, page_main, librdiff
++import os
++import urllib
++
++
++class rdiffPreferencesPage(page_main.rdiffPage):
++   
++   def index(self):
++      return self.getPrefsPage(&quot;&quot;, &quot;&quot;)
++   index.exposed = True
++   
++   def changePassword(self, currentPassword, newPassword, confirmPassword):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage(&quot;Password changing is not supported with the active user database.&quot;, &quot;&quot;)
++      
++      if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
++         return self.getPrefsPage(&quot;The 'Current Password' is invalid.&quot;, &quot;&quot;)
++      
++      if newPassword != confirmPassword:
++         return self.getPrefsPage(&quot;The passwords do not match.&quot;, &quot;&quot;)
++
++      self.userDB.setUserPassword(self.getUsername(), newPassword)
++      
++      return self.getPrefsPage(&quot;&quot;, &quot;Password updated successfully.&quot;)
++   changePassword.exposed = True
++   
++   def getPrefsPage(self, errorMessage, statusMessage):
++      title = &quot;User Preferences&quot;
++      return self.startPage(title) + self.compileTemplate(&quot;user_prefs.html&quot;, title=title, error=errorMessage, message=statusMessage) + self.endPage()
++      
+
+Added: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-03 21:07:11 UTC (rev 104)
+@@ -0,0 +1,24 @@
++&lt;h2&gt;User Preferences&lt;/h2&gt;
++&lt;p&gt;
++&lt;h3&gt;Change Password&lt;/h3&gt;
++&lt;!--StartIncludeIf:error--&gt;&lt;p style=&quot;color:red&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
++&lt;!--StartIncludeIf:message--&gt;&lt;p style=&quot;color:blue&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
++&lt;form action=&quot;changePassword&quot; method=&quot;post&quot;&gt;
++&lt;table&gt;
++&lt;tr&gt;
++   &lt;td&gt;Current Password:&lt;/td&gt;
++   &lt;td&gt;&lt;input type=&quot;password&quot; name=&quot;currentPassword&quot;/&gt;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++   &lt;td&gt;New Password:&lt;/td&gt;
++   &lt;td&gt;&lt;input type=&quot;password&quot; name=&quot;newPassword&quot;/&gt;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++   &lt;td&gt;Confirm New Password:&lt;/td&gt;
++   &lt;td&gt;&lt;input type=&quot;password&quot; name=&quot;confirmPassword&quot;/&gt;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;/table&gt;
++&lt;br&gt;
++
++&lt;input type=&quot;submit&quot; value=&quot;Change Password&quot; /&gt;
++&lt;/form&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000062.html">[Rdiffweb-commits] r105 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#61">[ date ]</a>
+              <a href="thread.html#61">[ thread ]</a>
+              <a href="subject.html#61">[ subject ]</a>
+              <a href="author.html#61">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

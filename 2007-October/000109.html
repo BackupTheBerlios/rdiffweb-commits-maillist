@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r152 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r152%20-%20trunk&In-Reply-To=%3C200710140443.l9E4hwZU021593%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000108.html">
+   <LINK REL="Next"  HREF="000110.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r152 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r152%20-%20trunk&In-Reply-To=%3C200710140443.l9E4hwZU021593%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r152 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 14 06:43:58 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000108.html">[Rdiffweb-commits] r151 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000110.html">[Rdiffweb-commits] r153 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#109">[ date ]</a>
+              <a href="thread.html#109">[ thread ]</a>
+              <a href="subject.html#109">[ subject ]</a>
+              <a href="author.html#109">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-14 06:43:54 +0200 (Sun, 14 Oct 2007)
+New Revision: 152
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn on encoding filter. Hopefully this will result in correct output for non-English pages.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-14 04:43:11 UTC (rev 151)
++++ trunk/rdiff-web	2007-10-14 04:43:54 UTC (rev 152)
+@@ -59,6 +59,7 @@
+    settings = {
+       'sessionFilter.on' : True,
+       'gzipFilter.on': True,
++      'encodingFilter.on' : True,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
+       'server.socketPort' : serverPort,
+       'server.logFile' : logFile,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000108.html">[Rdiffweb-commits] r151 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000110.html">[Rdiffweb-commits] r153 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#109">[ date ]</a>
+              <a href="thread.html#109">[ thread ]</a>
+              <a href="subject.html#109">[ subject ]</a>
+              <a href="author.html#109">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

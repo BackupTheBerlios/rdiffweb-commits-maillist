@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r60 - in trunk: . rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r60%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200606052245.k55MjK4X013425%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000018.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r60 - in trunk: . rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r60%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200606052245.k55MjK4X013425%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r60 - in trunk: . rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jun  6 00:45:20 CEST 2006</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000018.html">[Rdiffweb-commits] r61 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-06-06 00:45:16 +0200 (Tue, 06 Jun 2006)
+New Revision: 60
+
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Fix static paths for installed versions
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2006-05-31 21:23:41 UTC (rev 59)
++++ trunk/rdiff-web	2006-06-05 22:45:16 UTC (rev 60)
+@@ -65,7 +65,7 @@
+       'server.logFile' : logFile,
+       '/static' : {
+          'staticFilter.on' : True,
+-         'staticFilter.root': rdiffWeb.rdw_helpers.joinPaths(os.path.abspath(os.path.dirname(__file__)), &quot;rdiffWeb&quot;),
++         'staticFilter.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+          'staticFilter.dir': &quot;static&quot;,
+          'rdwAuthenticateFilter.on' : False
+       },
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2006-05-31 21:23:41 UTC (rev 59)
++++ trunk/rdiffWeb/rdw_helpers.py	2006-06-05 22:45:16 UTC (rev 60)
+@@ -12,6 +12,9 @@
+    args = [x.lstrip(&quot;/&quot;) for x in args]
+    return os.path.join(parentPath, *args)
+ 
++def getStaticRootPath():
++   return os.path.abspath(os.path.dirname(__file__))
++
+ class accessDeniedError:
+    def __str__(self):
+       return &quot;Access is denied.&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000018.html">[Rdiffweb-commits] r61 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

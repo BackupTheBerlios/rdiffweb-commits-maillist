@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r199 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r199%20-%20trunk&In-Reply-To=%3C200712281337.lBSDbm2u015777%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000155.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r199 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r199%20-%20trunk&In-Reply-To=%3C200712281337.lBSDbm2u015777%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r199 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Dec 28 14:37:48 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000155.html">[Rdiffweb-commits] r198 - trunk/rdiffWeb
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-12-28 14:37:46 +0100 (Fri, 28 Dec 2007)
+New Revision: 199
+
+Modified:
+   trunk/rdiff-web
+Log:
+Fix error with spider threads
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-12-28 02:15:03 UTC (rev 198)
++++ trunk/rdiff-web	2007-12-28 13:37:46 UTC (rev 199)
+@@ -130,6 +130,6 @@
+    
+       rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
+       rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
+-      cherrypy.server.on_stop_server_list.append(lambda: killEvent.set())
++      cherrypy.engine.on_stop_engine_list.append(lambda: killEvent.set())
+ 
+    cherrypy.quickstart(root, config=page_settings)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000155.html">[Rdiffweb-commits] r198 - trunk/rdiffWeb
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

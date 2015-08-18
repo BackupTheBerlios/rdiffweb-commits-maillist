@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r209 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r209%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031358.m03Dwcsx029000%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000165.html">
+   <LINK REL="Next"  HREF="000167.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r209 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r209%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031358.m03Dwcsx029000%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r209 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Jan  3 14:58:38 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000165.html">[Rdiffweb-commits] r208 - trunk/init
+</A></li>
+        <LI>Next message: <A HREF="000167.html">[Rdiffweb-commits] r210 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#166">[ date ]</a>
+              <a href="thread.html#166">[ thread ]</a>
+              <a href="subject.html#166">[ subject ]</a>
+              <a href="author.html#166">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-03 14:58:34 +0100 (Thu, 03 Jan 2008)
+New Revision: 209
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+Log:
+Fix exception when updating repos from prefs page.
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2008-01-03 13:16:33 UTC (rev 208)
++++ trunk/rdiffWeb/page_prefs.py	2008-01-03 13:58:34 UTC (rev 209)
+@@ -43,7 +43,7 @@
+       return self._getPrefsPage(statusMessage=&quot;Password updated successfully.&quot;)
+    
+    def _updateRepos(self):
+-      rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
++      rdw_spider_repos.findReposForUser(self.getUsername(), self.getUserDB())
+       return self._getPrefsPage(statusMessage=&quot;Successfully updated backup locations.&quot;)
+ 
+    def _setNotifications(self, parms):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000165.html">[Rdiffweb-commits] r208 - trunk/init
+</A></li>
+	<LI>Next message: <A HREF="000167.html">[Rdiffweb-commits] r210 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#166">[ date ]</a>
+              <a href="thread.html#166">[ thread ]</a>
+              <a href="subject.html#166">[ subject ]</a>
+              <a href="author.html#166">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

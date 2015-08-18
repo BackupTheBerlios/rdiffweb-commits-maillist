@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r113 - in trunk: . rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r113%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200709141938.l8EJcP5K031685%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000068.html">
+   <LINK REL="Next"  HREF="000071.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r113 - in trunk: . rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r113%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200709141938.l8EJcP5K031685%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r113 - in trunk: . rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Sep 14 21:38:25 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000068.html">[Rdiffweb-commits] r112 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000071.html">[Rdiffweb-commits] r114 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-14 21:38:18 +0200 (Fri, 14 Sep 2007)
+New Revision: 113
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/setup.py
+Log:
+* Include email template in setup package
+* Fix mysql handling of case sensitive repo paths
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/db_mysql.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -83,7 +83,7 @@
+       
+       # delete any obsolete repos
+       for repo in reposToDelete:
+-         query = &quot;DELETE FROM repos WHERE UserID=%(userID)s AND RepoPath=%(repo)s&quot;
++         query = &quot;DELETE FROM repos WHERE UserID=%(userID)s AND RepoPath= BINARY %(repo)s&quot;
+          self._executeQuery(query, repo=repo, userID=str(userID))
+       
+       # add in new repos
+@@ -99,11 +99,11 @@
+       
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+-      query = &quot;UPDATE repos SET MaxAge=%(maxAge)s WHERE RepoPath = %(repoPath)s AND UserID = &quot; + str(self._getUserID(username))
++      query = &quot;UPDATE repos SET MaxAge=%(maxAge)s WHERE RepoPath = BINARY %(repoPath)s AND UserID = &quot; + str(self._getUserID(username))
+       self._executeQuery(query, maxAge=maxAge, repoPath=repoPath)
+       
+    def getRepoMaxAge(self, username, repoPath):
+-      query = &quot;SELECT MaxAge FROM repos WHERE RepoPath = %(repoPath)s AND UserID = &quot; + str(self._getUserID(username))
++      query = &quot;SELECT MaxAge FROM repos WHERE RepoPath = BINARY %(repoPath)s AND UserID = &quot; + str(self._getUserID(username))
+       results = self._executeQuery(query, repoPath=repoPath)
+       assert len(results) == 1
+       return int(results[0][0])
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/email_notification.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -50,8 +50,6 @@
+       if oldRepos:
+          userEmailAddress = dbBackend.getUserEmail(user)
+          emailText = rdw_helpers.compileTemplate(&quot;email_notification.txt&quot;, repos=oldRepos, sender=emailSender, subject=&quot;Backup Failures&quot;)
+-         #print emailText
+-         #emailText = html_email.createhtmlmail(&quot;&quot;, textEmailPart, emailTitle)
+ 
+          session = smtplib.SMTP(emailHost)
+          session.login(emailUsername, emailPassword)
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/page_admin.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -71,7 +71,8 @@
+       page = self.startPage(&quot;Administration&quot;)
+       userNames = self.userDB.getUserList()
+       users = [ { &quot;username&quot; : user } for user in userNames ]
+-      page = page + self.compileTemplate(&quot;admin_main.html&quot;, users=users, addUserUrl=&quot;/admin/addUser&quot;)
++      parms = { &quot;users&quot; : users, &quot;addUserUrl&quot; : &quot;/admin/addUser&quot; } ]
++      page = page + self.compileTemplate(&quot;admin_main.html&quot;, **parms)
+       return page + self.endPage()
+    index.exposed = True
+ 
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -62,7 +62,14 @@
+    def getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+       email = self.userDB.getUserEmail(self.getUsername());
+-      parms = { &quot;title&quot; : title, &quot;error&quot; : errorMessage, &quot;message&quot; : statusMessage, &quot;userEmail&quot; : email, &quot;notificationsEnabled&quot; : False }
++      parms = {
++         &quot;title&quot; : title,
++         &quot;error&quot; : errorMessage,
++         &quot;message&quot; : statusMessage,
++         &quot;userEmail&quot; : email,
++         &quot;notificationsEnabled&quot; : False,
++         &quot;backups&quot; : []
++      }
+       if email_notification.emailNotificationIsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+          backups = [{ &quot;backupName&quot; : repo, &quot;maxDays&quot; : self.userDB.getRepoMaxAge(self.getUsername(), repo) } for repo in repos]
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/setup.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -14,7 +14,7 @@
+       author_email='<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at rdiffweb.org</A>',
+       url='<A HREF="http://www.rdiffweb.org">http://www.rdiffweb.org</A>',
+       packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
++      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+@@ -40,6 +40,7 @@
+                   ('/etc/init.d', ['init/rdiff-web']),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
++                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.txt')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000068.html">[Rdiffweb-commits] r112 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000071.html">[Rdiffweb-commits] r114 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

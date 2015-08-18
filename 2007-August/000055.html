@@ -1,0 +1,395 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-August/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r98%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates%0A%09tests&In-Reply-To=%3C200708220403.l7M43pDI016735%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000054.html">
+   <LINK REL="Next"  HREF="000056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r98%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates%0A%09tests&In-Reply-To=%3C200708220403.l7M43pDI016735%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates	tests">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Aug 22 06:03:51 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000054.html">[Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir	deleted_dir/repo deleted_dir/repo/rdiff-backup-data	deleted_dir/repo/rdiff-backup-data/increments	deleted_dir/repo/rdiff-backup-data/increments/testdir2	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data	deleted_file/repo/rdiff-backup-data/increments simple	simple/repo simple/repo/rdiff-backup-data	simple/repo/rdiff-backup-data/increments
+</A></li>
+        <LI>Next message: <A HREF="000056.html">[Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir	tests/deleted_file tests/simple
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-08-22 06:03:41 +0200 (Wed, 22 Aug 2007)
+New Revision: 98
+
+Added:
+   trunk/tests/browse_template.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/templates/history.html
+   trunk/rdw.kdevelop
+Log:
+Improve support for in-progress backups, and switch out testing framework so we can test this.
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/librdiff.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -273,18 +273,26 @@
+       rdiffOutputFile = rdiffOutputFile+&quot;.zip&quot;
+    return rdiffOutputFile
+ 
+-def backupIsInProgress(repo):
++def backupIsInProgressForRepo(repo):
+    rdiffDir = joinPaths(repo, rdiffDataDirName)
+    mirrorMarkers = os.listdir(rdiffDir)
+    mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
+    return mirrorMarkers and len(mirrorMarkers) &gt; 1
+ 
++def backupIsInProgress(repo, date):
++   rdiffDir = joinPaths(repo, rdiffDataDirName)
++   mirrorMarkers = os.listdir(rdiffDir)
++   mirrorMarkers.sort()
++   mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
++   mirrorMarkers = mirrorMarkers[1:]
++   return len(filter(lambda x: x.startswith(&quot;current_mirror.&quot;+date.getUrlString()), mirrorMarkers)) &gt; 0
++
+ import gzip, re
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+ def getLastBackupHistoryEntry(repoRoot):
+-   history = _getBackupHistory(repoRoot, 1)
++   history = _getBackupHistory(repoRoot, 1, None, None, False)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+@@ -298,6 +306,7 @@
+    return _getBackupHistory(repoRoot, -1, earliestDate, latestDate, False)
+ 
+ # earliestDate and latestDate are inclusive
++# if limiting by numLatestEntries, will any in-progress backups will be ignored
+ def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+    &quot;&quot;&quot;Returns a list of backupHistoryEntry's&quot;&quot;&quot;
+    checkRepoPath(repoRoot, &quot;&quot;)
+@@ -308,10 +317,6 @@
+    curEntries = filter(lambda x: x.startswith(&quot;error_log.&quot;), curEntries)
+    curEntries.sort()
+ 
+-   if numLatestEntries != -1:
+-      assert numLatestEntries &gt; 0
+-      curEntries = curEntries[-numLatestEntries:]
+-      curEntries.reverse()
+    entries = []
+    for entryFile in curEntries:
+       entry = incrementEntry(entryFile)
+@@ -337,12 +342,19 @@
+          expression = 0
+       newEntry = backupHistoryEntry()
+       newEntry.date = entry.getDate()
+-      newEntry.errors = errors
++      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate())
++      if newEntry.inProgress:
++         newEntry.errors = &quot;&quot;
++      else:
++         newEntry.errors = errors
+       newEntry.size = int(expression)
+       entries.append(newEntry)
+ 
+-   if len(entries) &gt; 0 and not includeInProgress and backupIsInProgress(repoRoot):
++   if len(entries) &gt; 0 and not includeInProgress and backupIsInProgressForRepo(repoRoot):
+       entries.pop()
++   
++   if numLatestEntries != -1:
++      entries = entries[-numLatestEntries:]
+    return entries
+ 
+ def getDirRestoreDates(repo, path):
+@@ -416,7 +428,7 @@
+ 
+    def tearDown(self):
+       if (os.access(self.destRoot, os.F_OK)):
+-            removeDir(self.destRoot)
++         removeDir(self.destRoot)
+ 
+    def getBackupTests(self):
+       return filter(lambda x: not x.startswith(&quot;.&quot;), os.listdir(self.masterDirPath))
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_browse.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -7,8 +7,8 @@
+ 
+ 
+ class rdiffBrowsePage(page_main.rdiffPage):
++   
+    def index(self, repo=&quot;&quot;, path=&quot;&quot;, restore=&quot;&quot;):
+-
+       try:
+          self.validateUserPath(joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+@@ -19,6 +19,16 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
++      parms = self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), repo, path, restore)
++      page = self.startPage(parms[&quot;title&quot;])
++      page = page + self.compileTemplate(&quot;dir_listing.html&quot;, **parms)
++      page = page + self.endPage()
++      return page
++   
++   index.exposed = True
++   
++   
++   def getParmsForPage(self, userRoot, repo=&quot;&quot;, path=&quot;&quot;, restore=&quot;&quot;):
+       # Build &quot;parent directories&quot; links
+       parentDirs = [{ &quot;parentPath&quot; : self.buildLocationsUrl(), &quot;parentDir&quot; : &quot;Backup Locations&quot; }]
+       parentDirs.append({ &quot;parentPath&quot; : self.buildBrowseUrl(repo, &quot;/&quot;, False), &quot;parentDir&quot; : repo.lstrip(&quot;/&quot;) })
+@@ -30,7 +40,7 @@
+       parentDirs[-1][&quot;parentPath&quot;] = &quot;&quot; # Clear link for last parent, so it doesn't show it as a link
+ 
+       # Set up warning about in-progress backups, if necessary
+-      if librdiff.backupIsInProgress(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
++      if librdiff.backupIsInProgressForRepo(joinPaths(userRoot, repo)):
+          backupWarning = &quot;Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent.&quot;
+       else:
+          backupWarning = &quot;&quot;
+@@ -40,7 +50,7 @@
+       if restore == &quot;T&quot;:
+          title = &quot;Restore &quot;+repo
+          viewUrl = self.buildBrowseUrl(repo, path, False)
+-         restoreDates = librdiff.getDirRestoreDates(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), path)
++         restoreDates = librdiff.getDirRestoreDates(joinPaths(userRoot, repo), path)
+          restoreDates.reverse() # sort latest first
+          restoreDates = [ { &quot;dateStr&quot; : x.getDisplayString(), &quot;dirRestoreUrl&quot; : self.buildRestoreUrl(repo, path, x) }
+                          for x in restoreDates ]
+@@ -52,7 +62,7 @@
+ 
+          # Get list of actual directory entries
+          try:
+-            fullRepoPath = joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)
++            fullRepoPath = joinPaths(userRoot, repo)
+             libEntries = librdiff.getDirEntries(fullRepoPath, path)
+          except librdiff.FileError, error:
+             return self.writeErrorPage(str(error))
+@@ -87,11 +97,23 @@
+                            &quot;showRevisionsText&quot; : showRevisionsText,
+                            &quot;changeDates&quot; : changeDates })
+ 
+-      # Start page
+-      page = self.startPage(title)
+-      page = page + self.compileTemplate(&quot;dir_listing.html&quot;, title=title, files=entries, parentDirs=parentDirs, restoreUrl=restoreUrl, viewUrl=viewUrl, restoreDates=restoreDates, warning=backupWarning)
+-      page = page + self.endPage()
+-      return page
++      return { &quot;title&quot; : title, &quot;files&quot; : entries, &quot;parentDirs&quot; : parentDirs, &quot;restoreUrl&quot; : restoreUrl, &quot;viewUrl&quot; : viewUrl, &quot;restoreDates&quot; : restoreDates, &quot;warning&quot; : backupWarning }
+ 
+-   index.exposed = True
++class browsePageTest(page_main.pageTest, rdiffBrowsePage):
++   def getTemplateName(self):
++      return &quot;browse_template.txt&quot;
++   
++   def getExpectedResultsName(self):
++      return &quot;browse_results.txt&quot;
++      
++   def getParmsForTemplate(self, repoParentPath, repoName):
++      return self.getParmsForPage(repoParentPath, repoName)
+ 
++if __name__ == &quot;__main__&quot;:
++   print &quot;Called as standalone program; running unit tests...&quot;
++
++   import unittest
++   testSuite = unittest.makeSuite(browsePageTest, 'test')
++   testRunner = unittest.TextTestRunner()
++   testRunner.run(testSuite)
++
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_history.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -25,9 +25,13 @@
+       rdiffHistory.reverse()
+       entries = []
+       for historyItem in rdiffHistory:
++         sizeStr = &quot;&quot;
++         if not historyItem.inProgress:
++            sizeStr = rdw_helpers.formatFileSizeStr(historyItem.size)
+          entries.append({ &quot;date&quot; : historyItem.date.getDisplayString(),
++                          &quot;inProgress&quot; : historyItem.inProgress,
+                           &quot;errors&quot; : historyItem.errors,
+-                          &quot;size&quot; : rdw_helpers.formatFileSizeStr(historyItem.size) })
++                          &quot;size&quot; : sizeStr })
+       page = page + self.compileTemplate(&quot;history.html&quot;, title=&quot;Backup history for &quot;+repo, history=entries)
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_main.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -107,5 +107,53 @@
+    def getUsername(self):
+       username = cherrypy.session['username']
+       return username
++   
+ 
++import unittest, shutil, tempfile, os.path
++class pageTest(unittest.TestCase):
++   # The dirs containing source data for automated tests are set up in the following format:
++   # one folder for each test, named to describe the test
++      # one folder, called repo. This contains the sample rdiff-backup repository
++      # expected results for each of the page templates
++   # templates for each of the pages to test
+ 
++   def _getBackupTests(self):
++      return filter(lambda x: not x.startswith(&quot;.&quot;) and os.path.isdir(rdw_helpers.joinPaths(self.destRoot, x)), os.listdir(self.destRoot))
++   
++   def _getFileText(self, testName, templateName):
++      return open(rdw_helpers.joinPaths(self.destRoot, testName, templateName)).read()
++   
++   def _copyDirWithoutSvn(self, src, dest):
++      names = filter(lambda x: x != &quot;.svn&quot;, os.listdir(src))
++      os.makedirs(dest)
++      for name in names:
++         srcname = os.path.join(src, name)
++         destname = os.path.join(dest, name)
++         if os.path.isdir(srcname):
++            self._copyDirWithoutSvn(srcname, destname)
++         else:
++            shutil.copy2(srcname, destname)
++
++   def setUp(self):
++      self.destRoot = rdw_helpers.joinPaths(os.path.realpath(tempfile.gettempdir()), &quot;rdiffWeb&quot;)
++      self.masterDirPath = os.path.realpath(&quot;tests&quot;) # TODO: do this right, including tying tests into &quot;python setup.py test&quot;
++      self.tearDown()
++      
++      # Copy and set up each test
++      self._copyDirWithoutSvn(self.masterDirPath, self.destRoot)
++
++   def tearDown(self):
++      if (os.access(self.destRoot, os.F_OK)):
++         rdw_helpers.removeDir(self.destRoot)
++
++   def testCompileTemplate(self):
++      for test in self._getBackupTests():
++         parms = self.getParmsForTemplate(rdw_helpers.joinPaths(self.destRoot, test), &quot;repo&quot;)
++         #print parms
++         
++         encounteredText = rdw_templating.templateParser().parseTemplate(self._getFileText(&quot;&quot;, self.getTemplateName()), **parms)
++         expectedText = self._getFileText(test, self.getExpectedResultsName())
++         
++         self.assertEquals(encounteredText, expectedText)
++         #assert encounteredText == expectedText, &quot;Got:\n&quot; + encounteredText + &quot;\nExpected:\n&quot; + expectedText
++      
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_restore.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -22,7 +22,7 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+-      if librdiff.backupIsInProgress(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
++      if librdiff.backupIsInProgressForRepo(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
+          return self.writeErrorPage(&quot;A backup is currently in progress to this location.  Restores are disabled until this backup is complete.&quot;)
+ 
+       try:
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/templates/history.html	2007-08-22 04:03:41 UTC (rev 98)
+@@ -38,7 +38,15 @@
+       &lt;!--EndIncludeIf:errors--&gt;
+       &lt;!--StartDeleteIf:errors--&gt;
+       &lt;td class=&quot;BackupResult&quot;&gt;
++      &lt;!--EndDeleteIf:errors--&gt;
++      &lt;!--StartIncludeIf:inProgress--&gt;
++         In Progress
++      &lt;!--EndIncludeIf:inProgress--&gt;
++      &lt;!--StartDeleteIf:inProgress--&gt;
+          Success
++      &lt;!--EndDeleteIf:inProgress--&gt;
++      
++      &lt;!--StartDeleteIf:errors--&gt;
+       &lt;/td&gt;
+       &lt;!--EndDeleteIf:errors--&gt;
+ 
+
+Modified: trunk/rdw.kdevelop
+===================================================================
+--- trunk/rdw.kdevelop	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdw.kdevelop	2007-08-22 04:03:41 UTC (rev 98)
+@@ -10,6 +10,7 @@
+       &lt;keyword&gt;Python&lt;/keyword&gt;
+     &lt;/keywords&gt;
+     &lt;ignoreparts/&gt;
++    &lt;projectname&gt;rdw&lt;/projectname&gt;
+   &lt;/general&gt;
+   &lt;kdevscriptproject&gt;
+     &lt;general&gt;
+
+Added: trunk/tests/browse_template.txt
+===================================================================
+--- trunk/tests/browse_template.txt	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/tests/browse_template.txt	2007-08-22 04:03:41 UTC (rev 98)
+@@ -0,0 +1,9 @@
++Title:^title$
++Path:&lt;!--StartRepeat:parentDirs--&gt; / ^parentDir$&lt;!--EndRepeat:parentDirs--&gt;
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++&lt;!--StartRepeat:files--&gt;^filename$	^size$	^date$	^numPrevRevisions$	^exists$&lt;!--StartIncludeIf:hasPrevRevisions--&gt;
++&lt;!--StartRepeat:changeDates--&gt;
++PrevRevision	^changeDateStr$&lt;!--EndRepeat:changeDates--&gt;&lt;!--EndIncludeIf:hasPrevRevisions--&gt;
++&lt;!--EndRepeat:files--&gt;
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000054.html">[Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir	deleted_dir/repo deleted_dir/repo/rdiff-backup-data	deleted_dir/repo/rdiff-backup-data/increments	deleted_dir/repo/rdiff-backup-data/increments/testdir2	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data	deleted_file/repo/rdiff-backup-data/increments simple	simple/repo simple/repo/rdiff-backup-data	simple/repo/rdiff-backup-data/increments
+</A></li>
+	<LI>Next message: <A HREF="000056.html">[Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir	tests/deleted_file tests/simple
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

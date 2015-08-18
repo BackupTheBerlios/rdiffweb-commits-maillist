@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r231 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r231%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801282354.m0SNsq6N002371%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000187.html">
+   <LINK REL="Next"  HREF="000189.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r231 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r231%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801282354.m0SNsq6N002371%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r231 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 00:54:52 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000187.html">[Rdiffweb-commits] r230 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000189.html">[Rdiffweb-commits] r232 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 00:54:45 +0100 (Tue, 29 Jan 2008)
+New Revision: 231
+
+Modified:
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/rdw_helpers.py
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+First attempt at handling non-ascii characters in repo paths.
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/page_browse.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+ 
+-from rdw_helpers import joinPaths
++from rdw_helpers import joinPaths, encodePath
+ import rdw_helpers, page_main, librdiff
+ import os
+ import urllib
+@@ -32,6 +32,8 @@
+    
+    
+    def getParmsForPage(self, userRoot, repo=&quot;&quot;, path=&quot;&quot;, restore=&quot;&quot;):
++      repo = encodePath(repo)
++      path = encodePath(path)
+       # Build &quot;parent directories&quot; links
+       parentDirs = [{ &quot;parentPath&quot; : self.buildLocationsUrl(), &quot;parentDir&quot; : &quot;Backup Locations&quot; }]
+       parentDirs.append({ &quot;parentPath&quot; : self.buildBrowseUrl(repo, &quot;/&quot;, False), &quot;parentDir&quot; : repo.lstrip(&quot;/&quot;) })
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/page_main.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -31,7 +31,7 @@
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
+-      path = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), path)
++      path = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), rdw_helpers.encodePath(path))
+       path = path.rstrip(&quot;/&quot;)
+       realPath = os.path.realpath(path)
+       if realPath != path:
+@@ -39,8 +39,7 @@
+       
+       # Make sure that the path starts with the user root
+       # This check should be accomplished by ensurePathValid, but adding for a sanity check
+-      realDestPath = os.path.realpath(path)
+-      if realDestPath.find(self.getUserDB().getUserRoot(self.getUsername())) != 0:      
++      if realPath.find(rdw_helpers.encodePath(self.getUserDB().getUserRoot(self.getUsername()))) != 0:
+          raise rdw_helpers.accessDeniedError
+       
+       
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/rdw_helpers.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -12,7 +12,13 @@
+ 
+ import rdw_templating
+ 
++def encodePath(path):
++   if isinstance(path, unicode):
++      return path.encode('utf-8')
++   return path
++
+ def joinPaths(parentPath, *args):
++   parentPath = encodePath(parentPath)
+    args = [x.lstrip(&quot;/&quot;) for x in args]
+    return os.path.join(parentPath, *args)
+ 
+@@ -25,6 +31,7 @@
+ 
+ def encodeUrl(url, safeChars=&quot;&quot;):
+    if not url: return url
++   url = encodePath(url)
+    return urllib.quote_plus(url, safeChars)
+ 
+ def decodeUrl(encodedUrl):
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -4,10 +4,7 @@
+ import re
+ 
+ class templateError:
+-   def __init__(self, errorString):
+-      self.errorString = errorString
+-   def __repr__(self):
+-      return self.errorString
++   pass
+ class templateDataError(templateError):
+    pass
+ class templateDefinitionError(templateError):
+@@ -81,7 +78,7 @@
+          matchText = matchText[len(multilineKeyword):]
+       if not matchText in replacements.keys():
+          raise templateDataError(matchText)
+-      replacementText = rdw_helpers.encodeText(str(replacements[matchText]))
++      replacementText = self._getReplacementText(replacements[matchText])
+       if isMultiline:
+          replacementText = replacementText.replace(&quot;\n&quot;, &quot;\n&lt;br/&gt;&quot;)
+       return replacementText
+@@ -102,6 +99,11 @@
+             return self.parseSingleTemplate(textToInclude)
+          return textToInclude
+       return &quot;&quot;
++   
++   def _getReplacementText(self, replacement):
++      if isinstance(replacement, unicode):
++         replacement = replacement.encode('utf-8')
++      return rdw_helpers.encodeText(replacement)
+ 
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000187.html">[Rdiffweb-commits] r230 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000189.html">[Rdiffweb-commits] r232 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

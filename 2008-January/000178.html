@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb	rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r221%20-%20in%20tags/release-0.5.1%3A%20.%20rdiffWeb%0A%09rdiffWeb/templates&In-Reply-To=%3C200801111556.m0BFuImh011899%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000177.html">
+   <LINK REL="Next"  HREF="000179.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb	rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r221%20-%20in%20tags/release-0.5.1%3A%20.%20rdiffWeb%0A%09rdiffWeb/templates&In-Reply-To=%3C200801111556.m0BFuImh011899%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb	rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Jan 11 16:56:18 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000177.html">[Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000179.html">[Rdiffweb-commits] r222 - tags/release-0.5.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-11 16:56:15 +0100 (Fri, 11 Jan 2008)
+New Revision: 221
+
+Modified:
+   tags/release-0.5.1/MANIFEST.in
+   tags/release-0.5.1/rdiffWeb/page_admin.py
+   tags/release-0.5.1/rdiffWeb/templates/admin_main.html
+Log:
+Merge several fixes from trunk (r210-212), including fixes for packaging and adding users.
+
+Modified: tags/release-0.5.1/MANIFEST.in
+===================================================================
+--- tags/release-0.5.1/MANIFEST.in	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/MANIFEST.in	2008-01-11 15:56:15 UTC (rev 221)
+@@ -1,5 +1,7 @@
+ include COPYING rdiff-web rdiff-web-config rdw.conf.sample init/rdiff-web
+ include rdiffWeb/templates/*.html
++include rdiffWeb/templates/*.xml
++include rdiffWeb/templates/*.txt
+ include rdiffWeb/static/*.png 
+ include rdiffWeb/static/*.css 
+ include rdiffWeb/static/*.js
+
+Modified: tags/release-0.5.1/rdiffWeb/page_admin.py
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/page_admin.py	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/rdiffWeb/page_admin.py	2008-01-11 15:56:15 UTC (rev 221)
+@@ -16,9 +16,9 @@
+          return self._generatePageHtml(&quot;&quot;, &quot;&quot;)
+       
+       # We need to change values. Change them, then give back that main page again, with a message
+-      print cherrypy.request.paramMap
+       action = cherrypy.request.paramMap[&quot;action&quot;]
+       username = cherrypy.request.paramMap[&quot;username&quot;]
++      password = cherrypy.request.paramMap[&quot;password&quot;]
+       userRoot = cherrypy.request.paramMap[&quot;userRoot&quot;]
+       userIsAdmin = cherrypy.request.paramMap.get(&quot;isAdmin&quot;, False) != False
+       
+@@ -34,6 +34,7 @@
+          if username == &quot;&quot;:
+             return self._generatePageHtml(&quot;&quot;, &quot;The username is invalid.&quot;, username, userRoot, userIsAdmin)
+          self.userDB.addUser(username)
++         self.userDB.setUserPassword(username, password)
+          self.userDB.setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml(&quot;User added successfully.&quot;, &quot;&quot;)
+       
+
+Modified: tags/release-0.5.1/rdiffWeb/templates/admin_main.html
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/templates/admin_main.html	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/rdiffWeb/templates/admin_main.html	2008-01-11 15:56:15 UTC (rev 221)
+@@ -42,7 +42,7 @@
+ &lt;/table&gt;
+ 
+ &lt;br&gt;
+-&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;form action=&quot;/admin/&quot; method=&quot;post&quot;&gt;
+ &lt;input style=&quot;display:none&quot; name=&quot;action&quot; value=&quot;add&quot; /&gt;
+ &lt;h3&gt;Add User&lt;/h3&gt;
+ &lt;table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000177.html">[Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000179.html">[Rdiffweb-commits] r222 - tags/release-0.5.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

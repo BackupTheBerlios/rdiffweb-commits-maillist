@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r124 - trunk/rdiffWeb/static
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r124%20-%20trunk/rdiffWeb/static&In-Reply-To=%3C200709250155.l8P1tVO3003267%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000080.html">
+   <LINK REL="Next"  HREF="000082.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r124 - trunk/rdiffWeb/static</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r124%20-%20trunk/rdiffWeb/static&In-Reply-To=%3C200709250155.l8P1tVO3003267%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r124 - trunk/rdiffWeb/static">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Sep 25 03:55:31 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000080.html">[Rdiffweb-commits] r123 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000082.html">[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#81">[ date ]</a>
+              <a href="thread.html#81">[ thread ]</a>
+              <a href="subject.html#81">[ subject ]</a>
+              <a href="author.html#81">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-25 03:55:27 +0200 (Tue, 25 Sep 2007)
+New Revision: 124
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+   trunk/rdiffWeb/static/main.css
+Log:
+Better approach to handling no-Javascript scenarios with rounded borders
+
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-09-24 13:33:29 UTC (rev 123)
++++ trunk/rdiffWeb/static/borders.css	2007-09-25 01:55:27 UTC (rev 124)
+@@ -91,9 +91,8 @@
+ .roundedBorderContents
+ {
+    padding: .3em .5em .3em .5em;
+-   /* Use a default background color and border, for times when javascript is turned off. 
++   /* Use a default border, for times when javascript is turned off. 
+    These will be overridden below when the borders are added.*/
+-   background-color: #ccc;
+    border: 1px solid black;
+ }
+ .roundedBorderInner .roundedBorderContents
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-24 13:33:29 UTC (rev 123)
++++ trunk/rdiffWeb/static/main.css	2007-09-25 01:55:27 UTC (rev 124)
+@@ -8,7 +8,8 @@
+    text-decoration: none;
+ }
+ 
+-#NavBar .roundedBorderBackground
++#NavBar .roundedBorderBackground,
++#NavBar .roundedBorderContents
+ {
+    background-color: #ccc;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000080.html">[Rdiffweb-commits] r123 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000082.html">[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#81">[ date ]</a>
+              <a href="thread.html#81">[ thread ]</a>
+              <a href="subject.html#81">[ subject ]</a>
+              <a href="author.html#81">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

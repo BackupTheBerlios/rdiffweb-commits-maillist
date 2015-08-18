@@ -1,0 +1,110 @@
+From commits at rdiffweb.org  Wed May 13 03:37:25 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 13 May 2009 03:37:25 +0200
+Subject: [Rdiffweb-commits] r270 - trunk/rdiffWeb
+Message-ID: <200905130137.n4D1bPuX031358@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-05-13 03:37:22 +0200 (Wed, 13 May 2009)
+New Revision: 270
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+Log:
+Fix traceback under certain obscure conditions during a backup, and fix tests broken in r264.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/librdiff.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -212,10 +212,16 @@
+ 
+    def _getFirstBackupAfterDate(self, date):
+       """ Iterates the mirror_metadata files in the rdiff data dir """
++      if not self.backupTimes:
++         return rdw_helpers.rdwTime()
+       if not date:
+          return self.backupTimes[0]
+-      return self.backupTimes[bisect.bisect_right(self.backupTimes, date)]
+ 
++      index = bisect.bisect_right(self.backupTimes, date)
++      if index >= len(self.backupTimes):
++         return self.backupTimes[-1]
++      return self.backupTimes[index]
++
+    def _getLastChangedBackupTime(self, filename):
+       files = self.groupedIncrementEntries.get(filename, [])
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/page_history.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -32,14 +32,16 @@
+ 
+       parms = {}
+       try:
+-         parms = self.getParmsForPage(joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo), repo)
++         full_path = joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)
++         allowHistoryDeletion = self.getUserDB().allowRepoDeletion(self.getUsername())
++         parms = self.getParmsForPage(full_path, repo, allowHistoryDeletion)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+       
+       return self.startPage("Backup History") + self.compileTemplate("history.html", **parms) + self.endPage()
+    index.exposed = True
+    
+-   def getParmsForPage(self, repoPath, repoName, message='', error=''):
++   def getParmsForPage(self, repoPath, repoName, allowHistoryDeletion=False, message='', error=''):
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+@@ -75,7 +77,7 @@
+          "title": "Backup history for "+repoName,
+          "history": entries,
+          "totalBackups": len(rdiffHistory),
+-         "allowHistoryDeletion": self.getUserDB().allowRepoDeletion(self.getUsername()),
++         "allowHistoryDeletion": allowHistoryDeletion,
+          "message": message,
+          "error": error
+       }
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/page_locations.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -22,7 +22,7 @@
+       return self._generate_page()
+    index.exposed = True
+ 
+-   def getParmsForPage(self, root, repos, message='', error=''):
++   def getParmsForPage(self, root, repos, allowRepoDeletion=False, message='', error=''):
+       repoList = []
+       for userRepo in repos:
+          try:
+@@ -65,7 +65,6 @@
+          else:
+             diskUsage = rdw_helpers.formatFileSizeStr(diskUsageNum)
+       # Allow repository deletion?
+-      allowRepoDeletion = self.getUserDB().allowRepoDeletion(self.getUsername())
+       return {
+          "title": "browse",
+          "repos": repoList,
+@@ -94,7 +93,11 @@
+  
+    def _generate_page(self, message='', error=''):
+       page = self.startPage("Backup Locations")
+-      page = page + self.compileTemplate("repo_listing.html", **self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()), self.getUserDB().getUserRepoPaths(self.getUsername()), message=message, error=error))
++      parms = self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()),
++                                   self.getUserDB().getUserRepoPaths(self.getUsername()),
++                                   self.getUserDB().allowRepoDeletion(self.getUsername()),
++                                   message=message, error=error)
++      page = page + self.compileTemplate("repo_listing.html", **parms)
+       page = page + self.endPage()
+       return page
+    
+
+
+

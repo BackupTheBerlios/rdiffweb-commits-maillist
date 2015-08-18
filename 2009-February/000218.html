@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r261%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200902201449.n1KEnCbI018043%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000217.html">
+   <LINK REL="Next"  HREF="000219.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r261%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200902201449.n1KEnCbI018043%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Feb 20 15:49:12 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000217.html">[Rdiffweb-commits] r260 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000219.html">[Rdiffweb-commits] r262 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#218">[ date ]</a>
+              <a href="thread.html#218">[ thread ]</a>
+              <a href="subject.html#218">[ subject ]</a>
+              <a href="author.html#218">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-02-20 15:49:08 +0100 (Fri, 20 Feb 2009)
+New Revision: 261
+
+Modified:
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/templates/repo_listing.html
+   trunk/rdw.conf.sample
+Log:
+Add ability to report total raw disk usage.
+
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdiffWeb/page_locations.py	2009-02-20 14:49:08 UTC (rev 261)
+@@ -1,8 +1,13 @@
+ #!/usr/bin/python
+ 
+-import rdw_helpers, page_main, librdiff
++import subprocess
+ 
++import rdw_config
++import rdw_helpers
++import page_main
++import librdiff
+ 
++
+ class rdiffLocationsPage(page_main.rdiffPage):
+    ''' Shows the locations page. Will show all available destination
+    backup directories. This is the root (/) page '''
+@@ -43,7 +48,19 @@
+       # Make second pass through list, setting the 'altRow' attribute
+       for i in range(0, len(repoList)):
+          repoList[i]['altRow'] = (i % 2 == 0)
+-      return { &quot;title&quot; : &quot;browse&quot;, &quot;repos&quot; : repoList }
++      # Calculate disk usage
++      diskUsage = ''
++      diskUsageCommand = rdw_config.getConfigSetting('diskUsageCommand')
++      if diskUsageCommand:
++         diskUsage = subprocess.Popen([diskUsageCommand, self.getUsername(), self.getUserDB().getUserRoot(self.getUsername())],
++                                    stdout=subprocess.PIPE).communicate()[0]
++         try:
++            diskUsageNum = int(diskUsage)
++         except:
++            pass
++         else:
++            diskUsage = rdw_helpers.formatFileSizeStr(diskUsageNum)
++      return { &quot;title&quot; : &quot;browse&quot;, &quot;repos&quot; : repoList, &quot;diskUsage&quot;: diskUsage }
+             
+             
+    def _sortLocations(self, locations):
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdiffWeb/templates/repo_listing.html	2009-02-20 14:49:08 UTC (rev 261)
+@@ -21,3 +21,7 @@
+       &lt;!--EndRepeat:repos--&gt;
+    &lt;/tbody&gt;
+ &lt;/table&gt;
++
++&lt;!--StartIncludeIf:diskUsage--&gt;
++&lt;p&gt;Total disk usage: ^diskUsage$&lt;/p&gt;
++&lt;!--EndIncludeIf:diskUsage--&gt;
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2009-02-02 14:42:42 UTC (rev 260)
++++ trunk/rdw.conf.sample	2009-02-20 14:49:08 UTC (rev 261)
+@@ -30,4 +30,21 @@
+ 
+ # rdiffWeb can automatically update all user repositories. Automatic updates can be be
+ # enabled by setting the interval in minutes between updates.
++#
+ # autoUpdateRepos=15 # Update user repositories every 15 minutes
++
++# rdiffWeb can optionally display total raw disk usage for a user. The
++# setting below specifies what command rdiffWeb should run to calculate disk
++# usage. The command will be passed the rdiffWeb username and user root dir.
++#
++# diskUsageCommand=/usr/bin/calc_usage.sh
++#
++# Sample scripts:
++# Simple script:
++# du -s $2 # Probably too slow
++#
++# Faster, but requires quotas:
++# USER=$1
++# USAGE=`repquota /chroot | grep &quot;^$USER &quot; | awk -F &quot;--&quot; '{print $2}' | awk '{print $1}'`
++# let &quot;USAGE *= 1024&quot;
++# echo $USAGE
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000217.html">[Rdiffweb-commits] r260 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000219.html">[Rdiffweb-commits] r262 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#218">[ date ]</a>
+              <a href="thread.html#218">[ thread ]</a>
+              <a href="subject.html#218">[ subject ]</a>
+              <a href="author.html#218">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

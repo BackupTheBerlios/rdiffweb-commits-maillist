@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r185 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r185%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711300151.lAU1pMXP025833%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000141.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r185 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r185%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711300151.lAU1pMXP025833%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r185 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Nov 30 02:51:22 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000141.html">[Rdiffweb-commits] r184 - trunk/rdiffWeb
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#142">[ date ]</a>
+              <a href="thread.html#142">[ thread ]</a>
+              <a href="subject.html#142">[ subject ]</a>
+              <a href="author.html#142">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-11-30 02:51:18 +0100 (Fri, 30 Nov 2007)
+New Revision: 185
+
+Modified:
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Remove debugging logging
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-30 01:50:54 UTC (rev 184)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-30 01:51:18 UTC (rev 185)
+@@ -273,7 +273,6 @@
+    results = {}
+    results['exitCode'] = execution.wait()
+    (results['stdout'], results['stderr']) = execution.communicate()
+-   print results, parms
+    return results
+ 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000141.html">[Rdiffweb-commits] r184 - trunk/rdiffWeb
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#142">[ date ]</a>
+              <a href="thread.html#142">[ thread ]</a>
+              <a href="subject.html#142">[ subject ]</a>
+              <a href="author.html#142">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

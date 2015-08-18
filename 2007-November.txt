@@ -1,0 +1,1448 @@
+From commits at rdiffweb.org  Mon Nov 12 04:00:19 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 12 Nov 2007 04:00:19 +0100
+Subject: [Rdiffweb-commits] r169 - trunk
+Message-ID: <200711120300.lAC30Jl3002039@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-12 04:00:16 +0100 (Mon, 12 Nov 2007)
+New Revision: 169
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn off encoding filter for restore downloads.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-30 20:22:25 UTC (rev 168)
++++ trunk/rdiff-web	2007-11-12 03:00:16 UTC (rev 169)
+@@ -90,6 +90,9 @@
+       },
+       '/status/feed': {
+          'rdwAuthenticateFilter.method' : 'HTTP Header'
++      },
++      '/restore': {
++         'encodingFilter.on': False,
+       }
+    }
+    if not debug:
+
+
+
+From commits at rdiffweb.org  Mon Nov 12 04:01:00 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 12 Nov 2007 04:01:00 +0100
+Subject: [Rdiffweb-commits] r170 - trunk/rdiffWeb
+Message-ID: <200711120301.lAC310K6002101@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-12 04:00:58 +0100 (Mon, 12 Nov 2007)
+New Revision: 170
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Build prettier path urls
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-11-12 03:00:16 UTC (rev 169)
++++ trunk/rdiffWeb/page_main.py	2007-11-12 03:00:58 UTC (rev 170)
+@@ -25,16 +25,16 @@
+ 
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+-      url = "/browse/?repo="+rdw_helpers.encodeUrl(repo)+"&path="+rdw_helpers.encodeUrl(path)
++      url = "/browse/?repo="+rdw_helpers.encodeUrl(repo, "/")+"&path="+rdw_helpers.encodeUrl(path, "/")
+       if isRestoreView:
+          url = url + "&restore=T"
+       return url
+ 
+    def buildRestoreUrl(self, repo, path, date):
+-      return "/restore/?repo="+rdw_helpers.encodeUrl(repo)+"&path="+rdw_helpers.encodeUrl(path)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
++      return "/restore/?repo="+rdw_helpers.encodeUrl(repo, "/")+"&path="+rdw_helpers.encodeUrl(path, "/")+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
+ 
+    def buildHistoryUrl(self, repo):
+-      return "/history/?repo="+rdw_helpers.encodeUrl(repo)
++      return "/history/?repo="+rdw_helpers.encodeUrl(repo, "/")
+ 
+    def buildLocationsUrl(self):
+       return "/"
+
+
+
+From commits at rdiffweb.org  Mon Nov 12 04:01:46 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 12 Nov 2007 04:01:46 +0100
+Subject: [Rdiffweb-commits] r171 - trunk/rdiffWeb
+Message-ID: <200711120301.lAC31k7d002148@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-12 04:01:42 +0100 (Mon, 12 Nov 2007)
+New Revision: 171
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Better detect rdiff-backup failures when restoring.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-11-12 03:00:58 UTC (rev 170)
++++ trunk/rdiffWeb/librdiff.py	2007-11-12 03:01:42 UTC (rev 171)
+@@ -10,21 +10,23 @@
+ ##### Error definitions #####
+ class FileError:
+    def getErrorString(self):
+-      return self.errorString
++      return self.error
+    def __str__(self):
+       return self.getErrorString()
+ 
+ class AccessDeniedError(FileError):
+    def __init__(self):
+-      self.errorString = "Access is denied."
++      self.error = "Access is denied."
+ 
+ class DoesNotExistError(FileError):
+    def __init__(self):
+-      self.errorString = "The backup location does not exist."
++      self.error = "The backup location does not exist."
+ 
+ class UnknownError(FileError):
+-   def __init__(self):
+-      self.errorString = "An unknown error occurred."
++   def __init__(self, error=None):
++      self.error = error
++      if not self.error:
++         self.error = "An unknown error occurred."
+ 
+ ##### Helper Functions #####
+ def rsplit(string, sep, count=-1):
+@@ -285,10 +287,12 @@
+    fileToRestore = joinPaths(repoRoot, dirPath, filename)
+    dateString = str(restoreDate.getSeconds())
+    rdiffOutputFile = joinPaths(tempfile.mkdtemp(), restoredFilename) # TODO: make so this includes the username
+-   args = [ "rdiff-backup", "--restore-as-of="+dateString, fileToRestore, rdiffOutputFile ]
+-   os.spawnvp(os.P_WAIT, args[0], args)
+-   if not os.access(rdiffOutputFile, os.F_OK):
+-      raise UnknownError()
++   results = rdw_helpers.execute("rdiff-backup", "--restore-as-of="+dateString, fileToRestore, rdiffOutputFile)
++   if results['exitCode'] != 0 or not os.access(rdiffOutputFile, os.F_OK):
++      error = results['stderr']
++      if not error:
++         error = 'rdiff-backup claimed success, but did not restore anything. This indicates a bug in rdiffWeb. Please report this to a developer.'
++      raise UnknownError('Unable to restore! rdiff-backup output:\n'+error)
+    if os.path.isdir(rdiffOutputFile):
+       rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+".zip")
+       rdw_helpers.removeDir(rdiffOutputFile)
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-12 03:00:58 UTC (rev 170)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-12 03:01:42 UTC (rev 171)
+@@ -7,6 +7,7 @@
+ import time
+ import urllib
+ import zipfile
++import subprocess
+ 
+ import rdw_templating
+ 
+@@ -252,8 +253,19 @@
+          assert fullPath.startswith(dirPath)
+          relPath = fullPath[len(dirPath):]
+          zipObj.write(fullPath, relPath)
++
++def execute(command, *args):
++   parms = [command]
++   parms.extend(args)
++   execution = subprocess.Popen(parms, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+ 
++   results = {}
++   results['exitCode'] = execution.wait()
++   (results['stdout'], results['stderr']) = execution.communicate()
++   print results, parms
++   return results
+ 
++
+ import unittest
+ class helpersTest(unittest.TestCase):
+    def testJoinPaths(self):
+
+
+
+From commits at rdiffweb.org  Wed Nov 14 03:35:31 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 14 Nov 2007 03:35:31 +0100
+Subject: [Rdiffweb-commits] r172 - trunk/rdiffWeb
+Message-ID: <200711140235.lAE2ZVg7026967@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-14 03:35:28 +0100 (Wed, 14 Nov 2007)
+New Revision: 172
+
+Modified:
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Generate relative instead of absolute paths when creating zip files for restored dirs.
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-12 03:01:42 UTC (rev 171)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-14 02:35:28 UTC (rev 172)
+@@ -251,9 +251,9 @@
+       for name in files:
+          fullPath = joinPaths(root, name)
+          assert fullPath.startswith(dirPath)
+-         relPath = fullPath[len(dirPath):]
++         relPath = fullPath[len(dirPath)+1:]
+          zipObj.write(fullPath, relPath)
+-
++
+ def execute(command, *args):
+    parms = [command]
+    parms.extend(args)
+
+
+
+From commits at rdiffweb.org  Fri Nov 23 22:07:38 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 23 Nov 2007 22:07:38 +0100
+Subject: [Rdiffweb-commits] r173 - in trunk/rdiffWeb: . templates
+Message-ID: <200711232107.lANL7cQM030441@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-23 22:07:34 +0100 (Fri, 23 Nov 2007)
+New Revision: 173
+
+Modified:
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Use different approach to putting bad backup locations at the bottom to fix alternating row issues.
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-11-14 02:35:28 UTC (rev 172)
++++ trunk/rdiffWeb/page_locations.py	2007-11-23 21:07:34 UTC (rev 173)
+@@ -15,20 +15,18 @@
+    
+    def getParmsForPage(self, root, repos):
+       repoList = []
+-      repoErrors = []
+       for userRepo in repos:
+-         altEntry = (len(repoList) % 2 != 0)
+          try:
+             repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(root, userRepo))
+          except librdiff.FileError:
+             repoSize = "0"
+             repoDate = "Error"
+-            repoErrors.append({ "repoName" : userRepo,
++            repoList.append({ "repoName" : userRepo,
+                            "repoSize" : repoSize,
+                            "repoDate" : repoDate,
+                            "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+                            "repoHistoryUrl" : self.buildHistoryUrl(userRepo),
+-                           "altRow": altEntry })
++                           'failed': True})
+          else:
+             repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
+             if repoHistory.inProgress:
+@@ -39,9 +37,23 @@
+                               "repoDate" : repoDate,
+                               "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+                               "repoHistoryUrl" : self.buildHistoryUrl(userRepo),
+-                              "altRow": altEntry })
+-      return { "title" : "browse", "repos" : repoList, "badrepos" : repoErrors }
++                              'failed': False})
++
++      self._sortLocations(repoList)
++      # Make second pass through list, setting the 'altRow' attribute
++      for i in range(0, len(repoList)):
++         repoList[i]['altRow'] = (i % 2 == 0)
++      return { "title" : "browse", "repos" : repoList }
++            
++            
++   def _sortLocations(self, locations):
++      def compare(left, right):
++         if left['failed'] != right['failed']:
++            return cmp(left['failed'], right['failed'])
++         return cmp(left['repoName'], right['repoName'])
+       
++      locations.sort(compare)
++      
+ 
+ class locationsPageTest(page_main.pageTest, rdiffLocationsPage):
+    def getTemplateName(self):
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-11-14 02:35:28 UTC (rev 172)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-11-23 21:07:34 UTC (rev 173)
+@@ -14,18 +14,10 @@
+       <!--StartRepeat:repos-->
+       <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+          <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
+-         <td><a href="^repoBrowseUrl$">^repoName$</a></td>
++         <td><!--StartDeleteIf:failed--><a href="^repoBrowseUrl$"><!--EndDeleteIf:failed-->^repoName$<!--StartDeleteIf:failed--></a><!--EndDeleteIf:failed--></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+       </tr>
+       <!--EndRepeat:repos-->
+-      <!--StartRepeat:badrepos-->
+-      <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+-         <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
+-         <td>^repoName$</a></td>
+-         <td>^repoDate$</td><td>^repoSize$</td>
+-         <td><a href="^repoHistoryUrl$">(more)</a></td>
+-      </tr>
+-      <!--EndRepeat:badrepos-->
+    </tbody>
+ </table>
+
+
+
+From commits at rdiffweb.org  Sat Nov 24 21:56:44 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 24 Nov 2007 21:56:44 +0100
+Subject: [Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates
+Message-ID: <200711242056.lAOKuiHn020826@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-24 21:56:29 +0100 (Sat, 24 Nov 2007)
+New Revision: 174
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Rework code for preferences page to make it easier to add new preferences.
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-11-23 21:07:34 UTC (rev 173)
++++ trunk/rdiffWeb/page_prefs.py	2007-11-24 20:56:29 UTC (rev 174)
+@@ -12,33 +12,41 @@
+    
+    sampleEmail = 'joe at example.com'
+    
+-   def index(self):
+-      return self.getPrefsPage("", "")
++   def index(self, **parms):
++      if parms:
++         action = parms['form']
++         if action == 'setPassword':
++            return self._changePassword(parms['current'], parms['new'], parms['confirm'])
++         elif action == 'updateRepos':
++            return self._updateRepos()
++         elif action == 'setNotifications':
++            return self._setNotifications(parms)
++         else:
++            return self._getPrefsPage(errorMessage='Invalid setting.')
++         
++      return self._getPrefsPage('', '')
+    index.exposed = True
+    
+-   def changePassword(self, currentPassword, newPassword, confirmPassword):
++   def _changePassword(self, currentPassword, newPassword, confirmPassword):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage(errorMessage="Password changing is not supported with the active user database.")
++         return self._getPrefsPage(errorMessage="Password changing is not supported with the active user database.")
+       
+       if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
+-         return self.getPrefsPage(errorMessage="The 'Current Password' is invalid.")
++         return self._getPrefsPage(errorMessage="The 'Current Password' is invalid.")
+       
+       if newPassword != confirmPassword:
+-         return self.getPrefsPage(errorMessage="The passwords do not match.")
++         return self._getPrefsPage(errorMessage="The passwords do not match.")
+ 
+-      self.userDB.setUserPassword(self.getUsername(), newPassword)
+-      
+-      return self.getPrefsPage(statusMessage="Password updated successfully.")
+-   changePassword.exposed = True
++      self.userDB.setUserPassword(self.getUsername(), newPassword)      
++      return self._getPrefsPage(statusMessage="Password updated successfully.")
+    
+-   def updateRepos(self):
++   def _updateRepos(self):
+       rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
+-      return self.getPrefsPage(statusMessage="Successfully updated backup locations.")
+-   updateRepos.exposed = True
+-   
+-   def setNotifications(self, **parms):
++      return self._getPrefsPage(statusMessage="Successfully updated backup locations.")
++
++   def _setNotifications(self, parms):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage(errorMessage="Email notification is not supported with the active user database.")
++         return self._getPrefsPage(errorMessage="Email notification is not supported with the active user database.")
+       
+       repos = self.userDB.getUserRepoPaths(self.getUsername())
+       
+@@ -56,13 +64,9 @@
+                   maxDays = int(parms[parmName][0])
+                self.userDB.setRepoMaxAge(self.getUsername(), backupName, maxDays)
+                
+-      return self.getPrefsPage(statusMessage="Successfully changed notification settings.")
++      return self._getPrefsPage(statusMessage="Successfully changed notification settings.")
+    
+-   setNotifications.exposed = True
+-   
+-      
+-   
+-   def getPrefsPage(self, errorMessage="", statusMessage=""):
++   def _getPrefsPage(self, errorMessage="", statusMessage=""):
+       title = "User Preferences"
+       email = self.userDB.getUserEmail(self.getUsername());
+       parms = {
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-11-23 21:07:34 UTC (rev 173)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 20:56:29 UTC (rev 174)
+@@ -10,22 +10,23 @@
+ <p>
+ <!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
+ <!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+-<form action="changePassword" method="post">
++<form action="" method="post">
++<input style="display:none" name="form" value="setPassword"/>
+ <div class="groupboxDiv">
+ <div class="roundedBorderContents">
+ <h3 class="groupboxHeader">Change Password</h3>
+ <table>
+ <tr>
+    <td>Current Password:</td>
+-   <td><input class="textInput" type="password" name="currentPassword"/></td>
++   <td><input class="textInput" type="password" name="current"/></td>
+ </tr>
+ <tr>
+    <td>New Password:</td>
+-   <td><input class="textInput" type="password" name="newPassword"/></td>
++   <td><input class="textInput" type="password" name="new"/></td>
+ </tr>
+ <tr>
+    <td>Confirm New Password:</td>
+-   <td><input class="textInput" type="password" name="confirmPassword"/></td>
++   <td><input class="textInput" type="password" name="confirm"/></td>
+ </tr>
+ <tr>
+    <td style="height: 2em"> <input class="groupboxButton" type="submit" value="Change Password" /></td>
+@@ -36,7 +37,8 @@
+ </form>
+ 
+ 
+-<form action="updateRepos" method="post">
++<form action="" method="post">
++<input style="display:none" name="form" value="updateRepos"/>
+ <div class="groupboxDiv">
+ <div class="roundedBorderContents">
+ <h3 class="groupboxHeader">Update Backup Locations</h3>
+@@ -45,11 +47,30 @@
+ </div>
+ </form>
+ 
++<!--StartDelete-->
++<form action="" method="post">
++<input style="display:none" name="form" value="setRestoreType"/>
++<div class="groupboxDiv">
++   <div class="roundedBorderContents">
++      <h3 class="groupboxHeader">Directory Restore Format</h3>
++         <label><input type="radio" name="zipRestoreType"></input>Restore my directories in <b>.zip</b> format</label>
++      <br/>
++         <label><input type="radio" name="tgzRestoreType"></input>Restore my directories in <b>.tar.gz</b> format</label>
++      <br/><br/>
++         (If unsure, select the .zip format.)
++      <br/>
++      <input type="submit" class="groupboxButton" value="Update Restore Preferences" />
++   </div>
++</div>
++</form>
++<!--EndDelete-->
++
+ <!--StartIncludeIf:notificationsEnabled-->
+-<form action="setNotifications" method="post">
++<form action="" method="post">
++<input style="display:none" name="form" value="setNotifications"/>
+ <div class="groupboxDiv">
+ <div class="roundedBorderContents">
+-<h3 class="groupboxHeader">Backup Notifications</h3>
++   <h3 class="groupboxHeader">Backup Notifications</h3>
+    <table class="emailTable">
+       <tr>
+          <td>Notify me at</td>
+
+
+
+From commits at rdiffweb.org  Sun Nov 25 00:16:40 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 25 Nov 2007 00:16:40 +0100
+Subject: [Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates
+Message-ID: <200711242316.lAONGe6a027362@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-25 00:16:35 +0100 (Sun, 25 Nov 2007)
+New Revision: 175
+
+Modified:
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Add preference to restore directories using .tar.gz instead of .zip. This preference is not yet respected, but will be soon.
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/db.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -28,6 +28,9 @@
+    def getUserEmail(self, username):
+       raise NotImplementedError
+    
++   def useZipFormat(self, username):
++      raise NotImplementedError
++   
+    def getUserList(self):
+       raise NotImplementedError
+ 
+@@ -48,6 +51,9 @@
+ 
+    def setUserPassword(self, username, password):
+       raise NotImplementedError
++   
++   def setUseZipFormat(self, username, useZip):
++      raise NotImplementedError
+ 
+    def getUserRoot(self, username):
+       raise NotImplementedError
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/db_mysql.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -1,6 +1,7 @@
+ #!/usr/bin/python
+ 
+ import rdw_config
++import types
+ 
+ """We do no length validation for incoming parameters, since truncated values will
+ at worst lead to slightly confusing results, but no security risks"""
+@@ -39,6 +40,10 @@
+    def getUserEmail(self, username):
+       if not self.userExists(username): return None
+       return self._getUserField(username, "userEmail")
++   
++   def useZipFormat(self, username):
++      if not self.userExists(username): return False
++      return bool(self._getUserField(username, "restoreFormat"))
+ 
+    def getUserList(self):
+       query = "SELECT UserName FROM users"
+@@ -68,8 +73,7 @@
+ 
+    def setUserEmail(self, username, userEmail):
+       if not self.userExists(username): raise ValueError
+-      query = "UPDATE users SET UserEmail=%(userEmail)s WHERE Username = %(user)s"
+-      self._executeQuery(query, userEmail=userEmail, user=username)
++      self._setUserField(username, 'UserEmail', userEmail)
+       
+    def setUserRepos(self, username, repoPaths):
+       if not self.userExists(username): raise ValueError
+@@ -94,8 +98,11 @@
+ 
+    def setUserPassword(self, username, password):
+       if not self.userExists(username): raise ValueError
+-      query = "UPDATE users SET Password=%(password)s WHERE Username=%(user)s"
+-      self._executeQuery(query, password=self._hashPassword(password), user=username)
++      self._setUserField(username, 'Password', self._hashPassword(password))
++   
++   def setUseZipFormat(self, username, useZip):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'RestoreFormat', bool(useZip))
+       
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+@@ -116,20 +123,29 @@
+       if not self.userExists(username): raise ValueError
+       self._executeQuery("DELETE FROM repos WHERE UserID=%d" % self._getUserID(username))
+ 
++   def _getUserID(self, username):
++      assert self.userExists(username)
++      return self._getUserField(username, 'UserID')
++
+    def _getUserField(self, username, fieldName):
+       if not self.userExists(username): return None
+       query = "SELECT "+fieldName+" FROM users WHERE Username = %(user)s"
+       results = self._executeQuery(query, user=username)
+       assert len(results) == 1
+       return results[0][0]
++      
++   def _setUserField(self, username, fieldName, value):
++      if not self.userExists(username): raise ValueError
++      if type(value) == types.BooleanType:
++         if value:
++            valueStr = '1'
++         else:
++            valueStr = '0'
++      else:
++         valueStr = str(value)
++      query = 'UPDATE users SET '+fieldName+'=%(value)s WHERE Username=%(user)s'
++      self._executeQuery(query, value=valueStr, user=username)
+ 
+-   def _getUserID(self, username):
+-      assert self.userExists(username)
+-      query = "SELECT UserID FROM users WHERE Username = %(user)s"
+-      results = self._executeQuery(query, user=username)
+-      assert len(results) == 1
+-      return int(results[0][0])
+-
+    def _internalExecuteQuery(self, query, **kwargs):
+       cursor = self.sqlConnection.cursor()
+       cursor.execute(query, kwargs)
+@@ -167,11 +183,13 @@
+ UserRoot varchar (255) NOT NULL DEFAULT "",
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT "",
++RestoreFormat tinyint NOT NULL DEFAULT TRUE,
+ primary key (UserID) )""",
+ """create table repos (
+ RepoID int(11) NOT NULL auto_increment,
+ UserID int(11) NOT NULL, 
+ RepoPath varchar (255) NOT NULL,
++MaxAge tinyint NOT NULL DEFAULT 0,
+ primary key (RepoID))"""
+  ]
+                
+@@ -189,6 +207,11 @@
+       columnNames = [column[0].lower() for column in self._executeQuery("describe repos")]
+       if not "maxage" in columnNames:
+          self._executeQuery('alter table repos add column MaxAge tinyint NOT NULL DEFAULT 0')
++      
++      # Make sure that the users table has a "restoreFormat" column
++      columnNames = [column[0].lower() for column in self._executeQuery("describe users")]
++      if not "restoreformat" in columnNames:
++         self._executeQuery('alter table users add column RestoreFormat tinyint NOT NULL DEFAULT TRUE')
+ 
+ 
+ ##################### Unit Tests #########################
+@@ -221,8 +244,11 @@
+ 
+    def tearDown(self):
+       userData = mysqlUserDB(self.configFilePath)
+-      userData._executeQuery("DROP TABLE IF EXISTS users;")
+-      userData._executeQuery("DROP TABLE IF EXISTS repos;")
++      tableNames = [table[0].lower() for table in userData._executeQuery("show tables")]
++      if 'users' in tableNames:
++         userData._executeQuery("DROP TABLE IF EXISTS users;")
++      if 'repos' in tableNames:
++         userData._executeQuery("DROP TABLE IF EXISTS repos;")
+       if (os.access(self.configFilePath, os.F_OK)):
+          os.remove(self.configFilePath)
+ 
+@@ -286,6 +312,13 @@
+       userDataModule.setUserRepos("test", ["b", "c", "d"])
+       self.assertEquals(userDataModule.getRepoMaxAge("test", "b"), 1)
+       self.assertEquals(userDataModule.getUserRepoPaths("test"), ["b", "c", "d"])
++      
++   def testRestoreFormat(self):
++      userDataModule = mysqlUserDB(self.configFilePath)
++      assert(userDataModule.useZipFormat('test')) # Should default to using zip format
++      userDataModule.setUseZipFormat('test', False)
++      assert(not userDataModule.useZipFormat('test'))
++      
+ 
+ if __name__ == "__main__":
+    print "Called as standalone program; running unit tests..."
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/page_prefs.py	2007-11-24 23:16:35 UTC (rev 175)
+@@ -21,6 +21,8 @@
+             return self._updateRepos()
+          elif action == 'setNotifications':
+             return self._setNotifications(parms)
++         elif action == 'setRestoreType':
++            return self._setRestoreType(parms['restoreType'])
+          else:
+             return self._getPrefsPage(errorMessage='Invalid setting.')
+          
+@@ -66,6 +68,16 @@
+                
+       return self._getPrefsPage(statusMessage="Successfully changed notification settings.")
+    
++   def _setRestoreType(self, restoreType):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage(errorMessage="Setting the restore format is not supported with the active user database.")
++      
++      if restoreType == 'zip' or restoreType == 'tgz':
++         self.userDB.setUseZipFormat(self.getUsername(), restoreType == 'zip')
++      else:
++         return self._getPrefsPage(errorMessage='Invalid restore format.')
++      return self._getPrefsPage(statusMessage="Successfully set restore format.")
++   
+    def _getPrefsPage(self, errorMessage="", statusMessage=""):
+       title = "User Preferences"
+       email = self.userDB.getUserEmail(self.getUsername());
+@@ -76,6 +88,7 @@
+          "userEmail" : email,
+          "notificationsEnabled" : False,
+          "backups" : [],
++         "useZipFormat": self.userDB.useZipFormat(self.getUsername()),
+          "sampleEmail": self.sampleEmail
+       }
+       if email_notification.emailNotifier().notificationsEnabled():
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 20:56:29 UTC (rev 174)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 23:16:35 UTC (rev 175)
+@@ -47,15 +47,16 @@
+ </div>
+ </form>
+ 
+-<!--StartDelete-->
+ <form action="" method="post">
+ <input style="display:none" name="form" value="setRestoreType"/>
+ <div class="groupboxDiv">
+    <div class="roundedBorderContents">
+       <h3 class="groupboxHeader">Directory Restore Format</h3>
+-         <label><input type="radio" name="zipRestoreType"></input>Restore my directories in <b>.zip</b> format</label>
++         <label><input type="radio" name="restoreType" StartIncludeIf:useZipFormat- checked='checked' EndIncludeIf:useZipFormat- value="zip">
++                </input>Restore my directories in <b>.zip</b> format</label>
+       <br/>
+-         <label><input type="radio" name="tgzRestoreType"></input>Restore my directories in <b>.tar.gz</b> format</label>
++         <label><input type="radio" name="restoreType" StartDeleteIf:useZipFormat- checked='checked' EndDeleteIf:useZipFormat- value="tgz">
++                </input>Restore my directories in <b>.tar.gz</b> format</label>
+       <br/><br/>
+          (If unsure, select the .zip format.)
+       <br/>
+@@ -63,7 +64,6 @@
+    </div>
+ </div>
+ </form>
+-<!--EndDelete-->
+ 
+ <!--StartIncludeIf:notificationsEnabled-->
+ <form action="" method="post">
+
+
+
+From commits at rdiffweb.org  Sun Nov 25 00:49:42 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 25 Nov 2007 00:49:42 +0100
+Subject: [Rdiffweb-commits] r176 - trunk/rdiffWeb
+Message-ID: <200711242349.lAONngf5000525@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-25 00:49:38 +0100 (Sun, 25 Nov 2007)
+New Revision: 176
+
+Modified:
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Add function to tar a directory.
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-24 23:16:35 UTC (rev 175)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-24 23:49:38 UTC (rev 176)
+@@ -7,6 +7,7 @@
+ import time
+ import urllib
+ import zipfile
++import tarfile
+ import subprocess
+ 
+ import rdw_templating
+@@ -253,7 +254,17 @@
+          assert fullPath.startswith(dirPath)
+          relPath = fullPath[len(dirPath)+1:]
+          zipObj.write(fullPath, relPath)
++         
++def recursiveTarDir(dirPath, tarFilename):
++   assert os.path.isdir(dirPath)
+ 
++   dirPath = os.path.normpath(dirPath)
++   targetFile = tarfile.open(tarFilename, "w:gz")
++   files = os.listdir(dirPath)
++   for file in files:
++      targetFile.add(joinPaths(dirPath, file), file) # Pass in file as name explicitly so we get relative paths
++   
++
+ def execute(command, *args):
+    parms = [command]
+    parms.extend(args)
+
+
+
+From commits at rdiffweb.org  Sun Nov 25 00:51:56 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 25 Nov 2007 00:51:56 +0100
+Subject: [Rdiffweb-commits] r177 - trunk/rdiffWeb
+Message-ID: <200711242351.lAONpuaV002601@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-25 00:51:51 +0100 (Sun, 25 Nov 2007)
+New Revision: 177
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_restore.py
+Log:
+Start respecting user preference to restore directories as .tar.gz. This will let users restore files with symlinks, etc.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-11-24 23:49:38 UTC (rev 176)
++++ trunk/rdiffWeb/librdiff.py	2007-11-24 23:51:51 UTC (rev 177)
+@@ -274,7 +274,7 @@
+    return entriesList
+ 
+ import tempfile
+-def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate):
++def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate, useZip):
+    """ returns a file path to the file.  User is responsible for deleting file, as well as containing dir, after use. """
+    filePath = joinPaths(dirPath, filename)
+    filePath = rdiffQuotedPath(repoRoot).getQuotedPath(filePath)
+@@ -294,9 +294,14 @@
+          error = 'rdiff-backup claimed success, but did not restore anything. This indicates a bug in rdiffWeb. Please report this to a developer.'
+       raise UnknownError('Unable to restore! rdiff-backup output:\n'+error)
+    if os.path.isdir(rdiffOutputFile):
+-      rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+".zip")
+-      rdw_helpers.removeDir(rdiffOutputFile)
+-      rdiffOutputFile = rdiffOutputFile+".zip"
++      if useZip:
++         rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+".zip")
++         rdw_helpers.removeDir(rdiffOutputFile)
++         rdiffOutputFile = rdiffOutputFile+".zip"
++      else:
++         rdw_helpers.recursiveTarDir(rdiffOutputFile, rdiffOutputFile+".tar.gz")
++         rdw_helpers.removeDir(rdiffOutputFile)
++         rdiffOutputFile = rdiffOutputFile+".tar.gz"
+    return rdiffOutputFile
+ 
+ def backupIsInProgressForRepo(repo):
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-11-24 23:49:38 UTC (rev 176)
++++ trunk/rdiffWeb/page_restore.py	2007-11-24 23:51:51 UTC (rev 177)
+@@ -32,7 +32,9 @@
+          if not file:
+             file = path
+             path = "/"
+-         filePath = librdiff.restoreFileOrDir(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), path, file, restoreTime)
++         fullPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)
++         useZipFormat = self.userDB.useZipFormat(self.getUsername())
++         filePath = librdiff.restoreFileOrDir(fullPath, path, file, restoreTime, useZipFormat)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+       except ValueError:
+
+
+
+From commits at rdiffweb.org  Sun Nov 25 02:48:59 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 25 Nov 2007 02:48:59 +0100
+Subject: [Rdiffweb-commits] r178 - in trunk: . rdiffWeb tests
+Message-ID: <200711250148.lAP1mxFK026688@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-25 02:48:53 +0100 (Sun, 25 Nov 2007)
+New Revision: 178
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/rdw_config.py
+   trunk/rdiffWeb/rdw_helpers.py
+   trunk/rdiffWeb/rdw_templating.py
+   trunk/run_tests.py
+   trunk/tests/locations_template.txt
+Log:
+Add most of the unit tests into run_tests.py
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/rdiffWeb/db_mysql.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -319,9 +319,3 @@
+       userDataModule.setUseZipFormat('test', False)
+       assert(not userDataModule.useZipFormat('test'))
+       
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-   mysqlDataTest = unittest.makeSuite(mysqlUserDBTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(mysqlDataTest)
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/rdiffWeb/filter_authentication.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -106,9 +106,3 @@
+       assert filter._getHTTPAuthorizationCredentials("Basic " + base64.encodestring("username")) == { "login": "username", "password": "" }
+       assert filter._getHTTPAuthorizationCredentials("Basic " + base64.encodestring("user:pass")) == { "login": "user", "password": "pass" }
+       assert filter._getHTTPAuthorizationCredentials("Basic " + base64.encodestring("user:pass:word")) == { "login": "user", "password": "pass:word" }
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-   fileUserDataTest = unittest.makeSuite(rdwAuthenticationFilterTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(fileUserDataTest)
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/rdiffWeb/rdw_config.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -111,9 +111,3 @@
+          getConfigSetting("SpacesValue", "/tmp/rdw_config.conf")
+       except SettingsError: pass
+       else: assert(False)
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-   testSuite = unittest.makeSuite(configFileTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -420,12 +420,7 @@
+       contents = zipObj.infolist()
+       assert len(contents) == 3
+       contents = [ (x.filename, x.file_size) for x in contents ]
+-      assert ("/test.txt", 5) in contents
+-      assert ("/test2.txt", 6) in contents
+-      assert ("/subdir/test3.txt", 7) in contents
++      assert ("test.txt", 5) in contents
++      assert ("test2.txt", 6) in contents
++      assert ("subdir/test3.txt", 7) in contents
+ 
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-   testSuite = unittest.makeSuite(helpersTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/rdiffWeb/rdw_templating.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -206,9 +206,4 @@
+       except templateError: pass
+       else: assert(False)
+ 
+-if __name__ == "__main__":
+-   import os
+-   print "Called as standalone program; running unit tests..."
+-   testSuite = unittest.makeSuite(templateParsingTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
++
+
+Modified: trunk/run_tests.py
+===================================================================
+--- trunk/run_tests.py	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/run_tests.py	2007-11-25 01:48:53 UTC (rev 178)
+@@ -6,5 +6,11 @@
+ from rdiffWeb.page_browse import browsePageTest
+ from rdiffWeb.page_history import historyPageTest
+ from rdiffWeb.page_locations import locationsPageTest
++from rdiffWeb.db_mysql import mysqlUserDBTest
++from rdiffWeb.rdw_helpers import helpersTest
++from rdiffWeb.rdw_templating import templateParsingTest
++from rdiffWeb.filter_authentication import rdwAuthenticationFilterTest
++from rdiffWeb.db_file import fileUserDataTest
++from rdiffWeb.rdw_config import configFileTest
+ 
+ unittest.main()
+
+Modified: trunk/tests/locations_template.txt
+===================================================================
+--- trunk/tests/locations_template.txt	2007-11-24 23:51:51 UTC (rev 177)
++++ trunk/tests/locations_template.txt	2007-11-25 01:48:53 UTC (rev 178)
+@@ -1,6 +1,4 @@
+ Name	Last Backup	Last Backup Size
+ 
+ <!--StartRepeat:repos-->^repoName$	^repoDate$	^repoSize$
+-<!--EndRepeat:repos-->
+-<!--StartRepeat:badrepos-->^repoName$	^repoDate$	^repoSize$
+-<!--EndRepeat:badrepos-->
+\ No newline at end of file
++<!--EndRepeat:repos-->
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Mon Nov 26 01:38:42 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 26 Nov 2007 01:38:42 +0100
+Subject: [Rdiffweb-commits] r179 - trunk/rdiffWeb/static
+Message-ID: <200711260038.lAQ0cg8j030604@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-26 01:38:39 +0100 (Mon, 26 Nov 2007)
+New Revision: 179
+
+Modified:
+   trunk/rdiffWeb/static/main.css
+Log:
+Fix background color for flyouts on alternate rows.
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-11-25 01:48:53 UTC (rev 178)
++++ trunk/rdiffWeb/static/main.css	2007-11-26 00:38:39 UTC (rev 179)
+@@ -73,6 +73,11 @@
+    background-color: #EFEFEF;
+ }
+ 
++.altRow .FlyoutContainer td
++{
++   background-color: silver;
++}
++
+ table
+ {
+    border-collapse: collapse;
+
+
+
+From commits at rdiffweb.org  Mon Nov 26 15:25:56 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 26 Nov 2007 15:25:56 +0100
+Subject: [Rdiffweb-commits] r180 - in trunk/rdiffWeb: static static/images
+	templates
+Message-ID: <200711261425.lAQEPunt013217@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-26 15:25:50 +0100 (Mon, 26 Nov 2007)
+New Revision: 180
+
+Modified:
+   trunk/rdiffWeb/static/images/repo.png
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/dir_listing.html
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Improve icons in locations and repo listing.
+
+Modified: trunk/rdiffWeb/static/images/repo.png
+===================================================================
+(Binary files differ)
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-11-26 00:38:39 UTC (rev 179)
++++ trunk/rdiffWeb/static/main.css	2007-11-26 14:25:50 UTC (rev 180)
+@@ -91,16 +91,17 @@
+    padding-right: 0em;
+ }
+ 
+-td.Icon
++table td.Icon
+ {
+    padding-top: 0em;
+    padding-bottom: 0em;
++   vertical-align: middle;
+ }
+ 
+ td.Icon img
+ {
+-   height: 24px;
+-   width: 24px;
++   height: 22px;
++   width: 22px;
+ }
+ 
+ td.FlyoutContainer div
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2007-11-26 00:38:39 UTC (rev 179)
++++ trunk/rdiffWeb/templates/dir_listing.html	2007-11-26 14:25:50 UTC (rev 180)
+@@ -79,7 +79,7 @@
+ <tbody>
+    <!--StartRepeat:restoreDates-->
+    <tr>
+-      <td class="Icon" valign="middle"><img src="/static/images/history.png"></img></td>
++      <td class="Icon"><img src="/static/images/history.png"></img></td>
+       <td><a href="^dirRestoreUrl$">^dateStr$</a></td>
+    </tr>
+    <!--EndRepeat:restoreDates-->
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-11-26 00:38:39 UTC (rev 179)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-11-26 14:25:50 UTC (rev 180)
+@@ -13,7 +13,7 @@
+    <tbody>
+       <!--StartRepeat:repos-->
+       <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+-         <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
++         <td class="Icon"><img src="/static/images/repo.png"></img></td>
+          <td><!--StartDeleteIf:failed--><a href="^repoBrowseUrl$"><!--EndDeleteIf:failed-->^repoName$<!--StartDeleteIf:failed--></a><!--EndDeleteIf:failed--></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+
+
+
+From commits at rdiffweb.org  Tue Nov 27 03:20:22 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 27 Nov 2007 03:20:22 +0100
+Subject: [Rdiffweb-commits] r181 - trunk/rdiffWeb/static
+Message-ID: <200711270220.lAR2KM48032694@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-27 03:20:19 +0100 (Tue, 27 Nov 2007)
+New Revision: 181
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+Log:
+Lighten rounded border colors.
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-11-26 14:25:50 UTC (rev 180)
++++ trunk/rdiffWeb/static/borders.css	2007-11-27 02:20:19 UTC (rev 181)
+@@ -24,13 +24,13 @@
+ .xb3,
+ .xb4
+ {
+-   border-left:1px solid #000;
+-   border-right:1px solid #000;
++   border-left:1px solid #555;
++   border-right:1px solid #555;
+ }
+ .xb1
+ {
+    margin:0 5px;
+-   background:#000;
++   background:#555;
+ }
+ .xb2
+ {
+@@ -50,7 +50,7 @@
+ .roundedBorderInner
+ {
+    display:block;
+-   border:0 solid #000;
++   border:0 solid #555;
+    border-width:0 1px;
+ }
+ 
+@@ -59,7 +59,7 @@
+    padding: .3em .5em .3em .5em;
+    /* Use a default border, for times when javascript is turned off. 
+    These will be overridden below when the borders are added.*/
+-   border: 1px solid black;
++   border: 1px solid #555;
+ }
+ .roundedBorderInner .roundedBorderContents
+ {
+
+
+
+From commits at rdiffweb.org  Tue Nov 27 16:42:11 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 27 Nov 2007 16:42:11 +0100
+Subject: [Rdiffweb-commits] r182 - in trunk/rdiffWeb: static templates
+Message-ID: <200711271542.lARFgB1d025074@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-27 16:42:05 +0100 (Tue, 27 Nov 2007)
+New Revision: 182
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+   trunk/rdiffWeb/static/borders.js
+   trunk/rdiffWeb/templates/login.html
+   trunk/rdiffWeb/templates/nav_bar.html
+Log:
+FBB (Fix Broken Browsers), part 1: make rounded borders work in IE.
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-11-27 02:20:19 UTC (rev 181)
++++ trunk/rdiffWeb/static/borders.css	2007-11-27 15:42:05 UTC (rev 182)
+@@ -66,3 +66,8 @@
+    background-color: inherit;
+    border: 0px solid silver;
+ }
++
++.roundedBorderContainer td
++{
++   padding: 0;
++}
+
+Modified: trunk/rdiffWeb/static/borders.js
+===================================================================
+--- trunk/rdiffWeb/static/borders.js	2007-11-27 02:20:19 UTC (rev 181)
++++ trunk/rdiffWeb/static/borders.js	2007-11-27 15:42:05 UTC (rev 182)
+@@ -10,12 +10,23 @@
+ {
+    var oDivParent = oDiv.parentNode;
+    
+-   // Stick the outer border in where the div was, and yank
++   // Stick the container in where the div was, and yank
+    // out the div temporarily (we'll reattach it later.)
++   var oContainingTable = document.createElement('table');
++   oContainingTable.className = 'roundedBorderContainer';
++   oDivParent.insertBefore(oContainingTable, oDiv);
++   oDiv.parentNode.removeChild(oDiv);
++   
++   var oTBody = document.createElement('tbody');
++   var oTR = document.createElement('tr');
++   var oTD = document.createElement('td');
++   oContainingTable.appendChild(oTBody);
++   oTBody.appendChild(oTR);
++   oTR.appendChild(oTD);
++   
+    var oOuterBorder = document.createElement('div');
++   oTD.appendChild(oOuterBorder)
+    oOuterBorder.className = 'roundedBorderOuter';
+-   oDivParent.insertBefore(oOuterBorder, oDiv);
+-   oDiv.parentNode.removeChild(oDiv);
+    
+    var oTop = document.createElement('b');
+    oTop.className = 'xtop'
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2007-11-27 02:20:19 UTC (rev 181)
++++ trunk/rdiffWeb/templates/login.html	2007-11-27 15:42:05 UTC (rev 182)
+@@ -1,7 +1,7 @@
+ 
+ <div id="NavBar">
+    <div class="roundedBorderContents">
+-   <div id="logo">rdiffWeb</div>
++      <div id="logo">rdiffWeb</div>
+    </div>
+ </div>
+ <br/>
+
+Modified: trunk/rdiffWeb/templates/nav_bar.html
+===================================================================
+--- trunk/rdiffWeb/templates/nav_bar.html	2007-11-27 02:20:19 UTC (rev 181)
++++ trunk/rdiffWeb/templates/nav_bar.html	2007-11-27 15:42:05 UTC (rev 182)
+@@ -5,9 +5,11 @@
+ </head>
+ <body>
+ <!--EndDelete-->
++
+ <div id="NavBar">
+    <div class="roundedBorderContents">
+       <div id="logo"><a href="/">rdiffWeb</a></div>
+       <!--StartRepeat:topLinks--><a href="^linkUrl$">^linkText$</a><!--StartDeleteIf:lastItem--> | <!--EndDeleteIf:lastItem--> <!--EndRepeat:topLinks-->
+    </div>
+ </div>
++</body>
+
+
+
+From commits at rdiffweb.org  Tue Nov 27 16:45:23 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 27 Nov 2007 16:45:23 +0100
+Subject: [Rdiffweb-commits] r183 - trunk/rdiffWeb/templates
+Message-ID: <200711271545.lARFjNp5025291@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-27 16:45:16 +0100 (Tue, 27 Nov 2007)
+New Revision: 183
+
+Removed:
+   trunk/rdiffWeb/templates/admin_add_user.html
+   trunk/rdiffWeb/templates/admin_change_password.html
+   trunk/rdiffWeb/templates/admin_edit_user.html
+   trunk/rdiffWeb/templates/header.html
+Log:
+Remove obsolete templates
+
+Deleted: trunk/rdiffWeb/templates/admin_add_user.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_add_user.html	2007-11-27 15:42:05 UTC (rev 182)
++++ trunk/rdiffWeb/templates/admin_add_user.html	2007-11-27 15:45:16 UTC (rev 183)
+@@ -1,24 +0,0 @@
+-<center><h1>Admin Panel</h1></center>
+-<h3>Add User</h3>
+-<!--StartIncludeIf:error--><p style="color:red">^error$</p><!--EndIncludeIf:error-->
+-<form action="^submitUrl$" method="post">
+-<table>
+-   <tr>
+-      <td>Username:</td>
+-      <td><input name="username" value="^username$"></td>
+-   </tr>
+-   <tr>
+-      <td>Password:</td>
+-      <td><input name="password" value="^password$"></td>
+-   </tr>
+-   <tr>
+-      <td>User Root Directory:</td>
+-      <td><input name="userRoot" value="^userRoot$"></td>
+-   </tr>
+-   <tr>
+-      <td><input type="checkbox" name="isAdmin" value="^isAdmin$">User is admin?</td>
+-   </tr>
+-</table>
+-<br>
+-<input type="submit" value="^action$" />
+-</form>
+
+Deleted: trunk/rdiffWeb/templates/admin_change_password.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_change_password.html	2007-11-27 15:42:05 UTC (rev 182)
++++ trunk/rdiffWeb/templates/admin_change_password.html	2007-11-27 15:45:16 UTC (rev 183)
+@@ -1,12 +0,0 @@
+-<center><h1>Admin Panel</h1></center>
+-<h3>Change Password for ^username$</h3>
+-<form action="/admin/changePassword?user=^username$" method="post">
+-<table>
+-   <tr>
+-      <td>Password:</td>
+-      <td><input name="password" value=""></td>
+-   </tr>
+-</table>
+-<br>
+-<input type="submit" value="Change Password" />
+-</form>
+
+Deleted: trunk/rdiffWeb/templates/admin_edit_user.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_edit_user.html	2007-11-27 15:42:05 UTC (rev 182)
++++ trunk/rdiffWeb/templates/admin_edit_user.html	2007-11-27 15:45:16 UTC (rev 183)
+@@ -1,21 +0,0 @@
+-<center><h1>Admin Panel</h1></center>
+-
+-<h3>Edit user ^username$</h3>
+-<!--StartIncludeIf:error--><p style="color:red">^error$</p><!--EndIncludeIf:error-->
+-<form action="^submitUrl$?user=^username$" method="post">
+-<table>
+-   <tr>
+-      <td>User Root Directory:</td>
+-      <td><input name="userRoot" value="^userRoot$"></td>
+-   </tr>
+-   <tr>
+-      <td>
+-      <!--StartIncludeIf:isAdmin--><input checked type="checkbox" name="isAdmin"><!--EndIncludeIf:isAdmin-->
+-      <!--StartDeleteIf:isAdmin--><input type="checkbox" name="isAdmin"><!--EndDeleteIf:isAdmin-->
+-         User is admin?
+-      </td>
+-   </tr>
+-</table>
+-<br>
+-<input type="submit" value="^action$" />
+-</form>
+
+Deleted: trunk/rdiffWeb/templates/header.html
+===================================================================
+--- trunk/rdiffWeb/templates/header.html	2007-11-27 15:42:05 UTC (rev 182)
++++ trunk/rdiffWeb/templates/header.html	2007-11-27 15:45:16 UTC (rev 183)
+@@ -1,23 +0,0 @@
+-<!--StartDelete-->
+-<html>
+-<head>
+-   <link rel="stylesheet" href="main.css" type="text/css" />
+-</head>
+-<body>
+-<!--EndDelete-->
+-<div id="NavBar">
+-<table style="width: 50%; text-align: center; color:#000000" border="0">
+-   <tbody>
+-      <tr>
+-      <!--StartRepeat:topLinks-->
+-      <td><a href=^linkUrl$>^linkText$</a></td>
+-      <!--EndRepeat:topLinks-->
+-      </tr>
+-   </tbody>
+-</table>
+-</div>
+-<div id="Content">
+-   <h1>My Content</h1>
+-</div>
+-</body>
+-</html>
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Fri Nov 30 02:50:57 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 30 Nov 2007 02:50:57 +0100
+Subject: [Rdiffweb-commits] r184 - trunk/rdiffWeb
+Message-ID: <200711300150.lAU1ovq4025803@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-30 02:50:54 +0100 (Fri, 30 Nov 2007)
+New Revision: 184
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+Cleaner way of checking types in mysql backend
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-11-27 15:45:16 UTC (rev 183)
++++ trunk/rdiffWeb/db_mysql.py	2007-11-30 01:50:54 UTC (rev 184)
+@@ -1,7 +1,6 @@
+ #!/usr/bin/python
+ 
+ import rdw_config
+-import types
+ 
+ """We do no length validation for incoming parameters, since truncated values will
+ at worst lead to slightly confusing results, but no security risks"""
+@@ -136,7 +135,7 @@
+       
+    def _setUserField(self, username, fieldName, value):
+       if not self.userExists(username): raise ValueError
+-      if type(value) == types.BooleanType:
++      if isinstance(value, bool):
+          if value:
+             valueStr = '1'
+          else:
+
+
+
+From commits at rdiffweb.org  Fri Nov 30 02:51:22 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 30 Nov 2007 02:51:22 +0100
+Subject: [Rdiffweb-commits] r185 - trunk/rdiffWeb
+Message-ID: <200711300151.lAU1pMXP025833@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-11-30 02:51:18 +0100 (Fri, 30 Nov 2007)
+New Revision: 185
+
+Modified:
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Remove debugging logging
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-11-30 01:50:54 UTC (rev 184)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-11-30 01:51:18 UTC (rev 185)
+@@ -273,7 +273,6 @@
+    results = {}
+    results['exitCode'] = execution.wait()
+    (results['stdout'], results['stderr']) = execution.communicate()
+-   print results, parms
+    return results
+ 
+ 
+
+
+

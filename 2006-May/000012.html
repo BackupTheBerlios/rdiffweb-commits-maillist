@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r55 - in trunk: . init
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r55%20-%20in%20trunk%3A%20.%20init&In-Reply-To=%3C200605272106.k4RL60pZ016362%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000011.html">
+   <LINK REL="Next"  HREF="000013.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r55 - in trunk: . init</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r55%20-%20in%20trunk%3A%20.%20init&In-Reply-To=%3C200605272106.k4RL60pZ016362%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r55 - in trunk: . init">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat May 27 23:06:00 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000011.html">[Rdiffweb-commits] r54 - trunk/init
+</A></li>
+        <LI>Next message: <A HREF="000013.html">[Rdiffweb-commits] r56 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#12">[ date ]</a>
+              <a href="thread.html#12">[ thread ]</a>
+              <a href="subject.html#12">[ subject ]</a>
+              <a href="author.html#12">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-05-27 23:05:58 +0200 (Sat, 27 May 2006)
+New Revision: 55
+
+Modified:
+   trunk/init/rdiff-web
+   trunk/rdiff-web
+Log:
+Fix to r53, and improvement to r54
+
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2006-05-27 20:48:50 UTC (rev 54)
++++ trunk/init/rdiff-web	2006-05-27 21:05:58 UTC (rev 55)
+@@ -23,7 +23,7 @@
+ case &quot;$1&quot; in
+    start)
+       if [ ! -f /etc/rdiffweb/rdw.conf ]; then
+-         echo -n &quot;rdiffWeb is not configured!&quot;
++         echo -n &quot;rdiffWeb is not configured!  Please run 'rdiff-web-config'.&quot;
+          echo $ERROR_MSG
+          exit 1
+       fi
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2006-05-27 20:48:50 UTC (rev 54)
++++ trunk/rdiff-web	2006-05-27 21:05:58 UTC (rev 55)
+@@ -52,10 +52,13 @@
+    # OK, we're good to go.  Start the server.
+    server = rdiffWeb.page_locations.rdiffLocationsPage()
+ 
++   serverPort = 8080
++   if rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;) != &quot;&quot;:
++      serverPort = int(rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;))
+    settings = {
+       'sessionFilter.on' : True,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
+-      'server.socketPort' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;),
++      'server.socketPort' : serverPort,
+       '/static' : {
+          'staticFilter.on' : True,
+          'staticFilter.dir': &quot;static&quot;,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000011.html">[Rdiffweb-commits] r54 - trunk/init
+</A></li>
+	<LI>Next message: <A HREF="000013.html">[Rdiffweb-commits] r56 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#12">[ date ]</a>
+              <a href="thread.html#12">[ thread ]</a>
+              <a href="subject.html#12">[ subject ]</a>
+              <a href="author.html#12">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

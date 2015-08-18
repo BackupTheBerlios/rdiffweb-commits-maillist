@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r163 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r163%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710272245.l9RMjX1Q032312%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000119.html">
+   <LINK REL="Next"  HREF="000121.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r163 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r163%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710272245.l9RMjX1Q032312%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r163 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 28 00:45:33 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000119.html">[Rdiffweb-commits] r162 - in trunk/rdiffWeb: . templates
+</A></li>
+        <LI>Next message: <A HREF="000121.html">[Rdiffweb-commits] r164 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-28 00:45:30 +0200 (Sun, 28 Oct 2007)
+New Revision: 163
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Add additional syntax for conditional inclusions to templating engine to allow easier control of html attributes.
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2007-10-27 22:42:48 UTC (rev 162)
++++ trunk/rdiffWeb/rdw_templating.py	2007-10-27 22:45:30 UTC (rev 163)
+@@ -15,8 +15,10 @@
+ 
+ class templateParser:
+    def __init__(self):
+-      self.deleteIfRegex = re.compile(r&quot;&lt;!--StartDeleteIf:(.*?)--&gt;(.*?)&lt;!--EndDeleteIf:\1--&gt;&quot;, re.S)
+-      self.includeIfRegex = re.compile(r&quot;&lt;!--StartIncludeIf:(.*?)--&gt;(.*?)&lt;!--EndIncludeIf:\1--&gt;&quot;, re.S)
++      self.deleteIfRegexes = [re.compile(r&quot;&lt;!--StartDeleteIf:(.*?)--&gt;(.*?)&lt;!--EndDeleteIf:\1--&gt;&quot;, re.S),
++                              re.compile(r&quot;StartDeleteIf:(.*?)-(.*?)EndDeleteIf:\1-&quot;, re.S)]
++      self.includeIfRegexes = [re.compile(r&quot;&lt;!--StartIncludeIf:(.*?)--&gt;(.*?)&lt;!--EndIncludeIf:\1--&gt;&quot;, re.S),
++                               re.compile(r&quot;StartIncludeIf:(.*?)-(.*?)EndIncludeIf:\1-&quot;, re.S)]
+       self.replacements = []
+ 
+    def parseTemplate(self, templateString, **kwargs):
+@@ -38,13 +40,24 @@
+ 
+    def parseSingleTemplate(self, templateString):
+       # Handle conditional includes/deletes
+-      templateString = self.deleteIfRegex.sub(self._handleDeleteIf, templateString)
+-      templateString = self.includeIfRegex.sub(self._handleIncludeIf, templateString)
++      for regex in self.deleteIfRegexes:
++         templateString = regex.sub(self._handleDeleteIf, templateString)
++      for regex in self.includeIfRegexes:
++         templateString = regex.sub(self._handleIncludeIf, templateString)
+ 
+       # Process any individual keywords
+       result = re.compile(&quot;\^(.*?)\$&quot;).sub(self._replaceTemplateKeyword, templateString)
+       return result
+ 
++   def hasConditionalDirectives(self, templateString):
++      for regex in self.deleteIfRegexes:
++         if regex.search(templateString):
++            return True
++      for regex in self.includeIfRegexes:
++         if regex.search(templateString):
++            return True
++      return False
++
+    def _handleListMatch(self, match):
+       replacements = self.replacements[-1]
+       listName = match.group(1)
+@@ -85,7 +98,7 @@
+       textToInclude = match.group(2).rstrip(&quot;\n&quot;)
+       if (replacements[conditional] and includeIfTrue) or (not replacements[conditional] and not includeIfTrue):
+          # The included text may contain additional include/delete statements. Check for those, and if they exist, recurse.
+-         if self.deleteIfRegex.search(textToInclude) != None or self.includeIfRegex.search(textToInclude) != None:
++         if self.hasConditionalDirectives(textToInclude):
+             return self.parseSingleTemplate(textToInclude)
+          return textToInclude
+       return &quot;&quot;
+@@ -122,6 +135,15 @@
+       template = &quot;&quot;&quot;&lt;!--StartDeleteIf:include--&gt;text&lt;!--EndDeleteIf:include--&gt;&quot;&quot;&quot;
+       self.assertEquals(templateParser().parseTemplate(template, include=False), &quot;text&quot;)
+       assert(templateParser().parseTemplate(template, include=True) == &quot;&quot;)
++
++   def testAttributeStyleDirectives(self):
++      template = &quot;&quot;&quot;StartIncludeIf:include- text EndIncludeIf:include-&quot;&quot;&quot;
++      assert(templateParser().parseTemplate(template, include=True) == &quot; text &quot;)
++      assert(templateParser().parseTemplate(template, include=False) == &quot;&quot;)
++
++      template = &quot;&quot;&quot;StartDeleteIf:include- text EndDeleteIf:include-&quot;&quot;&quot;
++      self.assertEquals(templateParser().parseTemplate(template, include=False), &quot; text &quot;)
++      assert(templateParser().parseTemplate(template, include=True) == &quot;&quot;)
+       
+    def testNestedIncludes(self):
+       template = &quot;&quot;&quot;&lt;!--StartIncludeIf:include--&gt;&lt;!--StartDeleteIf:delete--&gt;should be deleted&lt;!--EndDeleteIf:delete--&gt;text&lt;!--EndIncludeIf:include--&gt;&quot;&quot;&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000119.html">[Rdiffweb-commits] r162 - in trunk/rdiffWeb: . templates
+</A></li>
+	<LI>Next message: <A HREF="000121.html">[Rdiffweb-commits] r164 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

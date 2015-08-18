@@ -1,0 +1,586 @@
+From commits at rdiffweb.org  Thu Mar 29 21:26:57 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 29 Mar 2007 21:26:57 +0200
+Subject: [Rdiffweb-commits] r78 - trunk/rdiffWeb
+Message-ID: <200703291926.l2TJQv7R009089@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-29 21:25:36 +0200 (Thu, 29 Mar 2007)
+New Revision: 78
+
+Modified:
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+Correctly detect ..'s in paths -- thanks to Jes?\195?\186s Roncero for catching this one
+
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2006-12-16 18:40:05 UTC (rev 77)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-03-29 19:25:36 UTC (rev 78)
+@@ -20,8 +20,8 @@
+       return "Access is denied."
+ 
+ def ensurePathValid(path):
+-   normalizedPath = os.path.normpath(path)
+-   if normalizedPath != path:
++   realPath = os.path.realpath(path)
++   if realPath != path:
+       raise accessDeniedError
+ 
+ def encodeUrl(url, safeChars=""):
+@@ -389,6 +389,68 @@
+ 
+       os.unlink(zipFile)
+       removeDir(tempDir)
++      
++   def testEnsurePathValid(self):
++      try:
++         not ensurePathValid("../..")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid("..")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid("/..")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid("../")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid("../..")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid("../dir/..")
++      except: pass
++      else: assert(False)
++      
++      # should be "/dir"
++      try:
++         not ensurePathValid("/dir/")
++      except: pass
++      else: assert(False)
++      
++      # should be "dir"
++      try:
++         not ensurePathValid("dir/")
++      except: pass
++      else: assert(False)      
++      
++      try:
++         not ensurePathValid("/dir")
++      except: assert(False)
++      
++      # test symlinks
++      import tempfile
++      tempDir = tempfile.mkdtemp()
++      os.symlink(tempDir+"/a", tempDir+"/b")
++      try:
++         not ensurePathValid(tempDir+"/b")
++      except: pass
++      else: assert(False)
++      
++      try:
++         not ensurePathValid(tempDir+"/1")
++      except: assert(False)
++      removeDir(tempDir)
++      
+ 
+    def _validateZippedDir(self, zipFile):
+       zipObj = zipfile.ZipFile(zipFile, "r")
+
+
+
+From commits at rdiffweb.org  Thu Mar 29 22:06:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 29 Mar 2007 22:06:24 +0200
+Subject: [Rdiffweb-commits] r79 - tags/release-0.3.5/rdiffWeb
+Message-ID: <200703292006.l2TK6OKf011166@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-29 22:06:21 +0200 (Thu, 29 Mar 2007)
+New Revision: 79
+
+Modified:
+   tags/release-0.3.5/rdiffWeb/rdw_helpers.py
+Log:
+Correctly detect ..'s in paths -- thanks to Jesus Roncero for catching this one
+
+Modified: tags/release-0.3.5/rdiffWeb/rdw_helpers.py
+===================================================================
+--- tags/release-0.3.5/rdiffWeb/rdw_helpers.py	2007-03-29 19:25:36 UTC (rev 78)
++++ tags/release-0.3.5/rdiffWeb/rdw_helpers.py	2007-03-29 20:06:21 UTC (rev 79)
+@@ -20,8 +20,8 @@
+       return "Access is denied."
+ 
+ def ensurePathValid(path):
+-   normalizedPath = os.path.normpath(path)
+-   if normalizedPath != path:
++   realPath = os.path.realpath(path)
++   if realPath != path:
+       raise accessDeniedError
+ 
+ def encodeUrl(url, safeChars=""):
+
+
+
+From commits at rdiffweb.org  Thu Mar 29 22:11:35 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 29 Mar 2007 22:11:35 +0200
+Subject: [Rdiffweb-commits] r80 - tags/release-0.3.5
+Message-ID: <200703292011.l2TKBZTn011646@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-29 22:11:33 +0200 (Thu, 29 Mar 2007)
+New Revision: 80
+
+Modified:
+   tags/release-0.3.5/setup.py
+Log:
+Tagging release 3.5.1
+
+Modified: tags/release-0.3.5/setup.py
+===================================================================
+--- tags/release-0.3.5/setup.py	2007-03-29 20:06:21 UTC (rev 79)
++++ tags/release-0.3.5/setup.py	2007-03-29 20:11:33 UTC (rev 80)
+@@ -8,7 +8,7 @@
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+ if pythonVersion > 2.3:
+    setup(name='rdiffWeb',
+-      version='0.3.5',
++      version='0.3.5.1',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+@@ -30,7 +30,7 @@
+    packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+ 
+    setup(name='rdiffWeb',
+-      version='0.3.5',
++      version='0.3.5.1',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Fri Mar 30 14:08:04 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 30 Mar 2007 14:08:04 +0200
+Subject: [Rdiffweb-commits] r81 - trunk/rdiffWeb
+Message-ID: <200703301208.l2UC847d022707@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-30 14:08:00 +0200 (Fri, 30 Mar 2007)
+New Revision: 81
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix problem with uncompressed snapshots
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-03-29 20:11:33 UTC (rev 80)
++++ trunk/rdiffWeb/librdiff.py	2007-03-30 12:08:00 UTC (rev 81)
+@@ -52,7 +52,7 @@
+ class incrementEntry:
+    """Encapsalates all the ugly knowledge of increment behavior"""
+    missingSuffix = ".missing"
+-   suffixes = [".missing", ".snapshot.gz", ".diff.gz", ".data.gz", ".data", ".dir", ".diff"];
++   suffixes = [".missing", ".snapshot.gz", ".snapshot", ".diff.gz", ".data.gz", ".data", ".dir", ".diff"];
+ 
+    def __init__(self, incrementName):
+       self.entryName = incrementName
+@@ -64,7 +64,7 @@
+       return self.entryName.endswith(self.missingSuffix)
+ 
+    def isSnapshotIncrement(self):
+-      return self.entryName.endswith(".snapshot.gz")
++      return self.entryName.endswith(".snapshot.gz") or self.entryName.endswith(".snapshot")
+ 
+    def getFilename(self):
+       filename = self._removeSuffix(self.entryName)
+
+
+
+From commits at rdiffweb.org  Fri Mar 30 14:08:58 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 30 Mar 2007 14:08:58 +0200
+Subject: [Rdiffweb-commits] r82 - trunk
+Message-ID: <200703301208.l2UC8wXV022761@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-30 14:08:55 +0200 (Fri, 30 Mar 2007)
+New Revision: 82
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Make cherrypy detection more explicit during configure.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2007-03-30 12:08:00 UTC (rev 81)
++++ trunk/rdiff-web-config	2007-03-30 12:08:55 UTC (rev 82)
+@@ -184,6 +184,12 @@
+          print "Repository search complete."
+ 
+ def doMainSetup():
++   try:
++      import cherrypy
++   except:
++      print "Unable to load the CherryPy python module. This is most likely because it has not been installed. Please install this module and run the configuration again."
++      return
++   
+    addConfigFileLine("ServerName=localhost")
+    addConfigFileLine("ServerPort=8080")
+ 
+
+
+
+From commits at rdiffweb.org  Fri Mar 30 14:10:39 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 30 Mar 2007 14:10:39 +0200
+Subject: [Rdiffweb-commits] r83 - trunk/rdiffWeb
+Message-ID: <200703301210.l2UCAdkK022992@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-03-30 14:10:32 +0200 (Fri, 30 Mar 2007)
+New Revision: 83
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+* Improve path validation
+* Move writeTopLinks into rdiffPage.startPage
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_admin.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -69,7 +69,6 @@
+       if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+ 
+       page = self.startPage("Administration")
+-      page = page + self.writeTopLinks()
+       userNames = self.userDB.getUserList()
+       users = [ { "username" : user } for user in userNames ]
+       page = page + self.compileTemplate("admin_main.html", users=users, addUserUrl="/admin/addUser")
+@@ -89,7 +88,6 @@
+             return self.writeMessagePage("Success", "User added successfully.")
+ 
+       page = self.startPage("Add User")
+-      page = page + self.writeTopLinks()
+       page = page + formVals.generateFormHtml(True, self._isSubmit(), self)
+       return page + self.endPage()
+    addUser.exposed = True
+@@ -108,7 +106,6 @@
+          formVals.loadFromDatabase(user, self.userDB)
+ 
+       page = self.startPage("Edit User")
+-      page = page + self.writeTopLinks()
+       page = page + formVals.generateFormHtml(False, self._isSubmit(), self)
+       return page + self.endPage()
+    editUser.exposed = True
+@@ -134,7 +131,6 @@
+             return self.writeMessagePage("Success", "Password modified successfully.")
+ 
+       page = self.startPage("Change User Password")
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate("admin_change_password.html", username=user)
+       return page + self.endPage()
+    changePassword.exposed = True
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_browse.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -10,8 +10,7 @@
+    def index(self, repo="", path="", restore=""):
+ 
+       try:
+-         rdw_helpers.ensurePathValid(repo)
+-         rdw_helpers.ensurePathValid(path)
++         self.validateUserPath(joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+ 
+@@ -88,7 +87,6 @@
+ 
+       # Start page
+       page = self.startPage(title)
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate("dir_listing.html", title=title, files=entries, parentDirs=parentDirs, restoreUrl=restoreUrl, viewUrl=viewUrl, restoreDates=restoreDates, warning=backupWarning)
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_history.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -8,7 +8,7 @@
+ class rdiffHistoryPage(page_main.rdiffPage):
+    def index(self, repo):
+       try:
+-         rdw_helpers.ensurePathValid(repo)
++         self.validateUserPath(repo)
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+ 
+@@ -17,7 +17,6 @@
+          return self.writeErrorPage("Access is denied.")
+ 
+       page = self.startPage("Backup History")
+-      page = page + self.writeTopLinks()
+       try:
+          rdiffHistory = librdiff.getBackupHistory(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo))
+       except librdiff.FileError, error:
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_locations.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -6,7 +6,6 @@
+ class rdiffLocationsPage(page_main.rdiffPage):
+    def index(self):
+       page = self.startPage("Backup Locations")
+-      page = page + self.writeTopLinks()
+ 
+       repoList = []
+       for userRepo in self.userDB.getUserRepoPaths(self.getUsername()):
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_main.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -21,7 +21,7 @@
+ class rdiffPage:
+    _cpFilterList = getFilters()
+    def __init__(self):
+-      self.userDB = self.getUserDBModule()
++      self.userDB = self._getUserDBModule()
+ 
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+@@ -43,8 +43,21 @@
+       (packageDir, ignored) = os.path.split(__file__)
+       templateText = open(rdw_helpers.joinPaths(packageDir, "templates", templatePath), "r").read()
+       return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++         
++   def validateUserPath(self, path):
++      '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
++      path = path.rstrip("/")
++      realPath = os.path.realpath(path)
++      if realPath != path:
++         raise rdw_helpers.accessDeniedError
++      
++      # Make sure that the path starts with the user root
++      # This check should be accomplished by ensurePathValid, but adding for a sanity check
++      realDestPath = os.path.realpath(path)
++      if realDestPath.find(self.userDB.getUserRoot(self.getUsername())) != 0:      
++         raise rdw_helpers.accessDeniedError
+ 
+-   def getUserDBModule(self):
++   def _getUserDBModule(self):
+       authModuleSetting = rdw_config.getConfigSetting("UserDB");
+       if authModuleSetting.lower() == "file":
+          return db_file.fileUserDB()
+@@ -55,7 +68,7 @@
+ 
+    ########################## PAGE HELPER FUNCTIONS ##################################
+    def startPage(self, title, rssUrl = "", rssTitle = ""):
+-      return self.compileTemplate("page_start.html", title=title, rssLink=rssUrl, rssTitle=rssTitle)
++      return self.compileTemplate("page_start.html", title=title, rssLink=rssUrl, rssTitle=rssTitle) + self.writeTopLinks()
+ 
+    def endPage(self):
+       return self.compileTemplate("page_end.html")
+@@ -72,14 +85,12 @@
+ 
+    def writeErrorPage(self, error):
+       page = self.startPage("Error")
+-      page = page + self.writeTopLinks()
+       page = page + error
+       page = page + self.endPage()
+       return page
+ 
+    def writeMessagePage(self, title, message):
+       page = self.startPage(title)
+-      page = page + self.writeTopLinks()
+       page = page + message
+       page = page + self.endPage()
+       return page
+@@ -88,7 +99,7 @@
+    ########## SESSION INFORMATION #############
+    def checkAuthentication(self, username, password):
+       if self.userDB.areUserCredentialsValid(username, password):
+-         cherrypy.session['username'] = username #TODO: this seems like a hack.  Figure out clean way to pull this off
++         cherrypy.session['username'] = username
+          return None
+       return "Invalid username or password."
+ 
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_restore.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -15,8 +15,7 @@
+ class rdiffRestorePage(page_main.rdiffPage):
+    def index(self, repo, path, date):
+       try:
+-         rdw_helpers.ensurePathValid(repo)
+-         rdw_helpers.ensurePathValid(path)
++         self.validateUserPath(rdw_helpers.joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+       if not repo: return self.writeErrorPage("Backup location not specified.")
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_status.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -9,7 +9,6 @@
+    def index(self):
+       userMessages = self._getRecentUserMessages()
+       page = self.startPage("Backup Status", rssUrl=self._buildStatusFeedUrl(), rssTitle = "Backup status for "+self.getUsername())
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate("status.html", messages=userMessages, feedLink=self._buildStatusFeedUrl(), statusLink="", title="Backup Status")
+       page = page + self.endPage()
+       return page
+@@ -30,10 +29,8 @@
+          startTime = rdw_helpers.rdwTime()
+          startTime.timeInSeconds = entryTime.timeInSeconds
+          startTime.tzOffset = entryTime.tzOffset
+-         endTime = rdw_helpers.rdwTime()
+-         endTime.timeInSeconds = entryTime.timeInSeconds
+-         endTime.tzOffset = entryTime.tzOffset
+          startTime.setTime(0, 0, 0)
++         endTime = startTime
+          endTime.setTime(23, 59, 59)
+ 
+          userMessages = self._getUserMessages(userRepos, True, False, startTime, endTime)
+@@ -43,14 +40,13 @@
+          if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+             return self.writeErrorPage("Access is denied.")
+          try:
+-            rdw_helpers.ensurePathValid(repo)
++            self.validateUserPath(repo)
+          except rdw_helpers.accessDeniedError, error:
+             return self.writeErrorPage(str(error))
+ 
+          userMessages = self._getUserMessages([repo], False, True, entryTime, entryTime)
+ 
+       page = self.startPage("Backup Status Entry", rssUrl="", rssTitle="")
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate("status.html", messages=userMessages, feedLink="", statusLink=self._buildAbsoluteStatusUrl(), title="Backup Status Entry")
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -19,11 +19,6 @@
+    def __str__(self):
+       return "Access is denied."
+ 
+-def ensurePathValid(path):
+-   realPath = os.path.realpath(path)
+-   if realPath != path:
+-      raise accessDeniedError
+-
+ def encodeUrl(url, safeChars=""):
+    if not url: return url
+    return urllib.quote_plus(url, safeChars)
+@@ -388,69 +383,7 @@
+       self._validateZippedDir(zipFile)
+ 
+       os.unlink(zipFile)
+-      removeDir(tempDir)
+-      
+-   def testEnsurePathValid(self):
+-      try:
+-         not ensurePathValid("../..")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid("..")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid("/..")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid("../")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid("../..")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid("../dir/..")
+-      except: pass
+-      else: assert(False)
+-      
+-      # should be "/dir"
+-      try:
+-         not ensurePathValid("/dir/")
+-      except: pass
+-      else: assert(False)
+-      
+-      # should be "dir"
+-      try:
+-         not ensurePathValid("dir/")
+-      except: pass
+-      else: assert(False)      
+-      
+-      try:
+-         not ensurePathValid("/dir")
+-      except: assert(False)
+-      
+-      # test symlinks
+-      import tempfile
+-      tempDir = tempfile.mkdtemp()
+-      os.symlink(tempDir+"/a", tempDir+"/b")
+-      try:
+-         not ensurePathValid(tempDir+"/b")
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(tempDir+"/1")
+-      except: assert(False)
+-      removeDir(tempDir)
+-      
++      removeDir(tempDir)      
+ 
+    def _validateZippedDir(self, zipFile):
+       zipObj = zipfile.ZipFile(zipFile, "r")
+
+
+

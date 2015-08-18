@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r235 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r235%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801291950.m0TJo5tf002566%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000191.html">
+   <LINK REL="Next"  HREF="000193.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r235 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r235%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801291950.m0TJo5tf002566%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r235 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 20:50:05 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000191.html">[Rdiffweb-commits] r234 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000193.html">[Rdiffweb-commits] r236 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#192">[ date ]</a>
+              <a href="thread.html#192">[ thread ]</a>
+              <a href="subject.html#192">[ subject ]</a>
+              <a href="author.html#192">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 20:50:03 +0100 (Tue, 29 Jan 2008)
+New Revision: 235
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Make sqlite module handle encoding.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2008-01-29 19:49:26 UTC (rev 234)
++++ trunk/rdiffWeb/db_sqlite.py	2008-01-29 19:50:03 UTC (rev 235)
+@@ -26,13 +26,13 @@
+ 
+    def getUserRoot(self, username):
+       if not username in self.userRootCache:
+-         self.userRootCache[username] = self._getUserField(username, &quot;UserRoot&quot;)
++         self.userRootCache[username] = self._encodePath(self._getUserField(username, &quot;UserRoot&quot;))
+       return self.userRootCache[username]
+ 
+    def getUserRepoPaths(self, username):
+       if not self.userExists(username): return None
+       query = &quot;SELECT RepoPath FROM repos WHERE UserID = %d&quot; % self._getUserID(username)
+-      repos = [ row[0] for row in self._executeQuery(query)]
++      repos = [ self._encodePath(row[0]) for row in self._executeQuery(query)]
+       repos.sort(lambda x, y: cmp(x.upper(), y.upper()))
+       return repos
+       
+@@ -118,6 +118,10 @@
+       return bool(self._getUserField(username, &quot;IsAdmin&quot;))
+ 
+    ########## Helper functions ###########   
++   def _encodePath(self, path):
++      if isinstance(path, unicode):
++         return path.encode('utf-8')
++      return path
+    def _deleteUserRepos(self, username):
+       if not self.userExists(username): raise ValueError
+       self._executeQuery(&quot;DELETE FROM repos WHERE UserID=%d&quot; % self._getUserID(username))
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000191.html">[Rdiffweb-commits] r234 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000193.html">[Rdiffweb-commits] r236 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#192">[ date ]</a>
+              <a href="thread.html#192">[ thread ]</a>
+              <a href="subject.html#192">[ subject ]</a>
+              <a href="author.html#192">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

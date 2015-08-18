@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r215 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r215%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801062108.m06L8Mp3010934%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000171.html">
+   <LINK REL="Next"  HREF="000173.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r215 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r215%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801062108.m06L8Mp3010934%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r215 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Jan  6 22:08:22 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000171.html">[Rdiffweb-commits] r214 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000173.html">[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#172">[ date ]</a>
+              <a href="thread.html#172">[ thread ]</a>
+              <a href="subject.html#172">[ subject ]</a>
+              <a href="author.html#172">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-06 22:08:19 +0100 (Sun, 06 Jan 2008)
+New Revision: 215
+
+Modified:
+   trunk/rdiffWeb/page_setup.py
+Log:
+The spwd module is only supported by Python &gt;= 2.5. If it's not available, roll our own.
+
+Modified: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-04 01:38:37 UTC (rev 214)
++++ trunk/rdiffWeb/page_setup.py	2008-01-06 21:08:19 UTC (rev 215)
+@@ -63,7 +63,7 @@
+             raise ValueError, &quot;The password is invalid.&quot;
+          
+    def _checkSystemPassword(self, username, password):
+-      cryptedpasswd = spwd.getspnam(username)[1]
++      cryptedpasswd = self._getCryptedPassword(username)
+       if crypt.crypt(password, cryptedpasswd) != cryptedpasswd:
+          raise ValueError, &quot;Invalid password.&quot;
+    
+@@ -89,7 +89,7 @@
+       self.getUserDB().setUserRoot(username, userRoot)
+       
+    def _rootAccountEnabled(self):
+-      cryptedpasswd = spwd.getspnam(&quot;root&quot;)[1]
++      cryptedpasswd = self._getCryptedPassword(&quot;root&quot;)
+       return cryptedpasswd != '!'
+ 
+    def _ensureConfigFileExists(self):
+@@ -101,4 +101,18 @@
+             os.chmod(&quot;/etc/rdiffweb/rdw.conf&quot;, stat.S_IRWXU)
+       except OSError, error:
+          raise ValueError, str(error)
++         
++   def _getCryptedPassword(self, username):
++      try:
++         import spwd
++      except ImportError:
++         return self._manualGetCryptedPassword(username)
++      else:
++         return spwd.getspnam(username)[1]
+ 
++   def _manualGetCryptedPassword(self, username):
++      pwlines = open(&quot;/etc/shadow&quot;).readlines()
++      for line in pwlines:
++         entryParts = line.split(&quot;:&quot;)
++         if len(entryParts) == 9 and entryParts[0] == username:
++            return entryParts[1]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000171.html">[Rdiffweb-commits] r214 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000173.html">[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#172">[ date ]</a>
+              <a href="thread.html#172">[ thread ]</a>
+              <a href="subject.html#172">[ subject ]</a>
+              <a href="author.html#172">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

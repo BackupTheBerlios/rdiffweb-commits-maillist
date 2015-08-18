@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r84 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-April/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r84%20-%20trunk/rdiffWeb&In-Reply-To=%3C200704042032.l34KWEgX026584%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000042.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r84 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r84%20-%20trunk/rdiffWeb&In-Reply-To=%3C200704042032.l34KWEgX026584%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r84 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Apr  4 22:32:14 CEST 2007</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000042.html">[Rdiffweb-commits] r85 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-04-04 22:32:10 +0200 (Wed, 04 Apr 2007)
+New Revision: 84
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+* Provide default values for user records
+* Start caching the user's root path
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-03-30 12:10:32 UTC (rev 83)
++++ trunk/rdiffWeb/db_mysql.py	2007-04-04 20:32:10 UTC (rev 84)
+@@ -9,6 +9,7 @@
+       import MySQLdb
+       self.configFilePath = configFilePath
+       MySQLdb.paramstyle = &quot;pyformat&quot;
++      self.userRootCache = {}
+       self._connect()
+ 
+    def userExists(self, username):
+@@ -20,7 +21,9 @@
+       return len(results) == 1
+ 
+    def getUserRoot(self, username):
+-      return self._getUserField(username, &quot;UserRoot&quot;)
++      if not self.userRootCache[username]:
++         self.userRootCache[username] = self._getUserField(username, &quot;UserRoot&quot;)
++      return self.userRootCache[username]
+ 
+    def getUserRepoPaths(self, username):
+       if not self.userExists(username): return None
+@@ -53,6 +56,7 @@
+          adminInt = 0
+       query = &quot;UPDATE users SET UserRoot=%(userRoot)s, IsAdmin=&quot;+str(adminInt)+&quot; WHERE Username = %(user)s&quot;
+       self._executeQuery(query, userRoot=userRoot, user=username)
++      self.userRootCache[username] = userRoot # update cache
+ 
+    def setUserRepos(self, username, repoPaths):
+       if not self.userExists(username): raise ValueError
+@@ -120,12 +124,15 @@
+ 
+    def _getCreateStatements(self):
+       return [&quot;&quot;&quot;create table users ( UserID int(11) NOT NULL auto_increment,
+-               Username varchar (50) binary unique not null,
+-               Password varchar (40) not null,
+-               UserRoot varchar (255) not null,
+-               IsAdmin tinyint not null,
++               Username varchar (50) binary unique NOT NULL,
++               Password varchar (40) NOT NULL DEFAULT &quot;&quot;,
++               UserRoot varchar (255) NOT NULL DEFAULT &quot;&quot;,
++               IsAdmin tinyint NOT NULL DEFAULT FALSE,
+                primary key (UserID) )&quot;&quot;&quot;,
+-               &quot;create table repos ( UserID int(11) NOT NULL, RepoPath varchar (255) not null);&quot;]
++               &quot;&quot;&quot;create table repos ( RepoID int(11) NOT NULL auto_increment,
++               UserID int(11) NOT NULL, 
++               RepoPath varchar (255) NOT NULL,
++               primary key (RepoID))&quot;&quot;&quot;]
+ 
+ 
+ ##################### Unit Tests #########################
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000042.html">[Rdiffweb-commits] r85 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

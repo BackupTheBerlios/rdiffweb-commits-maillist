@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r136 - in trunk/tests: . deleted_dir	deleted_file initial_inprogress inprogress_timezone	normal_inprogress simple
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r136%20-%20in%20trunk/tests%3A%20.%20deleted_dir%0A%09deleted_file%20initial_inprogress%20inprogress_timezone%0A%09normal_inprogress%20simple&In-Reply-To=%3C200710020324.l923OCDa002029%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000092.html">
+   <LINK REL="Next"  HREF="000094.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r136 - in trunk/tests: . deleted_dir	deleted_file initial_inprogress inprogress_timezone	normal_inprogress simple</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r136%20-%20in%20trunk/tests%3A%20.%20deleted_dir%0A%09deleted_file%20initial_inprogress%20inprogress_timezone%0A%09normal_inprogress%20simple&In-Reply-To=%3C200710020324.l923OCDa002029%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r136 - in trunk/tests: . deleted_dir	deleted_file initial_inprogress inprogress_timezone	normal_inprogress simple">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Oct  2 05:24:12 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000092.html">[Rdiffweb-commits] r135 - in trunk/rdiffWeb: . static templates
+</A></li>
+        <LI>Next message: <A HREF="000094.html">[Rdiffweb-commits] r137 - in trunk: rdiffWeb rdiffWeb/static	rdiffWeb/templates tests tests/deleted_dir tests/deleted_file	tests/initial_inprogress tests/inprogress_timezone	tests/normal_inprogress tests/simple
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-02 05:24:04 +0200 (Tue, 02 Oct 2007)
+New Revision: 136
+
+Modified:
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/initial_inprogress/history_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/normal_inprogress/history_results.txt
+   trunk/tests/simple/history_results.txt
+Log:
+Adding test for previous commit's increment size reporting
+
+
+Modified: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/deleted_dir/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 21:55:35	0 bytes		False
+-2007-08-21 21:55:24	0 bytes		False
+-2007-08-21 21:55:17	0 bytes		False
++2007-08-21 21:55:35	0 bytes		False	258 bytes
++2007-08-21 21:55:24	0 bytes		False	0 bytes
++2007-08-21 21:55:17	0 bytes		False	0 bytes
+
+Modified: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/deleted_file/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 16:31:27	0 bytes		False
+-2007-08-21 16:31:24	0 bytes		False
+-2007-08-21 16:31:23	141 bytes		False
++2007-08-21 16:31:27	0 bytes		False	120 bytes
++2007-08-21 16:31:24	0 bytes		False	211 bytes
++2007-08-21 16:31:23	141 bytes		False	0 bytes
+
+Modified: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/history_template.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -2,5 +2,5 @@
+ 
+ Date	Size	Errors	In Progress?
+ &lt;!--StartRepeat:history--&gt;
+-^date$	^size$	^errors$	^inProgress$
++^date$	^size$	^errors$	^inProgress$	^incrementSize$
+ &lt;!--EndRepeat:history--&gt;
+
+Modified: trunk/tests/initial_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/initial_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,4 +1,4 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-23 10:05:06			True
++2007-08-23 10:05:06			True	
+
+Modified: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,5 +1,5 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-09-29 17:13:22			True
+-2007-09-29 17:09:27	0 bytes		False
++2007-09-29 17:13:22			True	
++2007-09-29 17:09:27	0 bytes		False	0 bytes
+
+Modified: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,5 +1,5 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-23 11:30:33			True
+-2007-08-23 11:28:05	0 bytes		False
++2007-08-23 11:30:33			True	
++2007-08-23 11:28:05	0 bytes		False	0 bytes
+
+Modified: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/simple/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 14:01:42	0 bytes		False
+-2007-08-21 14:01:32	0 bytes		False
+-2007-08-21 14:01:21	141 bytes		False
++2007-08-21 14:01:42	0 bytes		False	110 bytes
++2007-08-21 14:01:32	0 bytes		False	200 bytes
++2007-08-21 14:01:21	141 bytes		False	0 bytes
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000092.html">[Rdiffweb-commits] r135 - in trunk/rdiffWeb: . static templates
+</A></li>
+	<LI>Next message: <A HREF="000094.html">[Rdiffweb-commits] r137 - in trunk: rdiffWeb rdiffWeb/static	rdiffWeb/templates tests tests/deleted_dir tests/deleted_file	tests/initial_inprogress tests/inprogress_timezone	tests/normal_inprogress tests/simple
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,386 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r83 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-March/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r83%20-%20trunk/rdiffWeb&In-Reply-To=%3C200703301210.l2UCAdkK022992%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000039.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r83 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r83%20-%20trunk/rdiffWeb&In-Reply-To=%3C200703301210.l2UCAdkK022992%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r83 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Mar 30 14:10:39 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000039.html">[Rdiffweb-commits] r82 - trunk
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#40">[ date ]</a>
+              <a href="thread.html#40">[ thread ]</a>
+              <a href="subject.html#40">[ subject ]</a>
+              <a href="author.html#40">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-03-30 14:10:32 +0200 (Fri, 30 Mar 2007)
+New Revision: 83
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/rdw_helpers.py
+Log:
+* Improve path validation
+* Move writeTopLinks into rdiffPage.startPage
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_admin.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -69,7 +69,6 @@
+       if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
+ 
+       page = self.startPage(&quot;Administration&quot;)
+-      page = page + self.writeTopLinks()
+       userNames = self.userDB.getUserList()
+       users = [ { &quot;username&quot; : user } for user in userNames ]
+       page = page + self.compileTemplate(&quot;admin_main.html&quot;, users=users, addUserUrl=&quot;/admin/addUser&quot;)
+@@ -89,7 +88,6 @@
+             return self.writeMessagePage(&quot;Success&quot;, &quot;User added successfully.&quot;)
+ 
+       page = self.startPage(&quot;Add User&quot;)
+-      page = page + self.writeTopLinks()
+       page = page + formVals.generateFormHtml(True, self._isSubmit(), self)
+       return page + self.endPage()
+    addUser.exposed = True
+@@ -108,7 +106,6 @@
+          formVals.loadFromDatabase(user, self.userDB)
+ 
+       page = self.startPage(&quot;Edit User&quot;)
+-      page = page + self.writeTopLinks()
+       page = page + formVals.generateFormHtml(False, self._isSubmit(), self)
+       return page + self.endPage()
+    editUser.exposed = True
+@@ -134,7 +131,6 @@
+             return self.writeMessagePage(&quot;Success&quot;, &quot;Password modified successfully.&quot;)
+ 
+       page = self.startPage(&quot;Change User Password&quot;)
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate(&quot;admin_change_password.html&quot;, username=user)
+       return page + self.endPage()
+    changePassword.exposed = True
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_browse.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -10,8 +10,7 @@
+    def index(self, repo=&quot;&quot;, path=&quot;&quot;, restore=&quot;&quot;):
+ 
+       try:
+-         rdw_helpers.ensurePathValid(repo)
+-         rdw_helpers.ensurePathValid(path)
++         self.validateUserPath(joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+ 
+@@ -88,7 +87,6 @@
+ 
+       # Start page
+       page = self.startPage(title)
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate(&quot;dir_listing.html&quot;, title=title, files=entries, parentDirs=parentDirs, restoreUrl=restoreUrl, viewUrl=viewUrl, restoreDates=restoreDates, warning=backupWarning)
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_history.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -8,7 +8,7 @@
+ class rdiffHistoryPage(page_main.rdiffPage):
+    def index(self, repo):
+       try:
+-         rdw_helpers.ensurePathValid(repo)
++         self.validateUserPath(repo)
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+ 
+@@ -17,7 +17,6 @@
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
+       page = self.startPage(&quot;Backup History&quot;)
+-      page = page + self.writeTopLinks()
+       try:
+          rdiffHistory = librdiff.getBackupHistory(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo))
+       except librdiff.FileError, error:
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_locations.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -6,7 +6,6 @@
+ class rdiffLocationsPage(page_main.rdiffPage):
+    def index(self):
+       page = self.startPage(&quot;Backup Locations&quot;)
+-      page = page + self.writeTopLinks()
+ 
+       repoList = []
+       for userRepo in self.userDB.getUserRepoPaths(self.getUsername()):
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_main.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -21,7 +21,7 @@
+ class rdiffPage:
+    _cpFilterList = getFilters()
+    def __init__(self):
+-      self.userDB = self.getUserDBModule()
++      self.userDB = self._getUserDBModule()
+ 
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+@@ -43,8 +43,21 @@
+       (packageDir, ignored) = os.path.split(__file__)
+       templateText = open(rdw_helpers.joinPaths(packageDir, &quot;templates&quot;, templatePath), &quot;r&quot;).read()
+       return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++         
++   def validateUserPath(self, path):
++      '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
++      path = path.rstrip(&quot;/&quot;)
++      realPath = os.path.realpath(path)
++      if realPath != path:
++         raise rdw_helpers.accessDeniedError
++      
++      # Make sure that the path starts with the user root
++      # This check should be accomplished by ensurePathValid, but adding for a sanity check
++      realDestPath = os.path.realpath(path)
++      if realDestPath.find(self.userDB.getUserRoot(self.getUsername())) != 0:      
++         raise rdw_helpers.accessDeniedError
+ 
+-   def getUserDBModule(self):
++   def _getUserDBModule(self):
+       authModuleSetting = rdw_config.getConfigSetting(&quot;UserDB&quot;);
+       if authModuleSetting.lower() == &quot;file&quot;:
+          return db_file.fileUserDB()
+@@ -55,7 +68,7 @@
+ 
+    ########################## PAGE HELPER FUNCTIONS ##################################
+    def startPage(self, title, rssUrl = &quot;&quot;, rssTitle = &quot;&quot;):
+-      return self.compileTemplate(&quot;page_start.html&quot;, title=title, rssLink=rssUrl, rssTitle=rssTitle)
++      return self.compileTemplate(&quot;page_start.html&quot;, title=title, rssLink=rssUrl, rssTitle=rssTitle) + self.writeTopLinks()
+ 
+    def endPage(self):
+       return self.compileTemplate(&quot;page_end.html&quot;)
+@@ -72,14 +85,12 @@
+ 
+    def writeErrorPage(self, error):
+       page = self.startPage(&quot;Error&quot;)
+-      page = page + self.writeTopLinks()
+       page = page + error
+       page = page + self.endPage()
+       return page
+ 
+    def writeMessagePage(self, title, message):
+       page = self.startPage(title)
+-      page = page + self.writeTopLinks()
+       page = page + message
+       page = page + self.endPage()
+       return page
+@@ -88,7 +99,7 @@
+    ########## SESSION INFORMATION #############
+    def checkAuthentication(self, username, password):
+       if self.userDB.areUserCredentialsValid(username, password):
+-         cherrypy.session['username'] = username #TODO: this seems like a hack.  Figure out clean way to pull this off
++         cherrypy.session['username'] = username
+          return None
+       return &quot;Invalid username or password.&quot;
+ 
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_restore.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -15,8 +15,7 @@
+ class rdiffRestorePage(page_main.rdiffPage):
+    def index(self, repo, path, date):
+       try:
+-         rdw_helpers.ensurePathValid(repo)
+-         rdw_helpers.ensurePathValid(path)
++         self.validateUserPath(rdw_helpers.joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+          return self.writeErrorPage(str(error))
+       if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/page_status.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -9,7 +9,6 @@
+    def index(self):
+       userMessages = self._getRecentUserMessages()
+       page = self.startPage(&quot;Backup Status&quot;, rssUrl=self._buildStatusFeedUrl(), rssTitle = &quot;Backup status for &quot;+self.getUsername())
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate(&quot;status.html&quot;, messages=userMessages, feedLink=self._buildStatusFeedUrl(), statusLink=&quot;&quot;, title=&quot;Backup Status&quot;)
+       page = page + self.endPage()
+       return page
+@@ -30,10 +29,8 @@
+          startTime = rdw_helpers.rdwTime()
+          startTime.timeInSeconds = entryTime.timeInSeconds
+          startTime.tzOffset = entryTime.tzOffset
+-         endTime = rdw_helpers.rdwTime()
+-         endTime.timeInSeconds = entryTime.timeInSeconds
+-         endTime.tzOffset = entryTime.tzOffset
+          startTime.setTime(0, 0, 0)
++         endTime = startTime
+          endTime.setTime(23, 59, 59)
+ 
+          userMessages = self._getUserMessages(userRepos, True, False, startTime, endTime)
+@@ -43,14 +40,13 @@
+          if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+             return self.writeErrorPage(&quot;Access is denied.&quot;)
+          try:
+-            rdw_helpers.ensurePathValid(repo)
++            self.validateUserPath(repo)
+          except rdw_helpers.accessDeniedError, error:
+             return self.writeErrorPage(str(error))
+ 
+          userMessages = self._getUserMessages([repo], False, True, entryTime, entryTime)
+ 
+       page = self.startPage(&quot;Backup Status Entry&quot;, rssUrl=&quot;&quot;, rssTitle=&quot;&quot;)
+-      page = page + self.writeTopLinks()
+       page = page + self.compileTemplate(&quot;status.html&quot;, messages=userMessages, feedLink=&quot;&quot;, statusLink=self._buildAbsoluteStatusUrl(), title=&quot;Backup Status Entry&quot;)
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-03-30 12:08:55 UTC (rev 82)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-03-30 12:10:32 UTC (rev 83)
+@@ -19,11 +19,6 @@
+    def __str__(self):
+       return &quot;Access is denied.&quot;
+ 
+-def ensurePathValid(path):
+-   realPath = os.path.realpath(path)
+-   if realPath != path:
+-      raise accessDeniedError
+-
+ def encodeUrl(url, safeChars=&quot;&quot;):
+    if not url: return url
+    return urllib.quote_plus(url, safeChars)
+@@ -388,69 +383,7 @@
+       self._validateZippedDir(zipFile)
+ 
+       os.unlink(zipFile)
+-      removeDir(tempDir)
+-      
+-   def testEnsurePathValid(self):
+-      try:
+-         not ensurePathValid(&quot;../..&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(&quot;..&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(&quot;/..&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(&quot;../&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(&quot;../..&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(&quot;../dir/..&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      # should be &quot;/dir&quot;
+-      try:
+-         not ensurePathValid(&quot;/dir/&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      # should be &quot;dir&quot;
+-      try:
+-         not ensurePathValid(&quot;dir/&quot;)
+-      except: pass
+-      else: assert(False)      
+-      
+-      try:
+-         not ensurePathValid(&quot;/dir&quot;)
+-      except: assert(False)
+-      
+-      # test symlinks
+-      import tempfile
+-      tempDir = tempfile.mkdtemp()
+-      os.symlink(tempDir+&quot;/a&quot;, tempDir+&quot;/b&quot;)
+-      try:
+-         not ensurePathValid(tempDir+&quot;/b&quot;)
+-      except: pass
+-      else: assert(False)
+-      
+-      try:
+-         not ensurePathValid(tempDir+&quot;/1&quot;)
+-      except: assert(False)
+-      removeDir(tempDir)
+-      
++      removeDir(tempDir)      
+ 
+    def _validateZippedDir(self, zipFile):
+       zipObj = zipfile.ZipFile(zipFile, &quot;r&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000039.html">[Rdiffweb-commits] r82 - trunk
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#40">[ date ]</a>
+              <a href="thread.html#40">[ thread ]</a>
+              <a href="subject.html#40">[ subject ]</a>
+              <a href="author.html#40">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

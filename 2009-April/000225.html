@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r266 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r266%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904251544.n3PFiohJ015405%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000224.html">
+   <LINK REL="Next"  HREF="000226.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r266 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r266%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904251544.n3PFiohJ015405%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r266 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Apr 25 17:44:50 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000224.html">[Rdiffweb-commits] r265 - trunk/rdiffWeb/templates
+</A></li>
+        <LI>Next message: <A HREF="000226.html">[Rdiffweb-commits] r267 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#225">[ date ]</a>
+              <a href="thread.html#225">[ thread ]</a>
+              <a href="subject.html#225">[ subject ]</a>
+              <a href="author.html#225">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-04-25 17:44:43 +0200 (Sat, 25 Apr 2009)
+New Revision: 266
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/static/globals.js
+   trunk/rdiffWeb/templates/history.html
+Log:
+Add ability to remove historical increments, using --remove-older-than.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2009-04-24 21:21:37 UTC (rev 265)
++++ trunk/rdiffWeb/librdiff.py	2009-04-25 15:44:43 UTC (rev 266)
+@@ -304,6 +304,17 @@
+          rdiffOutputFile = rdiffOutputFile+&quot;.tar.gz&quot;
+    return rdiffOutputFile
+ 
++def removeRepoHistory(repo, afterDate):
++   &quot;&quot;&quot; Removes all history for repo after afterDate using --remove-older-than. &quot;&quot;&quot;
++   dateString = str(afterDate.getSeconds())
++   if backupIsInProgressForRepo(repo):
++      raise UnknownError('A backup is currently in progress to this location. '+
++                         'Please allow this backup to complete before removing history.')
++   results = rdw_helpers.execute('rdiff-backup', '--force', '--remove-older-than', dateString, repo)
++   if results['exitCode'] != 0:
++      error = results['stderr']
++      raise UnknownError('Unable to delete history! rdiff-backup output:\n'+error)
++
+ def backupIsInProgressForRepo(repo):
+    rdiffDir = joinPaths(repo, rdiffDataDirName)
+    mirrorMarkers = os.listdir(rdiffDir)
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2009-04-24 21:21:37 UTC (rev 265)
++++ trunk/rdiffWeb/page_history.py	2009-04-25 15:44:43 UTC (rev 266)
+@@ -1,12 +1,15 @@
+ #!/usr/bin/python
+ 
++import cherrypy
++import os
++import urllib
++
+ from rdw_helpers import joinPaths
+ import rdw_helpers, page_main, librdiff
+-import os, urllib
+ 
+ 
+ class rdiffHistoryPage(page_main.rdiffPage):
+-   def index(self, repo):
++   def index(self, repo, date=''):
+       try:
+          self.validateUserPath(repo)
+       except rdw_helpers.accessDeniedError, error:
+@@ -16,6 +19,17 @@
+       if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage(&quot;Access is denied.&quot;)
+ 
++      if cherrypy.request.method == 'POST':
++         if not date:
++            return self.writeErrorPage(&quot;No deletion date was specified.&quot;)
++         deleteTime = rdw_helpers.rdwTime()
++         deleteTime.initFromString(date)
++         repoPath = joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)
++         try:
++            librdiff.removeRepoHistory(repoPath, deleteTime)
++         except librdiff.FileError, error:
++            return self.writeErrorPage(error.getErrorString())
++
+       parms = {}
+       try:
+          parms = self.getParmsForPage(joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo), repo)
+@@ -25,7 +39,7 @@
+       return self.startPage(&quot;Backup History&quot;) + self.compileTemplate(&quot;history.html&quot;, **parms) + self.endPage()
+    index.exposed = True
+    
+-   def getParmsForPage(self, repoPath, repoName):
++   def getParmsForPage(self, repoPath, repoName, message='', error=''):
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+@@ -38,15 +52,33 @@
+          cumulativeSizeStr = &quot;&quot;
+          if not historyItem.inProgress:
+             fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
+-            incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
+             cumulativeSize += historyItem.incrementSize
+             cumulativeSizeStr = rdw_helpers.formatFileSizeStr(cumulativeSize)
+          entries.append({ &quot;date&quot; : historyItem.date.getDisplayString(),
++                          &quot;rawDate&quot; : historyItem.date.getUrlString(),
+                           &quot;inProgress&quot; : historyItem.inProgress,
+                           &quot;errors&quot; : historyItem.errors,
+                           &quot;cumulativeSize&quot; : cumulativeSizeStr,
++                          &quot;rawIncrementSize&quot;: historyItem.incrementSize,
+                           &quot;size&quot; : fileSize })
+-      return {&quot;title&quot; : &quot;Backup history for &quot;+repoName, &quot;history&quot; : entries, &quot;totalBackups&quot; : len(rdiffHistory)}
++
++      # Now, go backwards through the history, and calculate space used by increments
++      cumulativeSize = 0
++      for entry in reversed(entries):
++         entry['priorIncrementsSize'] = rdw_helpers.formatFileSizeStr(cumulativeSize)
++         cumulativeSize += entry['rawIncrementSize']
++
++      # Don't allow history deletion for the last item
++      if entries:
++         entries[-1]['allowHistoryDeletion'] = False
++      return {
++         &quot;title&quot;: &quot;Backup history for &quot;+repoName,
++         &quot;history&quot;: entries,
++         &quot;totalBackups&quot;: len(rdiffHistory),
++         &quot;allowHistoryDeletion&quot;: self.getUserDB().allowRepoDeletion(self.getUsername()),
++         &quot;message&quot;: message,
++         &quot;error&quot;: error
++      }
+       
+ 
+ class historyPageTest(page_main.pageTest, rdiffHistoryPage):
+
+Modified: trunk/rdiffWeb/static/globals.js
+===================================================================
+--- trunk/rdiffWeb/static/globals.js	2009-04-24 21:21:37 UTC (rev 265)
++++ trunk/rdiffWeb/static/globals.js	2009-04-25 15:44:43 UTC (rev 266)
+@@ -14,6 +14,24 @@
+    }
+ }
+ 
++function appendText(elem, text, bold)
++{
++   if (bold)
++      elem = elem.appendChild(document.createElement('B'));
++   elem.appendChild(document.createTextNode(text));
++}
++
++function showWarning(warningElem, continueBtnText, onContinue)
++{
++   $('#LightboxContents').empty();
++   $('#LightboxContents').append(warningElem);
++   $('#LightboxContents').append('&lt;div id=&quot;LightboxButtonsContainer&quot;&gt;&lt;button type=&quot;button&quot; id=&quot;ContinueBtn&quot;&gt;'+continueBtnText+
++                                 '&lt;/button&gt;' + '&lt;button type=&quot;button&quot; id=&quot;CancelBtn&quot;&gt;Cancel&lt;/button&gt;&lt;/div&gt;');
++   $('#ContinueBtn').click(onContinue);
++   $('#CancelBtn').click(Lightbox.hide);
++   Lightbox.show();
++}
++
+ window.Lightbox = {
+    init: function()
+    {
+@@ -32,6 +50,7 @@
+       $('#LightboxForeground').hide();
+    }
+ };
++
+ new function()
+ {
+    $(Lightbox.init);
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2009-04-24 21:21:37 UTC (rev 265)
++++ trunk/rdiffWeb/templates/history.html	2009-04-25 15:44:43 UTC (rev 266)
+@@ -9,8 +9,10 @@
+ &lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;../static/borders.js&quot;&gt;&lt;/script&gt;
+ &lt;!--EndDelete--&gt;
+ &lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;../static/popups.js&quot;&gt;&lt;/script&gt;
++&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;../static/history.js&quot;&gt;&lt;/script&gt;
+ 
+ &lt;h2&gt;^title$&lt;/h2&gt;
++&lt;form method=&quot;POST&quot;&gt;
+ &lt;table id=&quot;PopupTable&quot;&gt;
+ &lt;thead&gt;
+    &lt;tr&gt;
+@@ -24,6 +26,7 @@
+          &lt;/div&gt;
+       &lt;/td&gt;
+       &lt;td&gt;Result&lt;/td&gt;
++      &lt;!--StartIncludeIf:allowHistoryDeletion--&gt;&lt;td&gt;&lt;/td&gt;&lt;!--EndIncludeIf:allowHistoryDeletion--&gt;
+    &lt;/tr&gt;
+ &lt;/thead&gt;
+ &lt;tbody&gt;
+@@ -57,9 +60,13 @@
+       &lt;/td&gt;
+       &lt;!--EndDeleteIf:errors--&gt;
+ 
++      &lt;!--StartIncludeIf:allowHistoryDeletion--&gt;
++         &lt;td&gt;&lt;button type=&quot;submit&quot; date=&quot;^date$&quot; value=&quot;^rawDate$&quot; size=&quot;^priorIncrementsSize$&quot;&gt;Delete Prior History&lt;/button&gt;&lt;/td&gt;
++      &lt;!--EndIncludeIf:allowHistoryDeletion--&gt;
+       &lt;/tr&gt;
+    &lt;!--EndRepeat:history--&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
++&lt;input type=&quot;hidden&quot; name=&quot;date&quot; id=&quot;DeleteDate&quot;&gt;&lt;/input&gt;
++&lt;/form&gt;
+ 
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000224.html">[Rdiffweb-commits] r265 - trunk/rdiffWeb/templates
+</A></li>
+	<LI>Next message: <A HREF="000226.html">[Rdiffweb-commits] r267 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#225">[ date ]</a>
+              <a href="thread.html#225">[ thread ]</a>
+              <a href="subject.html#225">[ subject ]</a>
+              <a href="author.html#225">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

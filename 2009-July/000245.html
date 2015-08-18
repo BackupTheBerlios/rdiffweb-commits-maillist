@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r286 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r286%20-%20trunk/rdiffWeb&In-Reply-To=%3C200907071153.n67BrhwG009911%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000244.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r286 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r286%20-%20trunk/rdiffWeb&In-Reply-To=%3C200907071153.n67BrhwG009911%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r286 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jul  7 13:53:43 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000244.html">[Rdiffweb-commits] r285 - trunk/rdiffWeb
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-07-07 13:53:40 +0200 (Tue, 07 Jul 2009)
+New Revision: 286
+
+Modified:
+   trunk/rdiffWeb/email_notification.py
+Log:
+One more typo fix.
+
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2009-07-06 12:10:34 UTC (rev 285)
++++ trunk/rdiffWeb/email_notification.py	2009-07-07 11:53:40 UTC (rev 286)
+@@ -141,7 +141,7 @@
+       else:
+          maxAge = notifySettings['anyRepoMaxAge']
+          if not maxAge:
+-            maxAge = notifySettings['repos'][repoPath]
++            maxAge = notifySettings['repos'][repoName]
+ 
+       if maxAge == 0:
+          return None
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000244.html">[Rdiffweb-commits] r285 - trunk/rdiffWeb
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

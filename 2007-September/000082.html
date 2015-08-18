@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r125%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200709252153.l8PLrcY8000438%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000081.html">
+   <LINK REL="Next"  HREF="000083.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r125%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200709252153.l8PLrcY8000438%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Sep 25 23:53:38 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000081.html">[Rdiffweb-commits] r124 - trunk/rdiffWeb/static
+</A></li>
+        <LI>Next message: <A HREF="000083.html">[Rdiffweb-commits] r126 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#82">[ date ]</a>
+              <a href="thread.html#82">[ thread ]</a>
+              <a href="subject.html#82">[ subject ]</a>
+              <a href="author.html#82">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-25 23:53:33 +0200 (Tue, 25 Sep 2007)
+New Revision: 125
+
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/templates/status.html
+Log:
+* Add support for only showing failed backups to status page and feed
+* Fix capitalization in login page
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/filter_authentication.py	2007-09-25 21:53:33 UTC (rev 125)
+@@ -73,7 +73,7 @@
+ 
+       # write login page
+       loginPage = page_main.rdiffPage()
+-      cherrypy.response.body = loginPage.compileTemplate(&quot;page_start.html&quot;, title=&quot;Login required - rdiffWeb&quot;, rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate(&quot;login.html&quot;, **loginParms)
++      cherrypy.response.body = loginPage.compileTemplate(&quot;page_start.html&quot;, title=&quot;Login Required - rdiffWeb&quot;, rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate(&quot;login.html&quot;, **loginParms)
+       cherrypy.request.execute_main = False      
+ 
+    def _getHTTPAuthorizationCredentials(self, authHeader):
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/page_status.py	2007-09-25 21:53:33 UTC (rev 125)
+@@ -6,12 +6,9 @@
+ import cherrypy
+ 
+ class rdiffStatusPage(page_main.rdiffPage):
+-   def index(self):
+-      userMessages = self._getRecentUserMessages()
+-      page = self.startPage(&quot;Backup Status&quot;, rssUrl=self._buildStatusFeedUrl(), rssTitle = &quot;Backup status for &quot;+self.getUsername())
+-      page = page + self.compileTemplate(&quot;status.html&quot;, messages=userMessages, feedLink=self._buildStatusFeedUrl(), statusLink=&quot;&quot;, title=&quot;Backup Status&quot;)
+-      page = page + self.endPage()
+-      return page
++   def index(self, failures=&quot;&quot;):
++      userMessages = self._getRecentUserMessages(failures != &quot;&quot;)
++      return self._compileStatusPageTemplate(True, userMessages, failures != &quot;&quot;)
+    index.exposed = True
+ 
+    def entry(self, date=&quot;&quot;, repo=&quot;&quot;):
+@@ -23,22 +20,7 @@
+          return self.writeErrorPage(&quot;Invalid date parameter.&quot;)
+ 
+       if not repo:
+-         userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+-
+-         # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
+-         startTime = rdw_helpers.rdwTime()
+-         startTime.timeInSeconds = entryTime.timeInSeconds
+-         startTime.tzOffset = entryTime.tzOffset
+-         startTime.setTime(0, 0, 0)
+-         
+-         endTime = rdw_helpers.rdwTime() 	 
+-         endTime.timeInSeconds = entryTime.timeInSeconds 	 
+-         endTime.tzOffset = entryTime.tzOffset
+-         endTime.setTime(23, 59, 59)
+-         
+-         print startTime.getDisplayString(), endTime.getDisplayString()
+-
+-         userMessages = self._getUserMessages(userRepos, True, False, startTime, endTime)
++         userMessages = self._getUserMessagesForDay(date)
+       else:
+          # Validate repo parameter
+          if not repo: return self.writeErrorPage(&quot;Backup location not specified.&quot;)
+@@ -51,36 +33,73 @@
+ 
+          userMessages = self._getUserMessages([repo], False, True, entryTime, entryTime)
+ 
+-      page = self.startPage(&quot;Backup Status Entry&quot;, rssUrl=&quot;&quot;, rssTitle=&quot;&quot;)
+-      page = page + self.compileTemplate(&quot;status.html&quot;, messages=userMessages, feedLink=&quot;&quot;, statusLink=self._buildAbsoluteStatusUrl(), title=&quot;Backup Status Entry&quot;)
+-      page = page + self.endPage()
+-      return page
++      return self._compileStatusPageTemplate(False, userMessages, False)
+    entry.exposed = True
+ 
+-   def feed(self, user=&quot;&quot;):
++   def feed(self, successful=&quot;&quot;):
+       cherrypy.response.headerMap[&quot;Content-Type&quot;] = &quot;text/xml&quot;
+-      if user and user != self.getUsername():
+-         return self.writeErrorPage(&quot;Invalid username.&quot;)
+-      userMessages = self._getRecentUserMessages()
+-      statusUrl = self._buildAbsoluteStatusUrl()
++      userMessages = self._getRecentUserMessages(successful != &quot;&quot;)
++      statusUrl = self._buildAbsoluteStatusUrl(successful != &quot;&quot;)
+       return self.compileTemplate(&quot;status.xml&quot;, username=self.getUsername(), link=statusUrl, messages=userMessages)
+    feed.exposed = True
++   
++   def _compileStatusPageTemplate(self, isMainPage, messages, failuresOnly):
++      mainStatusLink = &quot;&quot;
++      failuresStatusLink = &quot;&quot;
++      if (not isMainPage) or failuresOnly: mainStatusLink = self._buildAbsolutePageUrl(False)
++      else: failuresStatusLink = self._buildAbsolutePageUrl(True)
++      
++      if isMainPage: title = &quot;Backup Status&quot;
++      else: title = &quot;Backup Status Entry&quot;
++      feedLink = &quot;&quot;
++      feedTitle = &quot;&quot;
++      if isMainPage:
++         feedLink = self._buildStatusFeedUrl(failuresOnly)
++         feedTitle = &quot;Backup status for &quot;+self.getUsername()
++      
++      page = self.startPage(&quot;Backup Status&quot;, rssUrl=feedLink, rssTitle = feedTitle)
++      page = page + self.compileTemplate(&quot;status.html&quot;, messages=messages, feedLink=feedLink, statusLink=mainStatusLink, failuresOnlyLink=failuresStatusLink, failuresOnly=failuresOnly, title=title)
++      return page + self.endPage()
+ 
+-   def _buildAbsoluteStatusUrl(self):
+-      return cherrypy.request.base + &quot;/status/&quot;
++   def _buildAbsolutePageUrl(self, failuresOnly):
++      url = cherrypy.request.base + &quot;/status/&quot;
++      if failuresOnly:
++         url = url + &quot;?failures=T&quot;
++      return url
+ 
+-   def _buildStatusFeedUrl(self):
+-      return &quot;/status/feed&quot;
++   def _buildStatusFeedUrl(self, failuresOnly):
++      url = &quot;/status/feed&quot;
++      if failuresOnly:
++         url = url + &quot;?failures=T&quot;
++      return url
+ 
+    def _buildStatusEntryUrl(self, repo, date):
+       return self._buildAbsoluteStatusUrl() + &quot;entry?repo=&quot;+rdw_helpers.encodeUrl(repo)+&quot;&amp;date=&quot;+rdw_helpers.encodeUrl(date.getUrlString())
++   
++   def _getUserMessagesForDay(self, date):
++      userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+ 
+-   def _getRecentUserMessages(self):
++      # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
++      startTime = rdw_helpers.rdwTime()
++      startTime.timeInSeconds = entryTime.timeInSeconds
++      startTime.tzOffset = entryTime.tzOffset
++      startTime.setTime(0, 0, 0)
++      
++      endTime = rdw_helpers.rdwTime() 	 
++      endTime.timeInSeconds = entryTime.timeInSeconds 	 
++      endTime.tzOffset = entryTime.tzOffset
++      endTime.setTime(23, 59, 59)
++      
++      print startTime.getDisplayString(), endTime.getDisplayString()
++
++      return self._getUserMessages(userRepos, True, False, startTime, endTime)
++
++   def _getRecentUserMessages(self, failuresOnly):
+       userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+       asOfDate = rdw_helpers.rdwTime()
+       asOfDate.initFromMidnightUTC(-5)
+ 
+-      return self._getUserMessages(userRepos, True, True, asOfDate, None)
++      return self._getUserMessages(userRepos, not failuresOnly, True, asOfDate, None)
+ 
+    def _getUserMessages(self, repos, includeSuccess, includeFailure, earliestDate, latestDate):
+       userRoot = self.userDB.getUserRoot(self.getUsername())
+@@ -129,4 +148,3 @@
+       # sort messages by date
+       userMessages.sort(lambda x, y: cmp(y[&quot;date&quot;], x[&quot;date&quot;]))
+       return userMessages
+-
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/templates/status.html	2007-09-25 21:53:33 UTC (rev 125)
+@@ -8,9 +8,19 @@
+ 
+ 
+ &lt;h2&gt;^title$&lt;/h2&gt;
++
++&lt;!--StartDeleteIf:failuresOnly--&gt;
+ &lt;!--StartIncludeIf:statusLink--&gt;
+-&lt;h3&gt;&lt;a href=&quot;^statusLink$&quot;&gt;Recent Backup Status&lt;/a&gt;&lt;h3&gt;
++&lt;h3&gt;&lt;a href=&quot;^statusLink$&quot;&gt;Recent Backup Status&lt;/a&gt;&lt;/h3&gt;
+ &lt;!--EndIncludeIf:statusLink--&gt;
++&lt;!--EndDeleteIf:failuresOnly--&gt;
++
++&lt;!--StartIncludeIf:failuresOnly--&gt;
++&lt;a href=&quot;^statusLink$&quot;&gt;Include Successful Backups&lt;/a&gt;
++&lt;!--EndIncludeIf:failuresOnly--&gt;
++&lt;!--StartDeleteIf:failuresOnly--&gt;
++&lt;a href=&quot;^failuresOnlyLink$&quot;&gt;Show Only Errors&lt;/a&gt;
++&lt;!--EndDeleteIf:failuresOnly--&gt;
+ &lt;!--StartDeleteIf:messages--&gt;&lt;p&gt;There are no recent backups to display.&lt;/p&gt;&lt;!--EndDeleteIf:messages--&gt;
+ &lt;!--StartRepeat:messages--&gt;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000081.html">[Rdiffweb-commits] r124 - trunk/rdiffWeb/static
+</A></li>
+	<LI>Next message: <A HREF="000083.html">[Rdiffweb-commits] r126 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#82">[ date ]</a>
+              <a href="thread.html#82">[ thread ]</a>
+              <a href="subject.html#82">[ subject ]</a>
+              <a href="author.html#82">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

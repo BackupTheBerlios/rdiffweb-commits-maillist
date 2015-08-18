@@ -1,0 +1,615 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r195 - in trunk: . rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r195%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200712271718.lBRHIMJa004014%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000151.html">
+   <LINK REL="Next"  HREF="000153.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r195 - in trunk: . rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r195%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200712271718.lBRHIMJa004014%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r195 - in trunk: . rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Dec 27 18:18:22 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000151.html">[Rdiffweb-commits] r194 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000153.html">[Rdiffweb-commits] r196 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-12-27 18:18:16 +0100 (Thu, 27 Dec 2007)
+New Revision: 195
+
+Added:
+   trunk/rdiffWeb/db_sqlite.py
+Modified:
+   trunk/rdiff-web-config
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/rdw_config.py
+Log:
+Implement new sqlite database backend.
+
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2007-12-27 17:16:26 UTC (rev 194)
++++ trunk/rdiff-web-config	2007-12-27 17:18:16 UTC (rev 195)
+@@ -4,7 +4,7 @@
+ import sys
+ import stat
+ import rdiffWeb.rdw_config
+-import rdiffWeb.db_mysql
++import rdiffWeb.db_sqlite
+ import rdiffWeb.rdw_spider_repos
+ 
+ # legalOptions should be a list of legal values.  An empty list means all values are legal
+@@ -35,131 +35,28 @@
+    open(configFilePath, &quot;a&quot;).write(lineText+&quot;\n&quot;)
+    os.chmod(configFilePath, stat.S_IRWXU)
+ 
+-def fileSetup():
+-   print &quot;File backend chosen.\n&quot;
+-   #TODO: load default answers from existing config file, if any
+-   if os.access(&quot;/etc/rdiffweb/rdw.conf&quot;, os.F_OK):
+-      os.unlink(&quot;/etc/rdiffweb/rdw.conf&quot;)
+-   addConfigFileLine(&quot;UserDB=File&quot;)
+-   print &quot;A username and password will be required to log in.&quot;
+-   username = promptUser(&quot;Enter the username&quot;, [], &quot;&quot;, False)
+-   addConfigFileLine(&quot;Username=&quot;+username)
+-   password = promptUser(&quot;Enter the password&quot;, [], &quot;&quot;, False)
+-   addConfigFileLine(&quot;Password=&quot;+password)
+-   addConfigFileLine(&quot;UserRoot=/&quot;) # For the file backend, just sent the user root to &quot;/&quot;; it's too confusing to try to explain
+-
+-   repositories = []
+-   newRepo = &quot;&quot;
+-   print &quot;Finally, backup locations must be entered.  A backup location is the path to an rdiff-backup repository. \
+-For example: /var/backups/nightly or /home/bill/backup.  Multiple backup locations may be entered.  Enter only \
+-one backup location at a time; I will continue to prompt for more backup locations until a blank location is entered.&quot;
+-   while not repositories or newRepo:
+-      newRepo = promptUser(&quot;Enter backup location&quot;, [], &quot;&quot;, False)
+-      if not newRepo:
+-         if not repositories:
+-            print &quot;At least one backup location must be entered.&quot;
+-      else:
+-         if not os.access(newRepo, os.F_OK):
+-            response = promptUser(&quot;The backup location entered does not exist.  Are you sure you want to add it?&quot;, [&quot;yes&quot;, &quot;no&quot;], &quot;no&quot;, False)
+-            if response == &quot;no&quot;:
+-               continue
+-
+-         repositories.append(newRepo)
+-   reposString = &quot;|&quot;.join(repositories)
+-   addConfigFileLine(&quot;UserRepoPaths=&quot;+reposString)
+-
+-def executeQuery(sqlConnection, query, *args):
+-   cursor = sqlConnection.cursor()
+-   cursor.execute(query, *args)
+-   results = cursor.fetchall()
+-   return results
+-
+-def listDatabases(sqlConnection):
+-   results = executeQuery(sqlConnection, &quot;show databases&quot;)
+-   databases = [ x[0] for x in results]
+-   return databases
+-
+ def addUser(username, password, userRoot, isAdmin):
+-   mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
+-   mysqlUserDb.addUser(username)
+-   mysqlUserDb.setUserPassword(username, password)
+-   mysqlUserDb.setUserInfo(username, userRoot, isAdmin)
++   userDB = rdiffWeb.db_sqlite.sqliteUserDB(rdiffWeb.rdw_config.getDatabasePath())
++   userDB.addUser(username)
++   userDB.setUserPassword(username, password)
++   userDB.setUserInfo(username, userRoot, isAdmin)
+ 
+-def mysqlSetup():
+-   print &quot;MySQL backend chosen.\n&quot;
++def sqlSetup():
+    # TODO: load default answers from existing config file, if any
+    try:
+-      import MySQLdb
++      import sqlite3
+    except ImportError:
+-      print &quot;Unable to load MySQLdb module.  Please install this module and try again.&quot;
++      print &quot;Unable to load the python bindings for sqlite (sometimes packaged as python-sqlite).  Please install this module and try again.&quot;
+       sys.exit(2)
+ 
+-   sqlHost = &quot;localhost&quot;
+-   sqlUser = &quot;&quot;
+-   sqlPassword = &quot;&quot;
+-   sqlDatabase = &quot;&quot;
+-   if os.access(&quot;/etc/rdiffweb/rdw.conf&quot;, os.F_OK):
+-      try:
+-         sqlHost = rdiffWeb.rdw_config.getConfigSetting(&quot;sqlHost&quot;)
+-         sqlUser = rdiffWeb.rdw_config.getConfigSetting(&quot;sqlUsername&quot;)
+-         sqlPassword = rdiffWeb.rdw_config.getConfigSetting(&quot;sqlPassword&quot;)
+-      except rdiffWeb.rdw_config.SettingsError:
+-         pass
+-      os.unlink(&quot;/etc/rdiffweb/rdw.conf&quot;)
+-   addConfigFileLine(&quot;UserDB=MySQL&quot;)
+-   print &quot;First, a connection to the MySQL server must be specified.  This includes host, username and password.&quot;
++   userDB = rdiffWeb.db_sqlite.sqliteUserDB(rdiffWeb.rdw_config.getDatabasePath())
+ 
+-   import MySQLdb
+-   sqlConnection = None
+-   while not sqlConnection:
+-      sqlHost = promptUser(&quot;Enter the sql hostname&quot;, [], sqlHost, False)
+-      sqlUser = promptUser(&quot;Enter the username&quot;, [], sqlUser, False)
+-      sqlPassword = promptUser(&quot;Enter the password&quot;, [], sqlPassword, False)
+-
+-      # We try to connect to the database specified.  Catch the most common errors, and just
+-      # let the rest crash out.  The user will have to fix the less common ones on their own.
+-      try:
+-         sqlConnection = MySQLdb.connect(host=sqlHost, user=sqlUser, passwd=sqlPassword)
+-      except MySQLdb.OperationalError, error:
+-         if error[0] == 2002:
+-            print &quot;It appears that MySQL is not running on the specified host. Please try again.&quot;
+-            continue
+-         if error[0] == 1045:
+-            print &quot;Authentication failed using the specified username/password. Please try again.&quot;
+-            continue
+-         raise error
+-
+-   addConfigFileLine(&quot;sqlHost=&quot;+sqlHost)
+-   addConfigFileLine(&quot;sqlUsername=&quot;+sqlUser)
+-   addConfigFileLine(&quot;sqlPassword=&quot;+sqlPassword)
+-
+-   while not sqlDatabase or sqlDatabase in listDatabases(sqlConnection):
+-      if not sqlDatabase:
+-         sqlDatabase = promptUser(&quot;Enter the name of the database&quot;, [], &quot;rdiffweb&quot;, False)
+-      else:
+-         userPrompt = &quot;The database '%s' already exists.  If you to continue, the database will be deleted and recreated, losing all data.  If you do not continue, you will be prompted for another database name.  Do you want to continue?&quot; % sqlDatabase
+-         response = promptUser(userPrompt, [&quot;yes&quot;, &quot;no&quot;], &quot;no&quot;, False)
+-         if response == &quot;yes&quot;:
+-            executeQuery(sqlConnection, &quot;drop database &quot;+sqlDatabase)
+-         else:
+-            sqlDatabase = &quot;&quot;
+-
+-   executeQuery(sqlConnection, &quot;create database &quot;+sqlDatabase)
+-   executeQuery(sqlConnection, &quot;use &quot;+sqlDatabase)
+-
+-   addConfigFileLine(&quot;sqlDatabase=&quot;+sqlDatabase)
+-
+-   mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
+-   for createStatement in mysqlUserDb._getCreateStatements():
+-      executeQuery(sqlConnection, createStatement)
+-
+-   mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
+-
+-   print &quot;\nYou must now add the first user account.  This user will have admin privileges, and therefore will have the ability to add/delete other users.&quot;
++   print &quot;\nLet's add the first user account.  This user will have admin privileges, including the ability to add/delete other users.&quot;
+    username = promptUser(&quot;Enter the username&quot;, [], &quot;&quot;, False)
+    password = promptUser(&quot;Enter the password&quot;, [], &quot;&quot;, False)
+-   mysqlUserDb.addUser(username)
+-   mysqlUserDb.setUserPassword(username, password)
++   userDB._executeQuery(&quot;BEGIN&quot;)
++   userDB.addUser(username)
++   userDB.setUserPassword(username, password)
+    print &quot;\nEach user has a user root directory.  This root directory acts much as the system root directory.  All backup repositories must be within this directory.\nExamples: /var/backup/repos&quot;
+    userRoot = &quot;&quot;
+    while True:
+@@ -168,40 +65,31 @@
+          if promptUser(&quot;The entered directory does not exist.  Do you want to continue?&quot;, [&quot;yes&quot;, &quot;no&quot;], &quot;no&quot;, False) == &quot;yes&quot;:
+             break
+       break
+-   mysqlUserDb.setUserInfo(username, userRoot, True)
++   userDB.setUserInfo(username, userRoot, True)
+    print &quot;User added successfully.&quot;
+ 
+    prompt = &quot;\nDo you want me to automatically search the user's root directory for backup repositories?&quot;
+    response = promptUser(prompt, [&quot;yes&quot;, &quot;no&quot;], &quot;yes&quot;, False)
+    if response == &quot;yes&quot;:
+       try:
+-         repos = rdiffWeb.rdw_spider_repos.findReposForUser(username, mysqlUserDb)
++         repos = rdiffWeb.rdw_spider_repos.findReposForUser(username, userDB)
+       except OSError, error:
+          print &quot;Unable to search repository: &quot; + str(error)
+       else:
+          print &quot;Repository search complete.&quot;
++   userDB._executeQuery(&quot;END&quot;)
+ 
+ def doMainSetup():
+    try:
+       import cherrypy
+    except:
+       print &quot;Unable to load the CherryPy python module. This is most likely because it has not been installed. Please install this module and run the configuration again.&quot;
+-      return
++      sys.exit(2)
+    
+    addConfigFileLine(&quot;ServerName=localhost&quot;)
+    addConfigFileLine(&quot;ServerPort=8080&quot;)
+ 
+-   print &quot;Welcome to the rdiffWeb configuration script.\n&quot;
+-   backend = promptUser(&quot;&quot;&quot;First, a configuration backend must be chosen.  There are two options: file and mysql.
+-The file backend is simpler to set up, but is limited to a single user, and backup locations must be specified by hand (or by using this script).
+-The mysql backend allows multiple users, automatic backup location spidering and storing of additional user data, but requires a MySQL server and the mysql-python package.
+-Enter 1 for file, or 2 for mysql&quot;&quot;&quot;, [1,2], 1, True)
+-   print &quot;&quot;
+-
+-   if backend == 1:
+-      fileSetup()
+-   else:
+-      mysqlSetup()
++   sqlSetup()
+    print &quot;Configuration complete!&quot;
+ 
+ def doAddUser():
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-12-27 17:16:26 UTC (rev 194)
++++ trunk/rdiffWeb/db.py	2007-12-27 17:18:16 UTC (rev 195)
+@@ -4,60 +4,6 @@
+ 
+ class userDB:
+    def getUserDBModule(self):
+-      authModuleSetting = rdw_config.getConfigSetting(&quot;UserDB&quot;);
+-      if authModuleSetting.lower() == &quot;file&quot;:
+-         import db_file
+-         return db_file.fileUserDB()
+-      if authModuleSetting.lower() == &quot;mysql&quot;:
+-         import db_mysql
+-         return db_mysql.mysqlUserDB()
+-      assert(False)
+-      
+-   def modificationsSupported(self):
+-      return False
++      import db_sqlite
++      return db_sqlite.sqliteUserDB(rdw_config.getDatabasePath())
+ 
+-   def areUserCredentialsValid(self, username, password):
+-      raise NotImplementedError
+-
+-   def getUserRoot(self, username):
+-      raise NotImplementedError
+-
+-   def getUserRepoPaths(self, username):
+-      raise NotImplementedError
+-
+-   def getUserEmail(self, username):
+-      raise NotImplementedError
+-   
+-   def useZipFormat(self, username):
+-      raise NotImplementedError
+-   
+-   def getUserList(self):
+-      raise NotImplementedError
+-
+-   def addUser(self, username):
+-      raise NotImplementedError
+-
+-   def deleteUser(self, username):
+-      raise NotImplementedError
+-
+-   def setUserInfo(self, username, userRoot, isAdmin):
+-      raise NotImplementedError
+-   
+-   def setUserEmail(self, userEmail):
+-      raise NotImplementedError
+-
+-   def setUserRepos(self, username, repos):
+-      raise NotImplementedError
+-
+-   def setUserPassword(self, username, password):
+-      raise NotImplementedError
+-   
+-   def setUseZipFormat(self, username, useZip):
+-      raise NotImplementedError
+-
+-   def getUserRoot(self, username):
+-      raise NotImplementedError
+-
+-   def userIsAdmin(self, username):
+-      raise NotImplementedError
+-
+
+Added: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2007-12-27 17:16:26 UTC (rev 194)
++++ trunk/rdiffWeb/db_sqlite.py	2007-12-27 17:18:16 UTC (rev 195)
+@@ -0,0 +1,237 @@
++#!/usr/bin/python
++
++import rdw_config
++import db_sql
++
++&quot;&quot;&quot;We do no length validation for incoming parameters, since truncated values will
++at worst lead to slightly confusing results, but no security risks&quot;&quot;&quot;
++class sqliteUserDB():
++   def __init__(self, databaseFilePath):
++      import sqlite3
++      self._databaseFilePath = databaseFilePath
++      self.userRootCache = {}
++      self._connect()
++      self._migrateExistingData()
++
++   def modificationsSupported(self):
++      return True
++
++   def userExists(self, username):
++      results = self._executeQuery(&quot;SELECT Username FROM users WHERE Username = ?&quot;, (username,))
++      return len(results) == 1
++
++   def areUserCredentialsValid(self, username, password):
++      results = self._executeQuery(&quot;SELECT Username FROM users WHERE Username = ? AND Password = ?&quot;, (username, self._hashPassword(password)))
++      return len(results) == 1
++
++   def getUserRoot(self, username):
++      if not username in self.userRootCache:
++         self.userRootCache[username] = self._getUserField(username, &quot;UserRoot&quot;)
++      return self.userRootCache[username]
++
++   def getUserRepoPaths(self, username):
++      if not self.userExists(username): return None
++      query = &quot;SELECT RepoPath FROM repos WHERE UserID = %d&quot; % self._getUserID(username)
++      repos = [ row[0] for row in self._executeQuery(query)]
++      repos.sort(lambda x, y: cmp(x.upper(), y.upper()))
++      return repos
++      
++   def getUserEmail(self, username):
++      if not self.userExists(username): return None
++      return self._getUserField(username, &quot;userEmail&quot;)
++   
++   def useZipFormat(self, username):
++      if not self.userExists(username): return False
++      return bool(self._getUserField(username, &quot;restoreFormat&quot;))
++
++   def getUserList(self):
++      query = &quot;SELECT UserName FROM users&quot;
++      users = [x[0] for x in self._executeQuery(query)]
++      return users
++
++   def addUser(self, username):
++      if self.userExists(username): raise ValueError
++      query = &quot;INSERT INTO users (Username) values (?)&quot;
++      self._executeQuery(query, (username,))
++
++   def deleteUser(self, username):
++      if not self.userExists(username): raise ValueError
++      self._deleteUserRepos(username)
++      query = &quot;DELETE FROM users WHERE Username = ?&quot;
++      self._executeQuery(query, (username))
++
++   def setUserInfo(self, username, userRoot, isAdmin):
++      if not self.userExists(username): raise ValueError
++      if isAdmin:
++         adminInt = 1
++      else:
++         adminInt = 0
++      query = &quot;UPDATE users SET UserRoot=?, IsAdmin=&quot;+str(adminInt)+&quot; WHERE Username = ?&quot;
++      self._executeQuery(query, (userRoot, username))
++      self.userRootCache[username] = userRoot # update cache
++
++   def setUserEmail(self, username, userEmail):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'UserEmail', userEmail)
++      
++   def setUserRepos(self, username, repoPaths):
++      if not self.userExists(username): raise ValueError
++      userID = self._getUserID(username)
++      
++      # We don't want to just delete and recreate the repos, since that
++      # would lose notification information.      
++      existingRepos = self.getUserRepoPaths(username)      
++      reposToDelete = filter(lambda x: not x in repoPaths, existingRepos)
++      reposToAdd = filter(lambda x: not x in existingRepos, repoPaths)
++      
++      # delete any obsolete repos
++      for repo in reposToDelete:
++         query = &quot;DELETE FROM repos WHERE UserID=? AND RepoPath=?&quot;
++         self._executeQuery(query, (str(userID), repo))
++      
++      # add in new repos
++      query = &quot;INSERT INTO repos (UserID, RepoPath) values (?, ?)&quot;
++      repoPaths = [ [str(userID), repo] for repo in reposToAdd ]
++      cursor = self.sqlConnection.cursor()
++      cursor.executemany(query, repoPaths)
++
++   def setUserPassword(self, username, password):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'Password', self._hashPassword(password))
++   
++   def setUseZipFormat(self, username, useZip):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'RestoreFormat', bool(useZip))
++      
++   def setRepoMaxAge(self, username, repoPath, maxAge):
++      if not repoPath in self.getUserRepoPaths(username): raise ValueError
++      query = &quot;UPDATE repos SET MaxAge=? WHERE RepoPath=? AND UserID = &quot; + str(self._getUserID(username))
++      self._executeQuery(query, (maxAge, repoPath))
++      
++   def getRepoMaxAge(self, username, repoPath):
++      query = &quot;SELECT MaxAge FROM repos WHERE RepoPath=? AND UserID = &quot; + str(self._getUserID(username))
++      results = self._executeQuery(query, (repoPath,))
++      assert len(results) == 1
++      return int(results[0][0])
++      
++   def userIsAdmin(self, username):
++      return bool(self._getUserField(username, &quot;IsAdmin&quot;))
++
++   ########## Helper functions ###########   
++   def _deleteUserRepos(self, username):
++      if not self.userExists(username): raise ValueError
++      self._executeQuery(&quot;DELETE FROM repos WHERE UserID=%d&quot; % self._getUserID(username))
++
++   def _getUserID(self, username):
++      assert self.userExists(username)
++      return self._getUserField(username, 'UserID')
++
++   def _getUserField(self, username, fieldName):
++      if not self.userExists(username): return None
++      query = &quot;SELECT &quot;+fieldName+&quot; FROM users WHERE Username = ?&quot;
++      results = self._executeQuery(query, (username,))
++      assert len(results) == 1
++      return results[0][0]
++      
++   def _setUserField(self, username, fieldName, value):
++      if not self.userExists(username): raise ValueError
++      if isinstance(value, bool):
++         if value:
++            valueStr = '1'
++         else:
++            valueStr = '0'
++      else:
++         valueStr = str(value)
++      query = 'UPDATE users SET '+fieldName+'=? WHERE Username=?'
++      self._executeQuery(query, (valueStr, username))
++
++   def _hashPassword(self, password):
++      import sha
++      hasher = sha.new()
++      hasher.update(password)
++      return hasher.hexdigest()
++   
++   def _executeQuery(self, query, args=()):
++      cursor = self.sqlConnection.cursor()
++      cursor.execute(query, args)
++      results = cursor.fetchall()
++      return results
++
++   def _connect(self):
++      import sqlite3
++      connectPath = self._databaseFilePath
++      if not connectPath:
++         connectPath = &quot;:memory:&quot;
++      self.sqlConnection = sqlite3.connect(connectPath)
++      self.sqlConnection.isolation_level = None
++      
++   def _getTables(self):
++      return [column[0] for column in self._executeQuery('select name from sqlite_master where type=&quot;table&quot;')]
++
++   def _getCreateStatements(self):
++      return [
++&quot;&quot;&quot;create table users (
++UserID integer primary key autoincrement,
++Username varchar (50) unique NOT NULL,
++Password varchar (40) NOT NULL DEFAULT &quot;&quot;,
++UserRoot varchar (255) NOT NULL DEFAULT &quot;&quot;,
++IsAdmin tinyint NOT NULL DEFAULT FALSE,
++UserEmail varchar (255) NOT NULL DEFAULT &quot;&quot;,
++RestoreFormat tinyint NOT NULL DEFAULT TRUE)&quot;&quot;&quot;,
++&quot;&quot;&quot;create table repos (
++RepoID integer primary key autoincrement,
++UserID int(11) NOT NULL, 
++RepoPath varchar (255) NOT NULL,
++MaxAge tinyint NOT NULL DEFAULT 0)&quot;&quot;&quot;
++ ]
++
++   def _migrateExistingData(self):
++      &quot;&quot;&quot; If we don't have any data, we may be using a sqlite interface for the first time.
++      See if they have another database backend specified, and if they do, try to migrate the data.&quot;&quot;&quot;
++      
++      if self._getTables(): return
++      
++      cursor = self.sqlConnection.cursor()
++      self.sqlConnection.execute(&quot;BEGIN TRANSACTION&quot;)
++      for statement in self._getCreateStatements():
++         cursor.execute(statement)
++
++      prevDBType = rdw_config.getConfigSetting(&quot;UserDB&quot;)
++      if prevDBType.lower() == &quot;mysql&quot;:
++         print 'Converting database from mysql...'
++         import db_mysql
++         prevDB = db_mysql.mysqlUserDB()
++         users = prevDB._executeQuery(&quot;SELECT UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat FROM users&quot;)
++         cursor.executemany(&quot;INSERT INTO users (UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat) values (?, ?, ?, ?, ?, ?, ?)&quot;, users)
++         
++         repos = prevDB._executeQuery(&quot;SELECT RepoID, UserID, RepoPath, MaxAge FROM repos&quot;)
++         cursor.executemany(&quot;INSERT INTO repos (RepoID, UserID, RepoPath, MaxAge) values (?, ?, ?, ?)&quot;, repos)
++      elif prevDBType.lower() == &quot;file&quot;:
++         print 'Converting database from file...'
++         import db_file
++         prevDB = db_file.fileUserDB()
++         username = rdw_config.getConfigSetting(&quot;username&quot;)
++         password = rdw_config.getConfigSetting(&quot;password&quot;)
++         self.addUser(username)
++         self.setUserPassword(username, password)
++         self.setUserInfo(username, prevDB.getUserRoot(username), True)
++         self.setUserRepos(username, prevDB.getUserRepoPaths(username))
++         
++      self.sqlConnection.execute(&quot;COMMIT TRANSACTION&quot;)
++
++
++class sqliteUserDBTest(db_sql.sqlUserDBTest):
++   &quot;&quot;&quot;Unit tests for the sqliteUserDBTeste class&quot;&quot;&quot;
++   
++   def _getUserDBObject(self):
++      return sqliteUserDB(&quot;:memory:&quot;)
++   
++   def setUp(self):
++      super(sqliteUserDBTest, self).setUp()
++   
++   def tearDown(self):
++      pass
++
++   def testUserTruncation(self):
++      pass
++      
+\ No newline at end of file
+
+
+Property changes on: trunk/rdiffWeb/db_sqlite.py
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2007-12-27 17:16:26 UTC (rev 194)
++++ trunk/rdiffWeb/rdw_config.py	2007-12-27 17:18:16 UTC (rev 195)
+@@ -9,6 +9,12 @@
+       if os.access(settingsFile, os.F_OK):
+          return settingsFile
+    return &quot;&quot;
++   
++def getDatabasePath():
++   if os.access(&quot;/etc/rdiffweb/rdw.conf&quot;, os.F_OK):
++      return &quot;/etc/rdiffweb/rdw.db&quot;
++   return &quot;rdw.db&quot;
++   
+ 
+ import os, re
+ def getConfigSetting(settingName, settingsFile = None):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000151.html">[Rdiffweb-commits] r194 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000153.html">[Rdiffweb-commits] r196 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

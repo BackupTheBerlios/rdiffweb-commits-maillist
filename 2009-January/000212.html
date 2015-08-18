@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r255 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r255%20-%20trunk/rdiffWeb&In-Reply-To=%3C200901202133.n0KLXwEl031090%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000211.html">
+   <LINK REL="Next"  HREF="000213.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r255 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r255%20-%20trunk/rdiffWeb&In-Reply-To=%3C200901202133.n0KLXwEl031090%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r255 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 20 22:33:58 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000211.html">[Rdiffweb-commits] r254 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000213.html">[Rdiffweb-commits] r256 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-01-20 22:33:47 +0100 (Tue, 20 Jan 2009)
+New Revision: 255
+
+Added:
+   trunk/rdiffWeb/rdw_logging.py
+Modified:
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/rdw_spider_repos.py
+Log:
+Add exception handling with logging to email and repo spider threads.
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2009-01-20 21:31:10 UTC (rev 254)
++++ trunk/rdiffWeb/email_notification.py	2009-01-20 21:33:47 UTC (rev 255)
+@@ -6,6 +6,7 @@
+ import db
+ import librdiff
+ import rdw_helpers
++import rdw_logging
+ import datetime
+ import threading
+ import time
+@@ -25,17 +26,20 @@
+          return;
+       emailTimeStr = rdw_config.getConfigSetting(&quot;emailNotificationTime&quot;)
+       while True:
+-         emailTime = time.strptime(emailTimeStr, &quot;%H:%M&quot;)
+-         now = datetime.datetime.now()
+-         nextEmailTime = now.replace(hour=emailTime.tm_hour, minute=emailTime.tm_min, second=0, microsecond=0)
+-         if nextEmailTime &lt; now:
+-            nextEmailTime = nextEmailTime + datetime.timedelta(days=1)
+-         delta = (nextEmailTime - now).seconds
+-         self.killEvent.wait(delta)
+-         if self.killEvent.isSet():
+-            return
++         try:
++            emailTime = time.strptime(emailTimeStr, &quot;%H:%M&quot;)
++            now = datetime.datetime.now()
++            nextEmailTime = now.replace(hour=emailTime.tm_hour, minute=emailTime.tm_min, second=0, microsecond=0)
++            if nextEmailTime &lt; now:
++               nextEmailTime = nextEmailTime + datetime.timedelta(days=1)
++            delta = (nextEmailTime - now).seconds
++            self.killEvent.wait(delta)
++            if self.killEvent.isSet():
++               return
+ 
+-         self.notifier.sendEmails()
++            self.notifier.sendEmails()
++         except Exception:
++            rdw_logging.log_exception()
+ 
+ class emailNotifier:
+    def __init__(self):
+@@ -49,33 +53,40 @@
+ 
+    def sendEmails(self):
+       for user in self.userDB.getUserList():
+-         userRepos = self.userDB.getUserRepoPaths(user)
+-         oldRepos = []
+-         for repo in userRepos:
+-            maxDaysOld = self.userDB.getRepoMaxAge(user, repo)
+-            if maxDaysOld != 0:
+-               # get the last backup date
+-               try:
+-                  lastBackup = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(self.userDB.getUserRoot(user), repo), False)
+-               except librdiff.FileError:
+-                  pass # Skip repos that have never been successfully backed up
+-               else:
+-                  if lastBackup:
+-                     oldestGoodBackupTime = rdw_helpers.rdwTime()
+-                     oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
+-                     if lastBackup.date &lt; oldestGoodBackupTime:
+-                        oldRepos.append({&quot;repo&quot; : repo, &quot;lastBackupDate&quot; : lastBackup.date.getDisplayString(), &quot;maxAge&quot; : maxDaysOld })
+-                  
+-         if oldRepos:
+-            userEmailAddress = self.userDB.getUserEmail(user)
+-            emailText = rdw_helpers.compileTemplate(&quot;email_notification.txt&quot;, repos=oldRepos,
+-                                                    sender=self._getEmailSender(), user=user, to=userEmailAddress)
+-   
+-            session = smtplib.SMTP(self._getEmailHost())
+-            if self._getEmailUsername():
+-               session.login(self._getEmailUsername(), self._getEmailPassword())
+-            smtpresult = session.sendmail(self._getEmailSender(), userEmailAddress.split(&quot;;&quot;), emailText)
+-            session.quit()
++         try:
++            userRepos = self.userDB.getUserRepoPaths(user)
++            oldRepos = []
++            for repo in userRepos:
++               maxDaysOld = self.userDB.getRepoMaxAge(user, repo)
++               if maxDaysOld != 0:
++                  # get the last backup date
++                  repoPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(user), repo)
++                  try:
++                     lastBackup = librdiff.getLastBackupHistoryEntry(repo_path, False)
++                  except librdiff.FileError:
++                     pass # Skip repos that have never been successfully backed up
++                  except Exception:
++                     rdw_logging.log_exception()
++                     rdw_logging.log('(Previous exception occurred for repo %s.)' % repoPath)
++                  else:
++                     if lastBackup:
++                        oldestGoodBackupTime = rdw_helpers.rdwTime()
++                        oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
++                        if lastBackup.date &lt; oldestGoodBackupTime:
++                           oldRepos.append({&quot;repo&quot; : repo, &quot;lastBackupDate&quot; : lastBackup.date.getDisplayString(), &quot;maxAge&quot; : maxDaysOld })
++                        
++            if oldRepos:
++               userEmailAddress = self.userDB.getUserEmail(user)
++               emailText = rdw_helpers.compileTemplate(&quot;email_notification.txt&quot;, repos=oldRepos,
++                                                       sender=self._getEmailSender(), user=user, to=userEmailAddress)
++      
++               session = smtplib.SMTP(self._getEmailHost())
++               if self._getEmailUsername():
++                  session.login(self._getEmailUsername(), self._getEmailPassword())
++               smtpresult = session.sendmail(self._getEmailSender(), userEmailAddress.split(&quot;;&quot;), emailText)
++               session.quit()
++         except Exception:
++            rdw_logging.log_exception()
+              
+    def _getEmailHost(self):
+       return rdw_config.getConfigSetting(&quot;emailHost&quot;)
+
+Added: trunk/rdiffWeb/rdw_logging.py
+===================================================================
+--- trunk/rdiffWeb/rdw_logging.py	2009-01-20 21:31:10 UTC (rev 254)
++++ trunk/rdiffWeb/rdw_logging.py	2009-01-20 21:33:47 UTC (rev 255)
+@@ -0,0 +1,23 @@
++#!/usr/bin/python
++
++import sys
++import traceback
++
++import rdw_config
++
++def log(message):
++   message = message.strip('\r\n')
++   print message
++   log_file_path = rdw_config.getConfigSetting('ErrorLogFile')
++   if log_file_path:
++      log_file = open(log_file_path, 'a')
++      log_file.write(message + '\n')
++      log_file.close()
++
++def log_exception():
++   &quot;&quot;&quot; Logs the exception and traceback. Should only be called
++   from an exception handler. &quot;&quot;&quot;
++
++   etype, value, tb = sys.exc_info()
++   tb_lines = traceback.format_exception(etype, value, tb)
++   log('Encountered exception:\n' + ''.join(tb_lines) + '\n')
+
+Modified: trunk/rdiffWeb/rdw_spider_repos.py
+===================================================================
+--- trunk/rdiffWeb/rdw_spider_repos.py	2009-01-20 21:31:10 UTC (rev 254)
++++ trunk/rdiffWeb/rdw_spider_repos.py	2009-01-20 21:33:47 UTC (rev 255)
+@@ -5,6 +5,7 @@
+ import rdw_helpers
+ import librdiff
+ import rdw_config
++import rdw_logging
+ import time
+ import threading
+ 
+@@ -42,16 +43,19 @@
+ 
+ 
+ def findReposForUser(user, userDBModule):
+-   userRoot = userDBModule.getUserRoot(user)
+-   repoPaths = []
+-   _findRdiffRepos(userRoot, repoPaths)
++   try:
++      userRoot = userDBModule.getUserRoot(user)
++      repoPaths = []
++      _findRdiffRepos(userRoot, repoPaths)
+ 
+-   def stripRoot(path):
+-      if not path[len(userRoot):]:
+-         return &quot;/&quot;
+-      return path[len(userRoot):]
+-   repoPaths = map(stripRoot, repoPaths)
+-   userDBModule.setUserRepos(user, repoPaths)
++      def stripRoot(path):
++         if not path[len(userRoot):]:
++            return &quot;/&quot;
++         return path[len(userRoot):]
++      repoPaths = map(stripRoot, repoPaths)
++      userDBModule.setUserRepos(user, repoPaths)
++   except Exception:
++      rdw_logging.log_exception()
+ 
+ 
+ def findReposForAllUsers(verbose):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000211.html">[Rdiffweb-commits] r254 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000213.html">[Rdiffweb-commits] r256 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

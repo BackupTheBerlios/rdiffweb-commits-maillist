@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r218 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r218%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801080136.m081a2rE027850%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000174.html">
+   <LINK REL="Next"  HREF="000176.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r218 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r218%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801080136.m081a2rE027850%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r218 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  8 02:36:02 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000174.html">[Rdiffweb-commits] r217 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000176.html">[Rdiffweb-commits] r219 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-08 02:35:12 +0100 (Tue, 08 Jan 2008)
+New Revision: 218
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Several fixes for older distros/python versions:
+* Fix syntax error on python 2.4
+* Older distros packaged python-pysqlite2 with a modulename of pysqlite2
+
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2008-01-08 01:33:16 UTC (rev 217)
++++ trunk/rdiffWeb/db_sqlite.py	2008-01-08 01:35:12 UTC (rev 218)
+@@ -5,9 +5,8 @@
+ 
+ &quot;&quot;&quot;We do no length validation for incoming parameters, since truncated values will
+ at worst lead to slightly confusing results, but no security risks&quot;&quot;&quot;
+-class sqliteUserDB():
++class sqliteUserDB:
+    def __init__(self, databaseFilePath, autoConvertDatabase=True):
+-      import sqlite3
+       self._databaseFilePath = databaseFilePath
+       self._autoConvertDatabase = autoConvertDatabase
+       self.userRootCache = {}
+@@ -159,7 +158,11 @@
+       return results
+ 
+    def _connect(self):
+-      import sqlite3
++      try:
++         import sqlite3
++      except ImportError:
++         from pysqlite2 import dbapi2 as sqlite3
++         
+       connectPath = self._databaseFilePath
+       if not connectPath:
+          connectPath = &quot;:memory:&quot;
+@@ -193,7 +196,7 @@
+       if self._getTables(): return
+       
+       cursor = self.sqlConnection.cursor()
+-      self.sqlConnection.execute(&quot;BEGIN TRANSACTION&quot;)
++      cursor.execute(&quot;BEGIN TRANSACTION&quot;)
+       for statement in self._getCreateStatements():
+          cursor.execute(statement)
+ 
+@@ -206,8 +209,8 @@
+             users = prevDB._executeQuery(&quot;SELECT UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat FROM users&quot;)
+             cursor.executemany(&quot;INSERT INTO users (UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat) values (?, ?, ?, ?, ?, ?, ?)&quot;, users)
+             
+-            repos = prevDB._executeQuery(&quot;SELECT RepoID, UserID, RepoPath, MaxAge FROM repos&quot;)
+-            cursor.executemany(&quot;INSERT INTO repos (RepoID, UserID, RepoPath, MaxAge) values (?, ?, ?, ?)&quot;, repos)
++            repos = prevDB._executeQuery(&quot;SELECT UserID, RepoPath, MaxAge FROM repos&quot;)
++            cursor.executemany(&quot;INSERT INTO repos (UserID, RepoPath, MaxAge) values (?, ?, ?)&quot;, repos)
+          elif prevDBType.lower() == &quot;file&quot;:
+             print 'Converting database from file...'
+             import db_file
+@@ -219,7 +222,7 @@
+             self.setUserInfo(username, prevDB.getUserRoot(username), True)
+             self.setUserRepos(username, prevDB.getUserRepoPaths(username))
+          
+-      self.sqlConnection.execute(&quot;COMMIT TRANSACTION&quot;)
++      cursor.execute(&quot;COMMIT TRANSACTION&quot;)
+ 
+ 
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+@@ -236,4 +239,4 @@
+ 
+    def testUserTruncation(self):
+       pass
+-      
+\ No newline at end of file
++      
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000174.html">[Rdiffweb-commits] r217 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000176.html">[Rdiffweb-commits] r219 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

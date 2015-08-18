@@ -1,0 +1,101 @@
+From commits at rdiffweb.org  Sat Nov 14 03:57:36 2009
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 14 Nov 2009 03:57:36 +0100
+Subject: [Rdiffweb-commits] r289 - trunk/init
+Message-ID: <200911140257.nAE2vauP007904@sheep.berlios.de>
+
+Author: joshn
+Date: 2009-11-14 03:57:32 +0100 (Sat, 14 Nov 2009)
+New Revision: 289
+
+Modified:
+   trunk/init/rdiff-web
+Log:
+Improved init script (thanks to David Flink.)
+
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2009-10-31 01:14:55 UTC (rev 288)
++++ trunk/init/rdiff-web	2009-11-14 02:57:32 UTC (rev 289)
+@@ -25,6 +25,21 @@
+    exit 1
+ fi
+ 
++# Used a lot; is rdiff-web running?
++status() {
++    if [ -e "$PIDFILE" ]; then
++	PIDLIST=""
++        for tmp in `cat $PIDFILE` 
++	do 
++	    PID=`ps -fp $tmp | awk '/rdiff-web/ {print $2}'`;    
++	    if [ "$PID" ]; then
++		echo $PID
++		return 
++	    fi
++	done
++    fi	
++    echo 0
++}
+ 
+ # See how we were called.
+ case "$1" in
+@@ -37,6 +52,19 @@
+       echo -n "Starting rdiffWeb..."
+       /usr/bin/rdiff-web --pid-file="$PIDFILE" \
+       --background > /dev/null 2>&1
++      EXIT_CODE=$?
++      if [ $EXIT_CODE -ne 0 ] ; then
++       echo -n "rdiffweb did not startup (Exit code $EXIT_CODE) "
++       echo $ERROR_MSG
++       exit 1
++      fi
++      PID=$(status)
++      if [ "$PID" -eq 0 ]; then
++       echo  -n "rdiffweb is not running! "
++       echo $ERROR_MSG
++       exit 1
++      fi
++      echo -n " running as PID $PID."
+       echo $SUCCESS_MSG
+       exit 0
+    ;;
+@@ -45,9 +73,20 @@
+       if [ -e "$PIDFILE" ]; then
+          echo -n "Stopping rdiffWeb..."
+          kill `cat "$PIDFILE" 2>/dev/null` > /dev/null 2>&1
+-         rm $PIDFILE > /dev/null 2>&1
+-         echo $SUCCESS_MSG
+-         exit 0
++	 for loop in 0 1 2 3 4 5 6 7 8 9; do
++	     PID=$(status)
++	     if [ "$PID" -eq 0 ]; then
++		 rm $PIDFILE > /dev/null 2>&1
++		 echo $SUCCESS_MSG
++		 exit 0
++	     else
++		 echo -n " ."
++		 sleep 1
++	     fi 
++	 done
++	 echo -n "rdiffweb will not stop!"
++	 echo $ERROR_MSG
++	 exit 1
+       else
+          echo -n "rdiffWeb is not running"
+          echo $ERROR_MSG
+@@ -57,8 +96,9 @@
+ 
+    status)
+       echo -n "rdiffWeb "
+-      if [ -e "$PIDFILE" ]; then
+-         echo "is running."
++      PID=$(status)
++      if [ "$PID" -ne 0 ]; then
++         echo "is running as PID $PID."
+          exit 0
+       else
+          echo "is not running."
+
+
+

@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r168 - trunk/rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r168%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200710302022.l9UKMTVJ030497%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000124.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r168 - trunk/rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r168%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200710302022.l9UKMTVJ030497%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r168 - trunk/rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Oct 30 21:22:29 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000124.html">[Rdiffweb-commits] r167 - trunk
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#125">[ date ]</a>
+              <a href="thread.html#125">[ thread ]</a>
+              <a href="subject.html#125">[ subject ]</a>
+              <a href="author.html#125">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-30 21:22:25 +0100 (Tue, 30 Oct 2007)
+New Revision: 168
+
+Modified:
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Add alt rows to repos with errors
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:56:36 UTC (rev 167)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-10-30 20:22:25 UTC (rev 168)
+@@ -20,13 +20,12 @@
+       &lt;/tr&gt;
+       &lt;!--EndRepeat:repos--&gt;
+       &lt;!--StartRepeat:badrepos--&gt;
+-      &lt;tr&gt;
++      &lt;tr StartIncludeIf:altRow- class=&quot;altRow&quot; EndIncludeIf:altRow- &gt;
+          &lt;td class=&quot;Icon&quot; valign=&quot;middle&quot;&gt;&lt;img src=&quot;/static/images/repo.png&quot;&gt;&lt;/img&gt;&lt;/td&gt;
+          &lt;td&gt;^repoName$&lt;/a&gt;&lt;/td&gt;
+          &lt;td&gt;^repoDate$&lt;/td&gt;&lt;td&gt;^repoSize$&lt;/td&gt;
+          &lt;td&gt;&lt;a href=&quot;^repoHistoryUrl$&quot;&gt;(more)&lt;/a&gt;&lt;/td&gt;
+       &lt;/tr&gt;
+       &lt;!--EndRepeat:badrepos--&gt;
+-      
+    &lt;/tbody&gt;
+ &lt;/table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000124.html">[Rdiffweb-commits] r167 - trunk
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#125">[ date ]</a>
+              <a href="thread.html#125">[ thread ]</a>
+              <a href="subject.html#125">[ subject ]</a>
+              <a href="author.html#125">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

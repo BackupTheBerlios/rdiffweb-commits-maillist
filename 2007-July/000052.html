@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r95 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r95%20-%20trunk/rdiffWeb&In-Reply-To=%3C200707302353.l6UNrqWQ009079%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r95 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r95%20-%20trunk/rdiffWeb&In-Reply-To=%3C200707302353.l6UNrqWQ009079%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r95 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jul 31 01:53:52 CEST 2007</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-07-31 01:53:49 +0200 (Tue, 31 Jul 2007)
+New Revision: 95
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+Allow specifying username to allow multiple watched feeds
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-06-15 10:42:50 UTC (rev 94)
++++ trunk/rdiffWeb/page_status.py	2007-07-30 23:53:49 UTC (rev 95)
+@@ -52,8 +52,10 @@
+       return page
+    entry.exposed = True
+ 
+-   def feed(self):
++   def feed(self, user=&quot;&quot;):
+       cherrypy.response.headerMap[&quot;Content-Type&quot;] = &quot;text/xml&quot;
++      if user and user != self.getUsername():
++         return self.writeErrorPage(&quot;Invalid username.&quot;)
+       userMessages = self._getRecentUserMessages()
+       statusUrl = self._buildAbsoluteStatusUrl()
+       return self.compileTemplate(&quot;status.xml&quot;, username=self.getUsername(), link=statusUrl, messages=userMessages)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

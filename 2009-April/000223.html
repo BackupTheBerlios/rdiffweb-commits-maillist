@@ -1,0 +1,578 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r264 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r264%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904240204.n3O24XrH009672%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000222.html">
+   <LINK REL="Next"  HREF="000224.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r264 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r264%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904240204.n3O24XrH009672%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r264 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Apr 24 04:04:33 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000222.html">[Rdiffweb-commits] r263 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000224.html">[Rdiffweb-commits] r265 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#223">[ date ]</a>
+              <a href="thread.html#223">[ thread ]</a>
+              <a href="subject.html#223">[ subject ]</a>
+              <a href="author.html#223">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-04-24 04:04:26 +0200 (Fri, 24 Apr 2009)
+New Revision: 264
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/rdw_templating.py
+   trunk/rdiffWeb/static/globals.js
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/nav_bar.html
+   trunk/rdiffWeb/templates/page_start.html
+   trunk/rdiffWeb/templates/repo_listing.html
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+* Add the ability for a user to delete a repository (based on a preference defaulted to false).
+* Improve templating engine to be able to reference non-list keywords inside of a RepeatForList.
+
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/db_sqlite.py	2009-04-24 02:04:26 UTC (rev 264)
+@@ -49,6 +49,10 @@
+       if not self.userExists(username): return 0
+       return int(self._getUserField(username, &quot;AdminMonitoredMaxAge&quot;))
+ 
++   def allowRepoDeletion(self, username):
++      if not self.userExists(username): return False
++      return bool(self._getUserField(username, &quot;AllowRepoDeletion&quot;))
++
+    def getUserList(self):
+       query = &quot;SELECT UserName FROM users&quot;
+       users = [x[0] for x in self._executeQuery(query)]
+@@ -107,11 +111,15 @@
+    def setUseZipFormat(self, username, useZip):
+       if not self.userExists(username): raise ValueError
+       self._setUserField(username, 'RestoreFormat', bool(useZip))
+-      
++ 
+    def setAdminMonitoredRepoMaxAge(self, username, maxAge):
+       if not self.userExists(username): raise ValueError
+       self._setUserField(username, 'AdminMonitoredMaxAge', maxAge)
+ 
++   def setAllowRepoDeletion(self, username, allowDeletion):
++      if not self.userExists(username): raise ValueError
++      self._setUserField(username, 'AllowRepoDeletion', bool(allowDeletion))
++ 
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+       query = &quot;UPDATE repos SET MaxAge=? WHERE RepoPath=? AND UserID = &quot; + str(self._getUserID(username))
+@@ -186,7 +194,7 @@
+       return [column[0] for column in self._executeQuery('select name from sqlite_master where type=&quot;table&quot;')]
+ 
+    def _getFieldNames(self, table):
+-      return [field[1] for field in self._executeQuery('pragma table_info ( users )')]
++      return [field[1].lower() for field in self._executeQuery('pragma table_info ('+table+')')]
+ 
+    def _getCreateStatements(self):
+       return [
+@@ -198,7 +206,8 @@
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT &quot;&quot;,
+ RestoreFormat tinyint NOT NULL DEFAULT TRUE,
+-AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0)&quot;&quot;&quot;,
++AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0,
++AllowRepoDeletion tinyint NOT NULL DEFAULT FALSE)&quot;&quot;&quot;,
+ &quot;&quot;&quot;create table repos (
+ RepoID integer primary key autoincrement,
+ UserID int(11) NOT NULL, 
+@@ -242,11 +251,15 @@
+       cursor.execute(&quot;COMMIT TRANSACTION&quot;)
+ 
+    def _handleFormatChanges(self):
+-      # Handle the addition of adminMonitoredMaxAge
+-      if not u'AdminMonitoredMaxAge' in self._getFieldNames('users'):
++      # Handle the addition of AdminMonitoredMaxAge
++      if not u'AdminMonitoredMaxAge'.lower() in self._getFieldNames('users'):
+          print 'Adding AdminMonitoredMaxAge column to users table...'
+          self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0')
+ 
++      # Handle the addition of AllowRepoDeletion
++      if not u'AllowRepoDeletion'.lower() in self._getFieldNames('users'):
++         print 'Adding AllowRepoDeletion column to users table...'
++         self._executeQuery('ALTER TABLE users ADD COLUMN AllowRepoDeletion tinyint NOT NULL DEFAULT FALSE')
+ 
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+    &quot;&quot;&quot;Unit tests for the sqliteUserDB class&quot;&quot;&quot;
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/page_locations.py	2009-04-24 02:04:26 UTC (rev 264)
+@@ -1,5 +1,7 @@
+ #!/usr/bin/python
+ 
++import cherrypy
++import os
+ import subprocess
+ 
+ import rdw_config
+@@ -11,14 +13,16 @@
+ class rdiffLocationsPage(page_main.rdiffPage):
+    ''' Shows the locations page. Will show all available destination
+    backup directories. This is the root (/) page '''
+-   def index(self):
+-      page = self.startPage(&quot;Backup Locations&quot;)
+-      page = page + self.compileTemplate(&quot;repo_listing.html&quot;, **self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()), self.getUserDB().getUserRepoPaths(self.getUsername())))
+-      page = page + self.endPage()
+-      return page
++   def index(self, **kwargs):
++      # Handle repository deletion
++      if cherrypy.request.method == &quot;POST&quot; and 'repo' in cherrypy.request.params:
++         # Delete the repository
++         return self._handle_deletion(cherrypy.request.params['repo'])
++
++      return self._generate_page()
+    index.exposed = True
+-   
+-   def getParmsForPage(self, root, repos):
++
++   def getParmsForPage(self, root, repos, message='', error=''):
+       repoList = []
+       for userRepo in repos:
+          try:
+@@ -60,9 +64,40 @@
+             pass
+          else:
+             diskUsage = rdw_helpers.formatFileSizeStr(diskUsageNum)
+-      return { &quot;title&quot; : &quot;browse&quot;, &quot;repos&quot; : repoList, &quot;diskUsage&quot;: diskUsage }
+-            
+-            
++      # Allow repository deletion?
++      allowRepoDeletion = self.getUserDB().allowRepoDeletion(self.getUsername())
++      return {
++         &quot;title&quot;: &quot;browse&quot;,
++         &quot;repos&quot;: repoList,
++         &quot;diskUsage&quot;: diskUsage,
++         &quot;allowRepoDeletion&quot;: allowRepoDeletion,
++         &quot;message&quot;: message,
++         &quot;error&quot;: error
++      }
++
++   def _handle_deletion(self, repo):
++      try:
++         self.validateUserPath(repo)
++      except rdw_helpers.accessDeniedError, error:
++         return self._generate_page(error=str(error))
++      if not repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
++         return self._generate_page(error=&quot;Access is denied.&quot;)
++      if not self.getUserDB().allowRepoDeletion(self.getUsername()):
++         return self._generate_page(error=&quot;Deleting backups is not allowed.&quot;)
++         
++      fullPath = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)
++      rdw_helpers.removeDir(fullPath)
++      repos = self.getUserDB().getUserRepoPaths(self.getUsername())
++      repos.remove(repo)
++      self.getUserDB().setUserRepos(self.getUsername(), repos)
++      return self._generate_page(message=&quot;The repo \&quot;%s\&quot; was successfully deleted.&quot; % repo)
++ 
++   def _generate_page(self, message='', error=''):
++      page = self.startPage(&quot;Backup Locations&quot;)
++      page = page + self.compileTemplate(&quot;repo_listing.html&quot;, **self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()), self.getUserDB().getUserRepoPaths(self.getUsername()), message=message, error=error))
++      page = page + self.endPage()
++      return page
++   
+    def _sortLocations(self, locations):
+       def compare(left, right):
+          if left['failed'] != right['failed']:
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/page_prefs.py	2009-04-24 02:04:26 UTC (rev 264)
+@@ -23,6 +23,8 @@
+             return self._setNotifications(parms)
+          elif action == 'setRestoreType':
+             return self._setRestoreType(parms['restoreType'])
++         elif action == 'setAllowRepoDeletion':
++            return self._setAllowRepoDeletion('allowDeletion' in parms)
+          else:
+             return self._getPrefsPage(errorMessage='Invalid setting.')
+          
+@@ -78,6 +80,11 @@
+          return self._getPrefsPage(errorMessage='Invalid restore format.')
+       return self._getPrefsPage(statusMessage=&quot;Successfully set restore format.&quot;)
+    
++   def _setAllowRepoDeletion(self, allowDeletion):
++      self.getUserDB().setAllowRepoDeletion(self.getUsername(), allowDeletion)
++      verb = 'allowed' if allowDeletion else 'disallowed'
++      return self._getPrefsPage(statusMessage=&quot;Successfully %s backup deletion and modification.&quot; % verb)
++   
+    def _getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+       email = self.getUserDB().getUserEmail(self.getUsername());
+@@ -89,7 +96,8 @@
+          &quot;notificationsEnabled&quot; : False,
+          &quot;backups&quot; : [],
+          &quot;useZipFormat&quot;: self.getUserDB().useZipFormat(self.getUsername()),
+-         &quot;sampleEmail&quot;: self.sampleEmail
++         &quot;sampleEmail&quot;: self.sampleEmail,
++         &quot;allowRepoDeletion&quot;: self.getUserDB().allowRepoDeletion(self.getUsername())
+       }
+ 
+       if email_notification.emailNotifier().notificationsEnabled():
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/rdw_templating.py	2009-04-24 02:04:26 UTC (rev 264)
+@@ -80,9 +80,8 @@
+       isRaw = matchText.startswith(rawKeyword)
+       if isRaw:
+          matchText = matchText[len(rawKeyword):]
+-      if not matchText in replacements.keys():
+-         raise templateDataError, matchText
+-      replacementText = self._getReplacementText(replacements[matchText], isRaw)
++      raw_value = self._lookupReplacement(matchText)
++      replacementText = self._getReplacementText(raw_value, isRaw)
+       if isMultiline:
+          replacementText = replacementText.replace(&quot;\n&quot;, &quot;\n&lt;br/&gt;&quot;)
+       return replacementText
+@@ -94,10 +93,10 @@
+       return self._handleConditionalInclude(match, True)
+ 
+    def _handleConditionalInclude(self, match, includeIfTrue):
+-      replacements = self.replacements[-1]
+       conditional = match.group(1)
+       textToInclude = match.group(2).rstrip(&quot;\n&quot;)
+-      if (replacements[conditional] and includeIfTrue) or (not replacements[conditional] and not includeIfTrue):
++      conditionalIsTrue = self._lookupReplacement(conditional)
++      if (conditionalIsTrue and includeIfTrue) or (not conditionalIsTrue and not includeIfTrue):
+          # The included text may contain additional include/delete statements. Check for those, and if they exist, recurse.
+          if self.hasConditionalDirectives(textToInclude):
+             return self.parseSingleTemplate(textToInclude)
+@@ -112,6 +111,12 @@
+       else:
+          return rdw_helpers.encodeText(str(replacement))
+ 
++   def _lookupReplacement(self, keyword):
++      for replacements in reversed(self.replacements):
++         if keyword in replacements:
++            return replacements[keyword]
++      raise templateDataError, repr(self.replacements)+'\n'+repr(keyword)
++
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+    def setUp(self):
+@@ -186,6 +191,23 @@
+       expectedResult = &quot;&quot;&quot;&lt;td&gt;&gt;char1&lt;&gt;char2&lt;&lt;/td&gt;&quot;&quot;&quot;
+       assert(parseResult == expectedResult)
+ 
++   def testNonListKeywordInList(self):
++      template = &quot;&quot;&quot;&lt;!--StartRepeat:links--&gt;&lt;td&gt;&lt;!--StartRepeat:chars--&gt;&gt;^outerElem$&lt;&lt;!--EndRepeat:chars--&gt;&lt;/td&gt;&lt;!--EndRepeat:links--&gt;&quot;&quot;&quot;
++      innerData = { &quot;chars&quot; : [{&quot;char&quot;:&quot;char&quot;}]}
++      linksArray = [ innerData ]
++      parser = templateParser()
++      parseResult = parser.parseTemplate(template, links=linksArray, outerElem=&quot;test&quot;)
++      expectedResult = &quot;&quot;&quot;&lt;td&gt;&gt;test&lt;&lt;/td&gt;&quot;&quot;&quot;
++      assert(parseResult == expectedResult)
++
++   def testNonListConditionInList(self):
++      template = &quot;&quot;&quot;&lt;!--StartRepeat:links--&gt;&lt;td&gt;&lt;!--StartIncludeIf:outerElem--&gt;&gt;^chars$&lt;&lt;!--EndIncludeIf:outerElem--&gt;&lt;/td&gt;&lt;!--EndRepeat:links--&gt;&quot;&quot;&quot;
++      linksArray = [{&quot;chars&quot;: &quot;chars&quot;}]
++      parser = templateParser()
++      parseResult = parser.parseTemplate(template, links=linksArray, outerElem=True)
++      expectedResult = &quot;&quot;&quot;&lt;td&gt;&gt;chars&lt;&lt;/td&gt;&quot;&quot;&quot;
++      assert(parseResult == expectedResult)
++
+    def testNonGreedyReplace(self):
+       template = &quot;&quot;&quot;&lt;!--StartDeleteIf:linkUrl--&gt;foo&lt;!--EndDeleteIf:linkUrl--&gt;should see me&lt;!--StartDeleteIf:linkUrl--&gt;bar&lt;!--EndDeleteIf:linkUrl--&gt;&quot;&quot;&quot;
+       parmsDict = {&quot;linkUrl&quot;:&quot;<A HREF="http://www.google.com">http://www.google.com</A>&quot;, &quot;linkText&quot;:&quot;Google&quot;}
+@@ -215,4 +237,5 @@
+       except templateError: pass
+       else: assert(False)
+ 
+-
++if __name__ == '__main__':
++   unittest.main()
+
+Modified: trunk/rdiffWeb/static/globals.js
+===================================================================
+--- trunk/rdiffWeb/static/globals.js	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/static/globals.js	2009-04-24 02:04:26 UTC (rev 264)
+@@ -12,4 +12,27 @@
+          func();
+       }
+    }
+-}
+\ No newline at end of file
++}
++
++window.Lightbox = {
++   init: function()
++   {
++      makeDivRounded(document.getElementById('LightboxContents'));
++   },
++
++   show: function()
++   {
++      $('#LightboxBackground').show();
++      $('#LightboxForeground').show();
++   },
++
++   hide: function()
++   {
++      $('#LightboxBackground').hide();
++      $('#LightboxForeground').hide();
++   }
++};
++new function()
++{
++   $(Lightbox.init);
++};
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/static/main.css	2009-04-24 02:04:26 UTC (rev 264)
+@@ -38,6 +38,10 @@
+    color: black;
+    text-decoration: none;
+ }
++#NavLinks
++{
++   text-align: center;
++}
+ #Content
+ {
+    margin: 1em;
+@@ -60,6 +64,71 @@
+    font-size: 12pt;
+ }
+ 
++/* Lightboxes */
++#LightboxBackground
++{
++   position: absolute;
++   width: 100%;
++   height: 100%;
++   background-color: #000;
++   opacity: 0.6;
++   filter: alpha(opacity=60);
++   top: 0;
++   left: 0;
++   display: none;
++}
++#LightboxForeground
++{
++   text-align: center;
++   position: absolute;
++   top: 0;
++   right: 0;
++   width: 100%;
++   height: 100%;
++   display: none;
++}
++#LightboxCenterer
++{
++   margin-left: auto;
++   margin-right: auto;
++   margin-top: 1em;
++}
++#LightboxContents
++{
++   background-color: #FFF;
++   padding: 1em;
++   max-width: 30em;
++}
++table#LightboxCenterer .roundedBorderBackground
++{
++   background-color: #FFF;
++}
++table#LightboxCenterer .roundedBorderBackground
++{
++   background-color: #FFF;
++}
++table#LightboxCenterer .xb2,
++table#LightboxCenterer .xb3,
++table#LightboxCenterer .xb4,
++table#LightboxCenterer .roundedBorderInner
++{
++   border-color: #000;
++}
++table#LightboxCenterer .xb1
++{
++   background-color: #000;
++}
++#LightboxButtonsContainer
++{
++   text-align: center;
++   margin-top: 1em;
++}
++#LightboxButtonsContainer button
++{
++   margin-left: 0.5em;
++   margin-right: 0.5em;
++}
++
+ /* Listing pages */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+@@ -229,6 +298,11 @@
+ {
+ }
+ 
++input[type=submit]
++{
++   margin-top: 0.75em;
++}
++
+ /* Admin page */
+ table.usersTable
+ {
+
+Modified: trunk/rdiffWeb/templates/nav_bar.html
+===================================================================
+--- trunk/rdiffWeb/templates/nav_bar.html	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/templates/nav_bar.html	2009-04-24 02:04:26 UTC (rev 264)
+@@ -8,8 +8,10 @@
+ 
+ &lt;div id=&quot;NavBar&quot;&gt;
+    &lt;div class=&quot;roundedBorderContents&quot;&gt;
+-      &lt;div id=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;rdiffWeb&lt;/a&gt;&lt;/div&gt;
+-      &lt;!--StartRepeat:topLinks--&gt;&lt;a href=&quot;^linkUrl$&quot;&gt;^linkText$&lt;/a&gt;&lt;!--StartDeleteIf:lastItem--&gt; | &lt;!--EndDeleteIf:lastItem--&gt; &lt;!--EndRepeat:topLinks--&gt;
++      &lt;div id=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Midwest Data Storage&lt;/a&gt;&lt;/div&gt;
++      &lt;div id=&quot;NavLinks&quot;&gt; 
++         &lt;!--StartRepeat:topLinks--&gt;&lt;a href=&quot;^linkUrl$&quot;&gt;^linkText$&lt;/a&gt;&lt;!--StartDeleteIf:lastItem--&gt; | &lt;!--EndDeleteIf:lastItem--&gt; &lt;!--EndRepeat:topLinks--&gt;
++      &lt;/div&gt;
+    &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/body&gt;
+
+Modified: trunk/rdiffWeb/templates/page_start.html
+===================================================================
+--- trunk/rdiffWeb/templates/page_start.html	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/templates/page_start.html	2009-04-24 02:04:26 UTC (rev 264)
+@@ -6,5 +6,17 @@
+    &lt;!--StartIncludeIf:rssLink--&gt;&lt;link rel=&quot;alternate&quot; type=&quot;application/rss+xml&quot; href=&quot;^rssLink$&quot; title=&quot;^rssTitle$&quot;&gt;&lt;!--EndIncludeIf:rssLink--&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
++&lt;script src=&quot;/static/jquery.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+ &lt;script src=&quot;/static/globals.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+ &lt;script src=&quot;/static/borders.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
++&lt;div id=&quot;LightboxBackground&quot;&gt;
++&lt;/div&gt;
++&lt;div id=&quot;LightboxForeground&quot;&gt;
++   &lt;table id=&quot;LightboxCenterer&quot; align=&quot;center&quot;&gt;
++      &lt;tr&gt;
++         &lt;td&gt;
++            &lt;div id=&quot;LightboxContents&quot;&gt;&lt;/div&gt;
++         &lt;/td&gt;
++      &lt;/tr&gt;
++   &lt;/table&gt;
++&lt;/div&gt;
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/templates/repo_listing.html	2009-04-24 02:04:26 UTC (rev 264)
+@@ -1,5 +1,10 @@
+ &lt;h2&gt;Backup Locations&lt;/h2&gt;
+ 
++&lt;script type=&quot;text/javascript&quot; src=&quot;../static/locations.js&quot;&gt;&lt;/script&gt;
++
++&lt;!--StartIncludeIf:error--&gt;&lt;p class=&quot;error&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
++&lt;!--StartIncludeIf:message--&gt;&lt;p class=&quot;message&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
++&lt;form action=&quot;.&quot; method=&quot;POST&quot;&gt;
+ &lt;table id=&quot;PopupTable&quot;&gt;
+    &lt;thead&gt;
+       &lt;tr&gt;
+@@ -8,6 +13,7 @@
+          &lt;td&gt;Last Backup&lt;/td&gt;
+          &lt;td&gt;Last Backup Size&lt;/td&gt;
+          &lt;td&gt;History&lt;/td&gt;
++         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;&lt;td&gt;&lt;/td&gt;&lt;!--EndIncludeIf:allowRepoDeletion--&gt;
+       &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+@@ -17,10 +23,12 @@
+          &lt;td&gt;&lt;!--StartDeleteIf:failed--&gt;&lt;a href=&quot;^repoBrowseUrl$&quot;&gt;&lt;!--EndDeleteIf:failed--&gt;^repoName$&lt;!--StartDeleteIf:failed--&gt;&lt;/a&gt;&lt;!--EndDeleteIf:failed--&gt;&lt;/td&gt;
+          &lt;td&gt;^repoDate$&lt;/td&gt;&lt;td&gt;^repoSize$&lt;/td&gt;
+          &lt;td&gt;&lt;a href=&quot;^repoHistoryUrl$&quot;&gt;(more)&lt;/a&gt;&lt;/td&gt;
++         &lt;!--StartIncludeIf:allowRepoDeletion--&gt;&lt;td&gt;&lt;button type=&quot;submit&quot; name=&quot;repo&quot; value=&quot;^repoName$&quot;&gt;Delete this backup&lt;/button&gt;&lt;/td&gt;&lt;!--EndIncludeIf:allowRepoDeletion--&gt;
+       &lt;/tr&gt;
+       &lt;!--EndRepeat:repos--&gt;
+    &lt;/tbody&gt;
+ &lt;/table&gt;
++&lt;/form&gt;
+ 
+ &lt;!--StartIncludeIf:diskUsage--&gt;
+ &lt;p&gt;Total disk usage: ^diskUsage$&lt;/p&gt;
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2009-04-18 22:16:23 UTC (rev 263)
++++ trunk/rdiffWeb/templates/user_prefs.html	2009-04-24 02:04:26 UTC (rev 264)
+@@ -108,3 +108,17 @@
+    fnOnBlur();
+ &lt;/script&gt;
+ &lt;!--EndIncludeIf:notificationsEnabled--&gt;
++
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;setAllowRepoDeletion&quot;/&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++   &lt;div class=&quot;roundedBorderContents&quot;&gt;
++      &lt;h3 class=&quot;groupboxHeader&quot;&gt;Backup Modification&lt;/h3&gt;
++         &lt;label&gt;&lt;input type=&quot;checkbox&quot; name=&quot;allowDeletion&quot;
++		StartIncludeIf:allowRepoDeletion- checked='checked' EndIncludeIf:allowRepoDeletion-&gt;
++                &lt;/input&gt;Allow me to modify/delete my backups.&lt;/label&gt;
++      &lt;br/&gt;
++      &lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Update&quot; /&gt;
++   &lt;/div&gt;
++&lt;/div&gt;
++&lt;/form&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000222.html">[Rdiffweb-commits] r263 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000224.html">[Rdiffweb-commits] r265 - trunk/rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#223">[ date ]</a>
+              <a href="thread.html#223">[ thread ]</a>
+              <a href="subject.html#223">[ subject ]</a>
+              <a href="author.html#223">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

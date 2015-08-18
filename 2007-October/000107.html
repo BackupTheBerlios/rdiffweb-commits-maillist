@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r150 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r150%20-%20trunk&In-Reply-To=%3C200710140442.l9E4giMZ020112%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000106.html">
+   <LINK REL="Next"  HREF="000108.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r150 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r150%20-%20trunk&In-Reply-To=%3C200710140442.l9E4giMZ020112%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r150 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 14 06:42:44 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000106.html">[Rdiffweb-commits] r149 - in trunk/tests/quoting: . repo/; 067ap;	067ase;	068ir repo/rdiff-backup-data repo/rdiff-backup-data/increments	repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+        <LI>Next message: <A HREF="000108.html">[Rdiffweb-commits] r151 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-14 06:42:41 +0200 (Sun, 14 Oct 2007)
+New Revision: 150
+
+Modified:
+   trunk/rdiff-web
+Log:
+Misc cleanup
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-12 15:31:05 UTC (rev 149)
++++ trunk/rdiff-web	2007-10-14 04:42:41 UTC (rev 150)
+@@ -6,19 +6,13 @@
+ import rdiffWeb.rdw_config
+ import sys
+ 
+-def isValidSessionDir(sessionDir):
+-   return os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK)
+-
+ if __name__ == &quot;__main__&quot;:
+-
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+    if not rdiffWeb.rdw_config.getConfigFile():
+-      import os
+       if os.getuid() != 0:
+          print &quot;Error: rdiffWeb must be run as root.&quot;
+       else:
+          print &quot;&quot;&quot;Error: rdiffWeb has been installed, but no configuration file exists. \nPlease run 'rdiff-web-config' to configure rdiffWeb.&quot;&quot;&quot;
+-      import sys
+       sys.exit(2)
+ 
+ 
+@@ -45,7 +39,7 @@
+    if pidFile:
+       # Write our process id to specified file, so we can be killed later
+       open(pidFile, 'a').write(str(os.getpid())+&quot;\n&quot;)
+-
++      
+    # We import the rdiffWeb modules now instead of at the top of the file because it needs to access
+    # the config file, and the config file may not exist
+    import rdiffWeb.page_admin
+@@ -89,7 +83,7 @@
+ 
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;SessionStorage&quot;).lower() == &quot;disk&quot;:
+       sessionDir = rdiffWeb.rdw_config.getConfigSetting(&quot;SessionDir&quot;)
+-      if isValidSessionDir(sessionDir):
++      if os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK):
+          cherrypy.log(&quot;Setting session mode to disk in directory %s&quot; % sessionDir)
+          settings['sessionFilter'] = True
+          settings['sessionFilter.storageType'] = 'File'
+@@ -103,5 +97,5 @@
+    cherrypy.root.status = rdiffWeb.page_status.rdiffStatusPage()
+    cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
+    cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
++   
+    cherrypy.server.start()
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000106.html">[Rdiffweb-commits] r149 - in trunk/tests/quoting: . repo/; 067ap;	067ase;	068ir repo/rdiff-backup-data repo/rdiff-backup-data/increments	repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+	<LI>Next message: <A HREF="000108.html">[Rdiffweb-commits] r151 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r271 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r271%20-%20trunk&In-Reply-To=%3C200906271847.n5RIlb1x015258%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000231.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r271 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r271%20-%20trunk&In-Reply-To=%3C200906271847.n5RIlb1x015258%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r271 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Jun 27 20:47:37 CEST 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000231.html">[Rdiffweb-commits] r272 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#230">[ date ]</a>
+              <a href="thread.html#230">[ thread ]</a>
+              <a href="subject.html#230">[ subject ]</a>
+              <a href="author.html#230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-06-27 20:47:34 +0200 (Sat, 27 Jun 2009)
+New Revision: 271
+
+Modified:
+   trunk/rdiff-web
+Log:
+Fixes for CherryPy 3.1 support.
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2009-05-13 01:37:22 UTC (rev 270)
++++ trunk/rdiff-web	2009-06-27 18:47:34 UTC (rev 271)
+@@ -70,6 +70,9 @@
+    serverPort = 8080
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;) != &quot;&quot;:
+       serverPort = int(rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;))
++   serverHost = '0.0.0.0'
++   if rdiffWeb.rdw_config.getConfigSetting(&quot;ServerHost&quot;) != &quot;&quot;:
++      serverPort = int(rdiffWeb.rdw_config.getConfigSetting(&quot;ServerHost&quot;))
+ 
+    sslCert = rdiffWeb.rdw_config.getConfigSetting(&quot;SslCertificate&quot;)
+    redirectSetting = rdiffWeb.rdw_config.getConfigSetting(&quot;redirectToHttps&quot;)
+@@ -86,7 +89,7 @@
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+       'autoreload.on' : autoReload,
+-      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerHost&quot;),
++      'server.socket_host' : serverHost,
+       'server.socket_port' : serverPort,
+       'server.ssl_certificate': rdiffWeb.rdw_config.getConfigSetting(&quot;SslCertificate&quot;),
+       'server.ssl_private_key': rdiffWeb.rdw_config.getConfigSetting(&quot;SslPrivateKey&quot;),
+@@ -145,7 +148,10 @@
+    
+       rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
+       rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
+-      cherrypy.engine.on_stop_engine_list.append(lambda: killEvent.set())
++      try:
++         cherrypy.engine.on_stop_engine_list.append(lambda: killEvent.set())
++      except AttributeError:
++         cherrypy.engine.subscribe('stop', lambda: killEvent.set())
+ 
+ 
+    # Start the HTTP servers. If serving SSL, optionally also start 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000231.html">[Rdiffweb-commits] r272 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#230">[ date ]</a>
+              <a href="thread.html#230">[ thread ]</a>
+              <a href="subject.html#230">[ subject ]</a>
+              <a href="author.html#230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r270 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r270%20-%20trunk/rdiffWeb&In-Reply-To=%3C200905130137.n4D1bPuX031358%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r270 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r270%20-%20trunk/rdiffWeb&In-Reply-To=%3C200905130137.n4D1bPuX031358%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r270 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed May 13 03:37:25 CEST 2009</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#229">[ date ]</a>
+              <a href="thread.html#229">[ thread ]</a>
+              <a href="subject.html#229">[ subject ]</a>
+              <a href="author.html#229">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-05-13 03:37:22 +0200 (Wed, 13 May 2009)
+New Revision: 270
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+Log:
+Fix traceback under certain obscure conditions during a backup, and fix tests broken in r264.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/librdiff.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -212,10 +212,16 @@
+ 
+    def _getFirstBackupAfterDate(self, date):
+       &quot;&quot;&quot; Iterates the mirror_metadata files in the rdiff data dir &quot;&quot;&quot;
++      if not self.backupTimes:
++         return rdw_helpers.rdwTime()
+       if not date:
+          return self.backupTimes[0]
+-      return self.backupTimes[bisect.bisect_right(self.backupTimes, date)]
+ 
++      index = bisect.bisect_right(self.backupTimes, date)
++      if index &gt;= len(self.backupTimes):
++         return self.backupTimes[-1]
++      return self.backupTimes[index]
++
+    def _getLastChangedBackupTime(self, filename):
+       files = self.groupedIncrementEntries.get(filename, [])
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/page_history.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -32,14 +32,16 @@
+ 
+       parms = {}
+       try:
+-         parms = self.getParmsForPage(joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo), repo)
++         full_path = joinPaths(self.getUserDB().getUserRoot(self.getUsername()), repo)
++         allowHistoryDeletion = self.getUserDB().allowRepoDeletion(self.getUsername())
++         parms = self.getParmsForPage(full_path, repo, allowHistoryDeletion)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+       
+       return self.startPage(&quot;Backup History&quot;) + self.compileTemplate(&quot;history.html&quot;, **parms) + self.endPage()
+    index.exposed = True
+    
+-   def getParmsForPage(self, repoPath, repoName, message='', error=''):
++   def getParmsForPage(self, repoPath, repoName, allowHistoryDeletion=False, message='', error=''):
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+@@ -75,7 +77,7 @@
+          &quot;title&quot;: &quot;Backup history for &quot;+repoName,
+          &quot;history&quot;: entries,
+          &quot;totalBackups&quot;: len(rdiffHistory),
+-         &quot;allowHistoryDeletion&quot;: self.getUserDB().allowRepoDeletion(self.getUsername()),
++         &quot;allowHistoryDeletion&quot;: allowHistoryDeletion,
+          &quot;message&quot;: message,
+          &quot;error&quot;: error
+       }
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-04-27 12:33:43 UTC (rev 269)
++++ trunk/rdiffWeb/page_locations.py	2009-05-13 01:37:22 UTC (rev 270)
+@@ -22,7 +22,7 @@
+       return self._generate_page()
+    index.exposed = True
+ 
+-   def getParmsForPage(self, root, repos, message='', error=''):
++   def getParmsForPage(self, root, repos, allowRepoDeletion=False, message='', error=''):
+       repoList = []
+       for userRepo in repos:
+          try:
+@@ -65,7 +65,6 @@
+          else:
+             diskUsage = rdw_helpers.formatFileSizeStr(diskUsageNum)
+       # Allow repository deletion?
+-      allowRepoDeletion = self.getUserDB().allowRepoDeletion(self.getUsername())
+       return {
+          &quot;title&quot;: &quot;browse&quot;,
+          &quot;repos&quot;: repoList,
+@@ -94,7 +93,11 @@
+  
+    def _generate_page(self, message='', error=''):
+       page = self.startPage(&quot;Backup Locations&quot;)
+-      page = page + self.compileTemplate(&quot;repo_listing.html&quot;, **self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()), self.getUserDB().getUserRepoPaths(self.getUsername()), message=message, error=error))
++      parms = self.getParmsForPage(self.getUserDB().getUserRoot(self.getUsername()),
++                                   self.getUserDB().getUserRepoPaths(self.getUsername()),
++                                   self.getUserDB().allowRepoDeletion(self.getUsername()),
++                                   message=message, error=error)
++      page = page + self.compileTemplate(&quot;repo_listing.html&quot;, **parms)
+       page = page + self.endPage()
+       return page
+    
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#229">[ date ]</a>
+              <a href="thread.html#229">[ thread ]</a>
+              <a href="subject.html#229">[ subject ]</a>
+              <a href="author.html#229">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

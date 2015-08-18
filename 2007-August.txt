@@ -1,0 +1,2005 @@
+From commits at rdiffweb.org  Wed Aug 22 05:08:04 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 22 Aug 2007 05:08:04 +0200
+Subject: [Rdiffweb-commits] r96 - trunk/tests
+Message-ID: <200708220308.l7M384F1011617@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-22 05:07:57 +0200 (Wed, 22 Aug 2007)
+New Revision: 96
+
+Removed:
+   trunk/tests/deleted_dir/
+   trunk/tests/deleted_file/
+   trunk/tests/simple/
+Log:
+Removing tests in preparation for new testing framework
+
+
+
+
+From commits at rdiffweb.org  Wed Aug 22 05:10:37 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 22 Aug 2007 05:10:37 +0200
+Subject: [Rdiffweb-commits] r97 - in trunk/tests: . deleted_dir
+	deleted_dir/repo deleted_dir/repo/rdiff-backup-data
+	deleted_dir/repo/rdiff-backup-data/increments
+	deleted_dir/repo/rdiff-backup-data/increments/testdir2
+	deleted_file deleted_file/repo deleted_file/repo/rdiff-backup-data
+	deleted_file/repo/rdiff-backup-data/increments simple
+	simple/repo simple/repo/rdiff-backup-data
+	simple/repo/rdiff-backup-data/increments
+Message-ID: <200708220310.l7M3AbTi011766@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-22 05:09:27 +0200 (Wed, 22 Aug 2007)
+New Revision: 97
+
+Added:
+   trunk/tests/deleted_dir/
+   trunk/tests/deleted_dir/browse_results.txt
+   trunk/tests/deleted_dir/repo/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/backup.log
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:17-05:00.missing
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data
+   trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data
+   trunk/tests/deleted_file/
+   trunk/tests/deleted_file/browse_results.txt
+   trunk/tests/deleted_file/repo/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/backup.log
+   trunk/tests/deleted_file/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/deleted_file/repo/rdiff-backup-data/current_mirror.2007-08-21T16:31:27-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data
+   trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data
+   trunk/tests/simple/
+   trunk/tests/simple/browse_results.txt
+   trunk/tests/simple/repo/
+   trunk/tests/simple/repo/file.txt
+   trunk/tests/simple/repo/rdiff-backup-data/
+   trunk/tests/simple/repo/rdiff-backup-data/backup.log
+   trunk/tests/simple/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+   trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+   trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+   trunk/tests/simple/repo/rdiff-backup-data/increments/
+   trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+   trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data
+   trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data
+Log:
+Adding in new test data
+
+Added: trunk/tests/deleted_dir/browse_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,6 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++testdir2	 	2007-08-21 21:55:24	0	False
+\ No newline at end of file
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/current_mirror.2007-08-21T21:55:35-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1 @@
++PID 14154
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:17-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/error_log.2007-08-21T21:55:35-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:17-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/extended_attributes.2007-08-21T21:55:35-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:17-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/file_statistics.2007-08-21T21:55:35-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile6.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2/testfile7.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:17-05:00.missing
+===================================================================
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments/testdir2.2007-08-21T21:55:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:17-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/increments.2007-08-21T21:55:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:17-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_dir/repo/rdiff-backup-data/mirror_metadata.2007-08-21T21:55:35-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:17-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751317.00 (Tue Aug 21 21:55:17 2007)
++EndTime 1187751317.87 (Tue Aug 21 21:55:17 2007)
++ElapsedTime 0.87 (0.87 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:24-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751324.00 (Tue Aug 21 21:55:24 2007)
++EndTime 1187751324.37 (Tue Aug 21 21:55:24 2007)
++ElapsedTime 0.37 (0.37 seconds)
++SourceFiles 4
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 3
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data
+===================================================================
+--- trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_dir/repo/rdiff-backup-data/session_statistics.2007-08-21T21:55:35-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187751335.00 (Tue Aug 21 21:55:35 2007)
++EndTime 1187751335.69 (Tue Aug 21 21:55:35 2007)
++ElapsedTime 0.69 (0.69 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 4
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 3
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 258 (258 bytes)
++TotalDestinationSizeChange 258 (258 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/browse_results.txt
+===================================================================
+--- trunk/tests/deleted_file/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 16:31:24	1	False
++PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/current_mirror.2007-08-21T16:31:27-05:00.data
+===================================================================
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:23-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/error_log.2007-08-21T16:31:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:23-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/extended_attributes.2007-08-21T16:31:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:23-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:24-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/file_statistics.2007-08-21T16:31:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:23-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments/file.txt.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:23-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:24-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/increments.2007-08-21T16:31:27-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:23-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:24-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/deleted_file/repo/rdiff-backup-data/mirror_metadata.2007-08-21T16:31:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:23-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731883.00 (Tue Aug 21 16:31:23 2007)
++EndTime 1187731883.05 (Tue Aug 21 16:31:23 2007)
++ElapsedTime 0.05 (0.05 seconds)
++SourceFiles 2
++SourceFileSize 141 (141 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 141 (141 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 141 (141 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:24-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731884.00 (Tue Aug 21 16:31:24 2007)
++EndTime 1187731884.96 (Tue Aug 21 16:31:24 2007)
++ElapsedTime 0.96 (0.96 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 141 (141 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 141 (141 bytes)
++IncrementFiles 2
++IncrementFileSize 211 (211 bytes)
++TotalDestinationSizeChange 70 (70 bytes)
++Errors 0
+
+Added: trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data
+===================================================================
+--- trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/deleted_file/repo/rdiff-backup-data/session_statistics.2007-08-21T16:31:27-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187731887.00 (Tue Aug 21 16:31:27 2007)
++EndTime 1187731887.39 (Tue Aug 21 16:31:27 2007)
++ElapsedTime 0.39 (0.39 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 1
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 2
++IncrementFileSize 120 (120 bytes)
++TotalDestinationSizeChange 120 (120 bytes)
++Errors 0
+
+Added: trunk/tests/simple/browse_results.txt
+===================================================================
+--- trunk/tests/simple/browse_results.txt	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/browse_results.txt	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,8 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 14:01:42	2	True
++PrevRevision	2007-08-21 14:01:32
++PrevRevision	2007-08-21 14:01:21
+\ No newline at end of file
+
+Added: trunk/tests/simple/repo/file.txt
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/current_mirror.2007-08-21T14:01:42-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1 @@
++PID 12025
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:21-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:32-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/error_log.2007-08-21T14:01:42-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:21-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:32-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/extended_attributes.2007-08-21T14:01:42-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:21-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:32-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/file_statistics.2007-08-21T14:01:42-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:21-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments/file.txt.2007-08-21T14:01:32-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:21-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/increments.2007-08-21T14:01:32-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:21-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:32-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/simple/repo/rdiff-backup-data/mirror_metadata.2007-08-21T14:01:42-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:21-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722881.00 (Tue Aug 21 14:01:21 2007)
++EndTime 1187722881.79 (Tue Aug 21 14:01:21 2007)
++ElapsedTime 0.79 (0.79 seconds)
++SourceFiles 2
++SourceFileSize 141 (141 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 141 (141 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 141 (141 bytes)
++Errors 0
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:32-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722892.00 (Tue Aug 21 14:01:32 2007)
++EndTime 1187722892.11 (Tue Aug 21 14:01:32 2007)
++ElapsedTime 0.11 (0.11 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 141 (141 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 141 (141 bytes)
++IncrementFiles 2
++IncrementFileSize 200 (200 bytes)
++TotalDestinationSizeChange 59 (59 bytes)
++Errors 0
+
+Added: trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data
+===================================================================
+--- trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data	2007-08-22 03:07:57 UTC (rev 96)
++++ trunk/tests/simple/repo/rdiff-backup-data/session_statistics.2007-08-21T14:01:42-05:00.data	2007-08-22 03:09:27 UTC (rev 97)
+@@ -0,0 +1,18 @@
++StartTime 1187722902.00 (Tue Aug 21 14:01:42 2007)
++EndTime 1187722902.72 (Tue Aug 21 14:01:42 2007)
++ElapsedTime 0.72 (0.72 seconds)
++SourceFiles 2
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 2
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 2
++IncrementFileSize 110 (110 bytes)
++TotalDestinationSizeChange 110 (110 bytes)
++Errors 0
+
+
+
+From commits at rdiffweb.org  Wed Aug 22 06:03:51 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 22 Aug 2007 06:03:51 +0200
+Subject: [Rdiffweb-commits] r98 - in trunk: . rdiffWeb rdiffWeb/templates
+	tests
+Message-ID: <200708220403.l7M43pDI016735@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-22 06:03:41 +0200 (Wed, 22 Aug 2007)
+New Revision: 98
+
+Added:
+   trunk/tests/browse_template.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/templates/history.html
+   trunk/rdw.kdevelop
+Log:
+Improve support for in-progress backups, and switch out testing framework so we can test this.
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/librdiff.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -273,18 +273,26 @@
+       rdiffOutputFile = rdiffOutputFile+".zip"
+    return rdiffOutputFile
+ 
+-def backupIsInProgress(repo):
++def backupIsInProgressForRepo(repo):
+    rdiffDir = joinPaths(repo, rdiffDataDirName)
+    mirrorMarkers = os.listdir(rdiffDir)
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+    return mirrorMarkers and len(mirrorMarkers) > 1
+ 
++def backupIsInProgress(repo, date):
++   rdiffDir = joinPaths(repo, rdiffDataDirName)
++   mirrorMarkers = os.listdir(rdiffDir)
++   mirrorMarkers.sort()
++   mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
++   mirrorMarkers = mirrorMarkers[1:]
++   return len(filter(lambda x: x.startswith("current_mirror."+date.getUrlString()), mirrorMarkers)) > 0
++
+ import gzip, re
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+ def getLastBackupHistoryEntry(repoRoot):
+-   history = _getBackupHistory(repoRoot, 1)
++   history = _getBackupHistory(repoRoot, 1, None, None, False)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+@@ -298,6 +306,7 @@
+    return _getBackupHistory(repoRoot, -1, earliestDate, latestDate, False)
+ 
+ # earliestDate and latestDate are inclusive
++# if limiting by numLatestEntries, will any in-progress backups will be ignored
+ def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+    """Returns a list of backupHistoryEntry's"""
+    checkRepoPath(repoRoot, "")
+@@ -308,10 +317,6 @@
+    curEntries = filter(lambda x: x.startswith("error_log."), curEntries)
+    curEntries.sort()
+ 
+-   if numLatestEntries != -1:
+-      assert numLatestEntries > 0
+-      curEntries = curEntries[-numLatestEntries:]
+-      curEntries.reverse()
+    entries = []
+    for entryFile in curEntries:
+       entry = incrementEntry(entryFile)
+@@ -337,12 +342,19 @@
+          expression = 0
+       newEntry = backupHistoryEntry()
+       newEntry.date = entry.getDate()
+-      newEntry.errors = errors
++      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate())
++      if newEntry.inProgress:
++         newEntry.errors = ""
++      else:
++         newEntry.errors = errors
+       newEntry.size = int(expression)
+       entries.append(newEntry)
+ 
+-   if len(entries) > 0 and not includeInProgress and backupIsInProgress(repoRoot):
++   if len(entries) > 0 and not includeInProgress and backupIsInProgressForRepo(repoRoot):
+       entries.pop()
++   
++   if numLatestEntries != -1:
++      entries = entries[-numLatestEntries:]
+    return entries
+ 
+ def getDirRestoreDates(repo, path):
+@@ -416,7 +428,7 @@
+ 
+    def tearDown(self):
+       if (os.access(self.destRoot, os.F_OK)):
+-            removeDir(self.destRoot)
++         removeDir(self.destRoot)
+ 
+    def getBackupTests(self):
+       return filter(lambda x: not x.startswith("."), os.listdir(self.masterDirPath))
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_browse.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -7,8 +7,8 @@
+ 
+ 
+ class rdiffBrowsePage(page_main.rdiffPage):
++   
+    def index(self, repo="", path="", restore=""):
+-
+       try:
+          self.validateUserPath(joinPaths(repo, path))
+       except rdw_helpers.accessDeniedError, error:
+@@ -19,6 +19,16 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage("Access is denied.")
+ 
++      parms = self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), repo, path, restore)
++      page = self.startPage(parms["title"])
++      page = page + self.compileTemplate("dir_listing.html", **parms)
++      page = page + self.endPage()
++      return page
++   
++   index.exposed = True
++   
++   
++   def getParmsForPage(self, userRoot, repo="", path="", restore=""):
+       # Build "parent directories" links
+       parentDirs = [{ "parentPath" : self.buildLocationsUrl(), "parentDir" : "Backup Locations" }]
+       parentDirs.append({ "parentPath" : self.buildBrowseUrl(repo, "/", False), "parentDir" : repo.lstrip("/") })
+@@ -30,7 +40,7 @@
+       parentDirs[-1]["parentPath"] = "" # Clear link for last parent, so it doesn't show it as a link
+ 
+       # Set up warning about in-progress backups, if necessary
+-      if librdiff.backupIsInProgress(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
++      if librdiff.backupIsInProgressForRepo(joinPaths(userRoot, repo)):
+          backupWarning = "Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent."
+       else:
+          backupWarning = ""
+@@ -40,7 +50,7 @@
+       if restore == "T":
+          title = "Restore "+repo
+          viewUrl = self.buildBrowseUrl(repo, path, False)
+-         restoreDates = librdiff.getDirRestoreDates(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), path)
++         restoreDates = librdiff.getDirRestoreDates(joinPaths(userRoot, repo), path)
+          restoreDates.reverse() # sort latest first
+          restoreDates = [ { "dateStr" : x.getDisplayString(), "dirRestoreUrl" : self.buildRestoreUrl(repo, path, x) }
+                          for x in restoreDates ]
+@@ -52,7 +62,7 @@
+ 
+          # Get list of actual directory entries
+          try:
+-            fullRepoPath = joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)
++            fullRepoPath = joinPaths(userRoot, repo)
+             libEntries = librdiff.getDirEntries(fullRepoPath, path)
+          except librdiff.FileError, error:
+             return self.writeErrorPage(str(error))
+@@ -87,11 +97,23 @@
+                            "showRevisionsText" : showRevisionsText,
+                            "changeDates" : changeDates })
+ 
+-      # Start page
+-      page = self.startPage(title)
+-      page = page + self.compileTemplate("dir_listing.html", title=title, files=entries, parentDirs=parentDirs, restoreUrl=restoreUrl, viewUrl=viewUrl, restoreDates=restoreDates, warning=backupWarning)
+-      page = page + self.endPage()
+-      return page
++      return { "title" : title, "files" : entries, "parentDirs" : parentDirs, "restoreUrl" : restoreUrl, "viewUrl" : viewUrl, "restoreDates" : restoreDates, "warning" : backupWarning }
+ 
+-   index.exposed = True
++class browsePageTest(page_main.pageTest, rdiffBrowsePage):
++   def getTemplateName(self):
++      return "browse_template.txt"
++   
++   def getExpectedResultsName(self):
++      return "browse_results.txt"
++      
++   def getParmsForTemplate(self, repoParentPath, repoName):
++      return self.getParmsForPage(repoParentPath, repoName)
+ 
++if __name__ == "__main__":
++   print "Called as standalone program; running unit tests..."
++
++   import unittest
++   testSuite = unittest.makeSuite(browsePageTest, 'test')
++   testRunner = unittest.TextTestRunner()
++   testRunner.run(testSuite)
++
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_history.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -25,9 +25,13 @@
+       rdiffHistory.reverse()
+       entries = []
+       for historyItem in rdiffHistory:
++         sizeStr = ""
++         if not historyItem.inProgress:
++            sizeStr = rdw_helpers.formatFileSizeStr(historyItem.size)
+          entries.append({ "date" : historyItem.date.getDisplayString(),
++                          "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+-                          "size" : rdw_helpers.formatFileSizeStr(historyItem.size) })
++                          "size" : sizeStr })
+       page = page + self.compileTemplate("history.html", title="Backup history for "+repo, history=entries)
+       page = page + self.endPage()
+       return page
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_main.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -107,5 +107,53 @@
+    def getUsername(self):
+       username = cherrypy.session['username']
+       return username
++   
+ 
++import unittest, shutil, tempfile, os.path
++class pageTest(unittest.TestCase):
++   # The dirs containing source data for automated tests are set up in the following format:
++   # one folder for each test, named to describe the test
++      # one folder, called repo. This contains the sample rdiff-backup repository
++      # expected results for each of the page templates
++   # templates for each of the pages to test
+ 
++   def _getBackupTests(self):
++      return filter(lambda x: not x.startswith(".") and os.path.isdir(rdw_helpers.joinPaths(self.destRoot, x)), os.listdir(self.destRoot))
++   
++   def _getFileText(self, testName, templateName):
++      return open(rdw_helpers.joinPaths(self.destRoot, testName, templateName)).read()
++   
++   def _copyDirWithoutSvn(self, src, dest):
++      names = filter(lambda x: x != ".svn", os.listdir(src))
++      os.makedirs(dest)
++      for name in names:
++         srcname = os.path.join(src, name)
++         destname = os.path.join(dest, name)
++         if os.path.isdir(srcname):
++            self._copyDirWithoutSvn(srcname, destname)
++         else:
++            shutil.copy2(srcname, destname)
++
++   def setUp(self):
++      self.destRoot = rdw_helpers.joinPaths(os.path.realpath(tempfile.gettempdir()), "rdiffWeb")
++      self.masterDirPath = os.path.realpath("tests") # TODO: do this right, including tying tests into "python setup.py test"
++      self.tearDown()
++      
++      # Copy and set up each test
++      self._copyDirWithoutSvn(self.masterDirPath, self.destRoot)
++
++   def tearDown(self):
++      if (os.access(self.destRoot, os.F_OK)):
++         rdw_helpers.removeDir(self.destRoot)
++
++   def testCompileTemplate(self):
++      for test in self._getBackupTests():
++         parms = self.getParmsForTemplate(rdw_helpers.joinPaths(self.destRoot, test), "repo")
++         #print parms
++         
++         encounteredText = rdw_templating.templateParser().parseTemplate(self._getFileText("", self.getTemplateName()), **parms)
++         expectedText = self._getFileText(test, self.getExpectedResultsName())
++         
++         self.assertEquals(encounteredText, expectedText)
++         #assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText
++      
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/page_restore.py	2007-08-22 04:03:41 UTC (rev 98)
+@@ -22,7 +22,7 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage("Access is denied.")
+ 
+-      if librdiff.backupIsInProgress(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
++      if librdiff.backupIsInProgressForRepo(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)):
+          return self.writeErrorPage("A backup is currently in progress to this location.  Restores are disabled until this backup is complete.")
+ 
+       try:
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdiffWeb/templates/history.html	2007-08-22 04:03:41 UTC (rev 98)
+@@ -38,7 +38,15 @@
+       <!--EndIncludeIf:errors-->
+       <!--StartDeleteIf:errors-->
+       <td class="BackupResult">
++      <!--EndDeleteIf:errors-->
++      <!--StartIncludeIf:inProgress-->
++         In Progress
++      <!--EndIncludeIf:inProgress-->
++      <!--StartDeleteIf:inProgress-->
+          Success
++      <!--EndDeleteIf:inProgress-->
++      
++      <!--StartDeleteIf:errors-->
+       </td>
+       <!--EndDeleteIf:errors-->
+ 
+
+Modified: trunk/rdw.kdevelop
+===================================================================
+--- trunk/rdw.kdevelop	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/rdw.kdevelop	2007-08-22 04:03:41 UTC (rev 98)
+@@ -10,6 +10,7 @@
+       <keyword>Python</keyword>
+     </keywords>
+     <ignoreparts/>
++    <projectname>rdw</projectname>
+   </general>
+   <kdevscriptproject>
+     <general>
+
+Added: trunk/tests/browse_template.txt
+===================================================================
+--- trunk/tests/browse_template.txt	2007-08-22 03:09:27 UTC (rev 97)
++++ trunk/tests/browse_template.txt	2007-08-22 04:03:41 UTC (rev 98)
+@@ -0,0 +1,9 @@
++Title:^title$
++Path:<!--StartRepeat:parentDirs--> / ^parentDir$<!--EndRepeat:parentDirs-->
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++<!--StartRepeat:files-->^filename$	^size$	^date$	^numPrevRevisions$	^exists$<!--StartIncludeIf:hasPrevRevisions-->
++<!--StartRepeat:changeDates-->
++PrevRevision	^changeDateStr$<!--EndRepeat:changeDates--><!--EndIncludeIf:hasPrevRevisions-->
++<!--EndRepeat:files-->
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Thu Aug 23 16:05:45 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 23 Aug 2007 16:05:45 +0200
+Subject: [Rdiffweb-commits] r99 - in trunk: rdiffWeb tests tests/deleted_dir
+	tests/deleted_file tests/simple
+Message-ID: <200708231405.l7NE5jWB020220@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-23 16:05:32 +0200 (Thu, 23 Aug 2007)
+New Revision: 99
+
+Added:
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/simple/history_results.txt
+Modified:
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_main.py
+Log:
+Add tests for history page
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/rdiffWeb/page_history.py	2007-08-23 14:05:32 UTC (rev 99)
+@@ -16,12 +16,17 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage("Access is denied.")
+ 
+-      page = self.startPage("Backup History")
++      parms = {}
+       try:
+-         rdiffHistory = librdiff.getBackupHistory(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo))
++         parms = self.getParmsForPage(joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), repo)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+-
++      
++      return self.startPage("Backup History") + self.compileTemplate("history.html", **parms) + self.endPage()
++   index.exposed = True
++   
++   def getParmsForPage(self, repoPath, repoName):
++      rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+       for historyItem in rdiffHistory:
+@@ -32,7 +37,23 @@
+                           "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+                           "size" : sizeStr })
+-      page = page + self.compileTemplate("history.html", title="Backup history for "+repo, history=entries)
+-      page = page + self.endPage()
+-      return page
+-   index.exposed = True
++      return {"title" : "Backup history for "+repoName, "history" : entries}
++      
++
++class historyPageTest(page_main.pageTest, rdiffHistoryPage):
++   def getTemplateName(self):
++      return "history_template.txt"
++   
++   def getExpectedResultsName(self):
++      return "history_results.txt"
++      
++   def getParmsForTemplate(self, repoParentPath, repoName):
++      return self.getParmsForPage(rdw_helpers.joinPaths(repoParentPath, repoName), repoName)
++
++if __name__ == "__main__":
++   print "Called as standalone program; running unit tests..."
++
++   import unittest
++   testSuite = unittest.makeSuite(historyPageTest, 'test')
++   testRunner = unittest.TextTestRunner()
++   testRunner.run(testSuite)
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/rdiffWeb/page_main.py	2007-08-23 14:05:32 UTC (rev 99)
+@@ -155,5 +155,5 @@
+          expectedText = self._getFileText(test, self.getExpectedResultsName())
+          
+          self.assertEquals(encounteredText, expectedText)
+-         #assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText
++         #assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText + "\nEnd"
+       
+
+Added: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/deleted_dir/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 21:55:35	0 bytes		False
++2007-08-21 21:55:24	0 bytes		False
++2007-08-21 21:55:17	0 bytes		False
+
+Added: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/deleted_file/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 16:31:27	0 bytes		False
++2007-08-21 16:31:24	0 bytes		False
++2007-08-21 16:31:23	141 bytes		False
+
+Added: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/history_template.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: ^title$
++
++Date	Size	Errors	In Progress?
++<!--StartRepeat:history-->
++^date$	^size$	^errors$	^inProgress$
++<!--EndRepeat:history-->
+
+Added: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-08-22 04:03:41 UTC (rev 98)
++++ trunk/tests/simple/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
+@@ -0,0 +1,6 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-21 14:01:42	0 bytes		False
++2007-08-21 14:01:32	0 bytes		False
++2007-08-21 14:01:21	141 bytes		False
+
+
+
+From commits at rdiffweb.org  Sun Aug 26 03:51:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 26 Aug 2007 03:51:24 +0200
+Subject: [Rdiffweb-commits] r100 - in trunk/tests: . initial_inprogress
+	initial_inprogress/repo
+	initial_inprogress/repo/rdiff-backup-data normal_inprogress
+	normal_inprogress/repo normal_inprogress/repo/rdiff-backup-data
+Message-ID: <200708260151.l7Q1pOCa030314@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-26 03:51:09 +0200 (Sun, 26 Aug 2007)
+New Revision: 100
+
+Added:
+   trunk/tests/initial_inprogress/
+   trunk/tests/initial_inprogress/browse_results.txt
+   trunk/tests/initial_inprogress/history_results.txt
+   trunk/tests/initial_inprogress/repo/
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/backup.log
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T10:05:06-05:00.data.gz
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T10:05:06-05:00.snapshot.gz
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T10:05:06-05:00.data.gz
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/increments/
+   trunk/tests/initial_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T10:05:06-05:00.snapshot.gz
+   trunk/tests/normal_inprogress/
+   trunk/tests/normal_inprogress/browse_results.txt
+   trunk/tests/normal_inprogress/history_results.txt
+   trunk/tests/normal_inprogress/repo/
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/backup.log
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:28:05-05:00.data
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:30:33-05:00.data
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:28:05-05:00.data.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:30:33-05:00.data.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:28:05-05:00.snapshot.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:30:33-05:00.snapshot.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:28:05-05:00.data.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:30:33-05:00.data.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/increments.2007-08-23T11:28:05-05:00.dir
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/increments/
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:28:05-05:00.snapshot.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:30:33-05:00.snapshot.gz
+   trunk/tests/normal_inprogress/repo/rdiff-backup-data/session_statistics.2007-08-23T11:28:05-05:00.data
+Modified:
+   trunk/tests/browse_template.txt
+Log:
+Add tests for in-progress backups (currently failing)
+
+Modified: trunk/tests/browse_template.txt
+===================================================================
+--- trunk/tests/browse_template.txt	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/browse_template.txt	2007-08-26 01:51:09 UTC (rev 100)
+@@ -1,7 +1,7 @@
+ Title:^title$
+ Path:<!--StartRepeat:parentDirs--> / ^parentDir$<!--EndRepeat:parentDirs-->
+ Viewing
+-
++^warning$
+ Name	Size	Revision	Number_Previous_Revisions	Exists?
+ <!--StartRepeat:files-->^filename$	^size$	^date$	^numPrevRevisions$	^exists$<!--StartIncludeIf:hasPrevRevisions-->
+ <!--StartRepeat:changeDates-->
+
+Added: trunk/tests/initial_inprogress/browse_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/browse_results.txt	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/initial_inprogress/browse_results.txt	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 16:31:24	1	False
++PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+Added: trunk/tests/initial_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/initial_inprogress/history_results.txt	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1,4 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-23 10:05:06			True
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T10:05:06-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/initial_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T10:05:06-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T10:05:06-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/initial_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T10:05:06-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T10:05:06-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/initial_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T10:05:06-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/initial_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T10:05:06-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/initial_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T10:05:06-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/browse_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/browse_results.txt	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/normal_inprogress/browse_results.txt	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++file.txt	0 bytes	2007-08-21 16:31:24	1	False
++PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+Added: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-08-23 10:05:06			True
++2007-08-23 10:05:06	0 bytes		False
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:28:05-05:00.data
+===================================================================
+--- trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:28:05-05:00.data	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:28:05-05:00.data	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1 @@
++PID 23464
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:30:33-05:00.data
+===================================================================
+--- trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:30:33-05:00.data	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/normal_inprogress/repo/rdiff-backup-data/current_mirror.2007-08-23T11:30:33-05:00.data	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1 @@
++PID 23474
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:28:05-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:28:05-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:30:33-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/error_log.2007-08-23T11:30:33-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:28:05-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:28:05-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:30:33-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/extended_attributes.2007-08-23T11:30:33-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:28:05-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:28:05-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:30:33-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/file_statistics.2007-08-23T11:30:33-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/increments.2007-08-23T11:28:05-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/increments.2007-08-23T11:28:05-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:28:05-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:28:05-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:30:33-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/normal_inprogress/repo/rdiff-backup-data/mirror_metadata.2007-08-23T11:30:33-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/normal_inprogress/repo/rdiff-backup-data/session_statistics.2007-08-23T11:28:05-05:00.data
+===================================================================
+--- trunk/tests/normal_inprogress/repo/rdiff-backup-data/session_statistics.2007-08-23T11:28:05-05:00.data	2007-08-23 14:05:32 UTC (rev 99)
++++ trunk/tests/normal_inprogress/repo/rdiff-backup-data/session_statistics.2007-08-23T11:28:05-05:00.data	2007-08-26 01:51:09 UTC (rev 100)
+@@ -0,0 +1,18 @@
++StartTime 1187886485.00 (Thu Aug 23 11:28:05 2007)
++EndTime 1187886485.82 (Thu Aug 23 11:28:05 2007)
++ElapsedTime 0.82 (0.82 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 2
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 1
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+
+
+From commits at rdiffweb.org  Sun Aug 26 04:07:32 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 26 Aug 2007 04:07:32 +0200
+Subject: [Rdiffweb-commits] r101 - in trunk: rdiffWeb tests/normal_inprogress
+Message-ID: <200708260207.l7Q27Wqx002734@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-26 04:07:27 +0200 (Sun, 26 Aug 2007)
+New Revision: 101
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/tests/normal_inprogress/history_results.txt
+Log:
+Fixes for initial backups
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-26 01:51:09 UTC (rev 100)
++++ trunk/rdiffWeb/librdiff.py	2007-08-26 02:07:27 UTC (rev 101)
+@@ -277,13 +277,15 @@
+    rdiffDir = joinPaths(repo, rdiffDataDirName)
+    mirrorMarkers = os.listdir(rdiffDir)
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+-   return mirrorMarkers and len(mirrorMarkers) > 1
++   return not mirrorMarkers or len(mirrorMarkers) > 1
+ 
+ def backupIsInProgress(repo, date):
+    rdiffDir = joinPaths(repo, rdiffDataDirName)
+    mirrorMarkers = os.listdir(rdiffDir)
+    mirrorMarkers.sort()
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
++   if not mirrorMarkers:
++      return True
+    mirrorMarkers = mirrorMarkers[1:]
+    return len(filter(lambda x: x.startswith("current_mirror."+date.getUrlString()), mirrorMarkers)) > 0
+ 
+
+Modified: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-08-26 01:51:09 UTC (rev 100)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-08-26 02:07:27 UTC (rev 101)
+@@ -1,5 +1,5 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-23 10:05:06			True
+-2007-08-23 10:05:06	0 bytes		False
++2007-08-23 11:30:33			True
++2007-08-23 11:28:05	0 bytes		False
+
+
+
+From commits at rdiffweb.org  Sun Aug 26 05:12:09 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 26 Aug 2007 05:12:09 +0200
+Subject: [Rdiffweb-commits] r102 - in trunk: rdiffWeb tests
+	tests/deleted_dir tests/deleted_file tests/initial_inprogress
+	tests/normal_inprogress tests/simple
+Message-ID: <200708260312.l7Q3C9xT014932@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-26 05:11:52 +0200 (Sun, 26 Aug 2007)
+New Revision: 102
+
+Added:
+   trunk/tests/deleted_dir/locations_results.txt
+   trunk/tests/deleted_file/locations_results.txt
+   trunk/tests/initial_inprogress/locations_results.txt
+   trunk/tests/locations_template.txt
+   trunk/tests/normal_inprogress/locations_results.txt
+   trunk/tests/simple/locations_results.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_main.py
+Log:
+Adding tests for locations page, and improving behavior for in-progress backups.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/rdiffWeb/librdiff.py	2007-08-26 03:11:52 UTC (rev 102)
+@@ -294,7 +294,7 @@
+    return _getBackupHistory(repoRoot)
+ 
+ def getLastBackupHistoryEntry(repoRoot):
+-   history = _getBackupHistory(repoRoot, 1, None, None, False)
++   history = _getBackupHistory(repoRoot, 1, None, None, True)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/rdiffWeb/page_locations.py	2007-08-26 03:11:52 UTC (rev 102)
+@@ -8,12 +8,17 @@
+    backup directories. This is the root (/) page '''
+    def index(self):
+       page = self.startPage("Backup Locations")
+-
++      page = page + self.compileTemplate("repo_listing.html", **self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), self.userDB.getUserRepoPaths(self.getUsername())))
++      page = page + self.endPage()
++      return page
++   index.exposed = True
++   
++   def getParmsForPage(self, root, repos):
+       repoList = []
+       repoErrors = []
+-      for userRepo in self.userDB.getUserRepoPaths(self.getUsername()):
++      for userRepo in repos:
+          try:
+-            repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), userRepo))
++            repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(root, userRepo))
+          except librdiff.FileError:
+             repoSize = "0"
+             repoDate = "Error"
+@@ -24,14 +29,31 @@
+                            "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
+          else:
+             repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
++            if repoHistory.inProgress:
++               repoSize = "In Progress"
+             repoDate = repoHistory.date.getDisplayString()
+             repoList.append({ "repoName" : userRepo,
+                               "repoSize" : repoSize,
+                               "repoDate" : repoDate,
+                               "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+                               "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
+-      page = page + self.compileTemplate("repo_listing.html", title="browse", repos=repoList, badrepos=repoErrors)
+-      page = page + self.endPage()
+-      return page
+-   index.exposed = True
++      return { "title" : "browse", "repos" : repoList, "badrepos" : repoErrors }
++      
+ 
++class locationsPageTest(page_main.pageTest, rdiffLocationsPage):
++   def getTemplateName(self):
++      return "locations_template.txt"
++   
++   def getExpectedResultsName(self):
++      return "locations_results.txt"
++      
++   def getParmsForTemplate(self, repoParentPath, repoName):
++      return self.getParmsForPage(repoParentPath, [repoName])
++
++if __name__ == "__main__":
++   print "Called as standalone program; running unit tests..."
++
++   import unittest
++   testSuite = unittest.makeSuite(locationsPageTest, 'test')
++   testRunner = unittest.TextTestRunner()
++   testRunner.run(testSuite)
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/rdiffWeb/page_main.py	2007-08-26 03:11:52 UTC (rev 102)
+@@ -155,5 +155,5 @@
+          expectedText = self._getFileText(test, self.getExpectedResultsName())
+          
+          self.assertEquals(encounteredText, expectedText)
+-         #assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText + "\nEnd"
++         assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText + "\nEnd"
+       
+
+Added: trunk/tests/deleted_dir/locations_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/locations_results.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/deleted_dir/locations_results.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-08-21 21:55:35	0 bytes
+
+Added: trunk/tests/deleted_file/locations_results.txt
+===================================================================
+--- trunk/tests/deleted_file/locations_results.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/deleted_file/locations_results.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-08-21 16:31:27	0 bytes
+
+Added: trunk/tests/initial_inprogress/locations_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/locations_results.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/initial_inprogress/locations_results.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-08-23 10:05:06	In Progress
+
+Added: trunk/tests/locations_template.txt
+===================================================================
+--- trunk/tests/locations_template.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/locations_template.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,6 @@
++Name	Last Backup	Last Backup Size
++
++<!--StartRepeat:repos-->^repoName$	^repoDate$	^repoSize$
++<!--EndRepeat:repos-->
++<!--StartRepeat:badrepos-->^repoName$	^repoDate$	^repoSize$
++<!--EndRepeat:badrepos-->
+\ No newline at end of file
+
+Added: trunk/tests/normal_inprogress/locations_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/locations_results.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/normal_inprogress/locations_results.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-08-23 11:30:33	In Progress
+
+Added: trunk/tests/simple/locations_results.txt
+===================================================================
+--- trunk/tests/simple/locations_results.txt	2007-08-26 02:07:27 UTC (rev 101)
++++ trunk/tests/simple/locations_results.txt	2007-08-26 03:11:52 UTC (rev 102)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-08-21 14:01:42	0 bytes
+
+
+
+From commits at rdiffweb.org  Tue Aug 28 00:29:37 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 28 Aug 2007 00:29:37 +0200
+Subject: [Rdiffweb-commits] r103 - in trunk: . tests/initial_inprogress
+	tests/normal_inprogress
+Message-ID: <200708272229.l7RMTbDU001536@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-08-28 00:29:32 +0200 (Tue, 28 Aug 2007)
+New Revision: 103
+
+Added:
+   trunk/run_tests.py
+Modified:
+   trunk/tests/initial_inprogress/browse_results.txt
+   trunk/tests/normal_inprogress/browse_results.txt
+Log:
+Add interface to run all tests and correct some broken test results.
+
+Added: trunk/run_tests.py
+===================================================================
+--- trunk/run_tests.py	2007-08-26 03:11:52 UTC (rev 102)
++++ trunk/run_tests.py	2007-08-27 22:29:32 UTC (rev 103)
+@@ -0,0 +1,10 @@
++#!/usr/bin/python
++
++import unittest
++
++
++from rdiffWeb.page_browse import browsePageTest
++from rdiffWeb.page_history import historyPageTest
++from rdiffWeb.page_locations import locationsPageTest
++
++unittest.main()
+
+
+Property changes on: trunk/run_tests.py
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/tests/initial_inprogress/browse_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/browse_results.txt	2007-08-26 03:11:52 UTC (rev 102)
++++ trunk/tests/initial_inprogress/browse_results.txt	2007-08-27 22:29:32 UTC (rev 103)
+@@ -1,7 +1,5 @@
+ Title:Browse repo
+ Path: / Backup Locations / repo
+ Viewing
+-
++Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent.
+ Name	Size	Revision	Number_Previous_Revisions	Exists?
+-file.txt	0 bytes	2007-08-21 16:31:24	1	False
+-PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+Modified: trunk/tests/normal_inprogress/browse_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/browse_results.txt	2007-08-26 03:11:52 UTC (rev 102)
++++ trunk/tests/normal_inprogress/browse_results.txt	2007-08-27 22:29:32 UTC (rev 103)
+@@ -1,7 +1,5 @@
+ Title:Browse repo
+ Path: / Backup Locations / repo
+ Viewing
+-
++Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent.
+ Name	Size	Revision	Number_Previous_Revisions	Exists?
+-file.txt	0 bytes	2007-08-21 16:31:24	1	False
+-PrevRevision	2007-08-21 16:31:23
+\ No newline at end of file
+
+
+

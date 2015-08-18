@@ -1,0 +1,301 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images	templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r165%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20static/images%0A%09templates&In-Reply-To=%3C200710272250.l9RMoOLr004173%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000121.html">
+   <LINK REL="Next"  HREF="000123.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images	templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r165%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20static/images%0A%09templates&In-Reply-To=%3C200710272250.l9RMoOLr004173%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images	templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Oct 28 00:50:24 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000121.html">[Rdiffweb-commits] r164 - trunk/rdiffWeb/static
+</A></li>
+        <LI>Next message: <A HREF="000123.html">[Rdiffweb-commits] r166 - in trunk/tests: . extensions	extensions/repo extensions/repo/rdiff-backup-data	extensions/repo/rdiff-backup-data/increments	extensions/repo/rdiff-backup-data/increments/testdir.data	extensions/repo/testdir.data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-28 00:50:17 +0200 (Sun, 28 Oct 2007)
+New Revision: 165
+
+Added:
+   trunk/rdiffWeb/static/images/login_button.gif
+Modified:
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/dir_listing.html
+   trunk/rdiffWeb/templates/login.html
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Bunch of UI tweaks:
+* Add alternating colors in listing pages
+* Change login button to use a gradient
+* Shrink table row heights in listing pages
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/page_browse.py	2007-10-27 22:50:17 UTC (rev 165)
+@@ -69,6 +69,7 @@
+ 
+          entries = []
+          for libEntry in libEntries:
++            altEntry = (len(entries) % 2 != 0)
+             entryLink = &quot;&quot;
+             if libEntry.isDir:
+                entryLink = self.buildBrowseUrl(repo, joinPaths(path, libEntry.name), False)
+@@ -95,7 +96,8 @@
+                            &quot;numPrevRevisions&quot; : str(len(changeDates)), 
+                            &quot;hasMultipleRevisions&quot; : len(changeDates) &gt; 1,
+                            &quot;showRevisionsText&quot; : showRevisionsText,
+-                           &quot;changeDates&quot; : changeDates })
++                           &quot;changeDates&quot; : changeDates,
++                           &quot;altRow&quot;: altEntry })
+ 
+       return { &quot;title&quot; : title, &quot;files&quot; : entries, &quot;parentDirs&quot; : parentDirs, &quot;restoreUrl&quot; : restoreUrl, &quot;viewUrl&quot; : viewUrl, &quot;restoreDates&quot; : restoreDates, &quot;warning&quot; : backupWarning }
+ 
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/page_locations.py	2007-10-27 22:50:17 UTC (rev 165)
+@@ -17,6 +17,7 @@
+       repoList = []
+       repoErrors = []
+       for userRepo in repos:
++         altEntry = (len(repoList) % 2 != 0)
+          try:
+             repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(root, userRepo))
+          except librdiff.FileError:
+@@ -26,7 +27,8 @@
+                            &quot;repoSize&quot; : repoSize,
+                            &quot;repoDate&quot; : repoDate,
+                            &quot;repoBrowseUrl&quot; : self.buildBrowseUrl(userRepo, &quot;/&quot;, False),
+-                           &quot;repoHistoryUrl&quot; : self.buildHistoryUrl(userRepo) })
++                           &quot;repoHistoryUrl&quot; : self.buildHistoryUrl(userRepo),
++                           &quot;altRow&quot;: altEntry })
+          else:
+             repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
+             if repoHistory.inProgress:
+@@ -36,7 +38,8 @@
+                               &quot;repoSize&quot; : repoSize,
+                               &quot;repoDate&quot; : repoDate,
+                               &quot;repoBrowseUrl&quot; : self.buildBrowseUrl(userRepo, &quot;/&quot;, False),
+-                              &quot;repoHistoryUrl&quot; : self.buildHistoryUrl(userRepo) })
++                              &quot;repoHistoryUrl&quot; : self.buildHistoryUrl(userRepo),
++                              &quot;altRow&quot;: altEntry })
+       return { &quot;title&quot; : &quot;browse&quot;, &quot;repos&quot; : repoList, &quot;badrepos&quot; : repoErrors }
+       
+ 
+
+Added: trunk/rdiffWeb/static/images/login_button.gif
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/login_button.gif
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/static/main.css	2007-10-27 22:50:17 UTC (rev 165)
+@@ -46,16 +46,21 @@
+ /* all tables have padding by default */
+ table thead
+ {
+-   text-align: center;
++   text-align: left;
++   font-size: 14pt;
+    font-weight: bold;
++   background-color: #DCE4F9;
++   border-bottom: 2px solid #F5F5F5;
+ }
+ 
+ table td
+ {
+-   padding-right: 2em;
++   padding: 0.25em 2em 0.25em 0em;
++   vertical-align: bottom;
++   font-size: 12pt;
+ }
+ 
+-/* Browse page */
++/* Listing pages */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+ {
+@@ -63,6 +68,16 @@
+    text-align: right;
+ }
+ 
++.altRow td
++{
++   background-color: #EFEFEF;
++}
++
++table
++{
++   border-collapse: collapse;
++}
++
+ /* disable padding on icons and flyouts */
+ td.Icon,
+ td.FlyoutContainer,
+@@ -71,6 +86,18 @@
+    padding-right: 0em;
+ }
+ 
++td.Icon
++{
++   padding-top: 0em;
++   padding-bottom: 0em;
++}
++
++td.Icon img
++{
++   height: 24px;
++   width: 24px;
++}
++
+ td.FlyoutContainer div
+ {
+    display:none;
+@@ -79,6 +106,7 @@
+    color: black;
+    background-color: silver;
+    border: 1px solid gray;
++   padding: .25em;
+ }
+ 
+ div#incrementSizePopup
+@@ -106,7 +134,17 @@
+    border: 10px double white;
+ }
+ 
++#Login input.submit
++{
++   background-image: url(&quot;/static/images/login_button.gif&quot;);
++   border: 0em;
++   width: 100px;
++   height: 30px;
++   color: #FFF;
++   font-weight: bold;
++}
+ 
++
+ /* Status Page */
+ .backupStatus_success,
+ .backupStatus_success a:link,
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/dir_listing.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -30,11 +30,12 @@
+       &lt;td&gt;Name&lt;/td&gt;
+       &lt;td&gt;Size&lt;/td&gt;
+       &lt;td&gt;Last Revision&lt;/td&gt;
++      &lt;td&gt;Previous Revisions&lt;/td&gt;
+    &lt;/tr&gt;
+ &lt;/thead&gt;
+ &lt;tbody&gt;
+    &lt;!--StartRepeat:files--&gt;
+-   &lt;!--StartIncludeIf:exists--&gt;&lt;tr&gt;&lt;!--EndIncludeIf:exists--&gt;&lt;!--StartDeleteIf:exists--&gt;&lt;tr style=&quot;color: #999&quot; &gt;&lt;!--EndDeleteIf:exists--&gt;
++   &lt;tr StartDeleteIf:exists- style=&quot;color: #999&quot; EndDeleteIf:exists- StartIncludeIf:altRow- class=&quot;altRow&quot; EndIncludeIf:altRow- &gt;
+       &lt;td class=&quot;Icon&quot;&gt;&lt;img src=&quot;/static/images/^filetype$.png&quot; valign=middle alt=&quot;^filetype$&quot; &gt;&lt;/td&gt;
+       &lt;td&gt;&lt;a href=&quot;^fileRestoreUrl$&quot;&gt;^filename$&lt;/a&gt;&lt;/td&gt;
+       &lt;td&gt;^size$&lt;/td&gt;
+@@ -55,12 +56,12 @@
+          &lt;/div&gt;
+       &lt;/td&gt;
+       &lt;!--EndIncludeIf:hasPrevRevisions--&gt;
+-      &lt;!--StartDeleteIf:showRevisionsText--&gt;
++      &lt;!--StartDeleteIf:hasPrevRevisions--&gt;
+    &lt;!-- ENTRIES WITH NO REVISIONS --&gt;
+-      &lt;td class=&quot;FlyoutContainer&quot;&gt;
++      &lt;td class=&quot;PopupLinkCell&quot;&gt;
+          No Previous Revisions
+       &lt;/td&gt;
+-      &lt;!--EndDeleteIf:showRevisionsText--&gt;
++      &lt;!--EndDeleteIf:hasPrevRevisions--&gt;
+       &lt;/tr&gt;
+    &lt;!--EndRepeat:files--&gt;
+ &lt;/tbody&gt;
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/login.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -26,7 +26,7 @@
+             &lt;/tr&gt;
+             &lt;tr&gt;
+                &lt;td&gt;&lt;/td&gt;
+-               &lt;td&gt;&lt;input type=&quot;submit&quot; value=&quot;Log In&quot; /&gt;&lt;/td&gt;
++               &lt;td&gt;&lt;input class=&quot;submit&quot; type=&quot;submit&quot; value=&quot;Log In&quot;/&gt;&lt;/td&gt;
+             &lt;/tr&gt;
+          &lt;/table&gt;
+          &lt;/form&gt;
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -12,7 +12,7 @@
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+       &lt;!--StartRepeat:repos--&gt;
+-      &lt;tr&gt;
++      &lt;tr StartIncludeIf:altRow- class=&quot;altRow&quot; EndIncludeIf:altRow- &gt;
+          &lt;td class=&quot;Icon&quot; valign=&quot;middle&quot;&gt;&lt;img src=&quot;/static/images/repo.png&quot;&gt;&lt;/img&gt;&lt;/td&gt;
+          &lt;td&gt;&lt;a href=&quot;^repoBrowseUrl$&quot;&gt;^repoName$&lt;/a&gt;&lt;/td&gt;
+          &lt;td&gt;^repoDate$&lt;/td&gt;&lt;td&gt;^repoSize$&lt;/td&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000121.html">[Rdiffweb-commits] r164 - trunk/rdiffWeb/static
+</A></li>
+	<LI>Next message: <A HREF="000123.html">[Rdiffweb-commits] r166 - in trunk/tests: . extensions	extensions/repo extensions/repo/rdiff-backup-data	extensions/repo/rdiff-backup-data/increments	extensions/repo/rdiff-backup-data/increments/testdir.data	extensions/repo/testdir.data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

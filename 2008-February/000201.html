@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r244 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r244%20-%20trunk&In-Reply-To=%3C200802091633.m19GXqLN030213%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000200.html">
+   <LINK REL="Next"  HREF="000202.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r244 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r244%20-%20trunk&In-Reply-To=%3C200802091633.m19GXqLN030213%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r244 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Feb  9 17:33:52 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000200.html">[Rdiffweb-commits] r243 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000202.html">[Rdiffweb-commits] r245 - trunk/debian
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-02-09 17:33:50 +0100 (Sat, 09 Feb 2008)
+New Revision: 244
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Bring back rdiff-web-config command to spider repos. This lets people schedule it with cron.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2008-02-04 18:16:16 UTC (rev 243)
++++ trunk/rdiff-web-config	2008-02-09 16:33:50 UTC (rev 244)
+@@ -100,7 +100,10 @@
+       sys.exit(2)
+ 
+    addUser(sys.argv[2], sys.argv[3], sys.argv[4], False)
+-   
++
++def doSpiderRepos():
++   rdiffWeb.rdw_spider_repos.findReposForAllUsers()  
++
+ def createNeededFolders():
+    # We can't just check for root privileges, since cygwin doesn't support the &quot;root&quot; user.
+    # So we poke around at folders/files, to make sure that we have the required permissions.
+@@ -132,5 +135,10 @@
+    if len(sys.argv) &gt; 1:
+       if sys.argv[1] == &quot;adduser&quot;:
+          doAddUser()
++      elif sys.argv[1] == &quot;spiderrepos&quot;:
++         doSpiderRepos()
++      else:
++         print &quot;Error: unrecognized command.&quot;
++         sys.exit(2)
+    else:
+       doMainSetup()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000200.html">[Rdiffweb-commits] r243 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000202.html">[Rdiffweb-commits] r245 - trunk/debian
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

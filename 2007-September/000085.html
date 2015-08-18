@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r128 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r128%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709281159.l8SBx0Ox018200%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000084.html">
+   <LINK REL="Next"  HREF="000086.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r128 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r128%20-%20trunk/rdiffWeb&In-Reply-To=%3C200709281159.l8SBx0Ox018200%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r128 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Fri Sep 28 13:59:00 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000084.html">[Rdiffweb-commits] r127 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000086.html">[Rdiffweb-commits] r129 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#85">[ date ]</a>
+              <a href="thread.html#85">[ thread ]</a>
+              <a href="subject.html#85">[ subject ]</a>
+              <a href="author.html#85">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-28 13:58:58 +0200 (Fri, 28 Sep 2007)
+New Revision: 128
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+More fixes for the feed
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-28 03:12:40 UTC (rev 127)
++++ trunk/rdiffWeb/page_status.py	2007-09-28 11:58:58 UTC (rev 128)
+@@ -36,10 +36,10 @@
+       return self._compileStatusPageTemplate(False, userMessages, False)
+    entry.exposed = True
+ 
+-   def feed(self, successful=&quot;&quot;):
++   def feed(self, failures=&quot;&quot;):
+       cherrypy.response.headerMap[&quot;Content-Type&quot;] = &quot;text/xml&quot;
+-      userMessages = self._getRecentUserMessages(successful != &quot;&quot;)
+-      statusUrl = self._buildAbsolutePageUrl(successful != &quot;&quot;)
++      userMessages = self._getRecentUserMessages(failures != &quot;&quot;)
++      statusUrl = self._buildAbsolutePageUrl(failures != &quot;&quot;)
+       return self.compileTemplate(&quot;status.xml&quot;, username=self.getUsername(), link=statusUrl, messages=userMessages)
+    feed.exposed = True
+    
+@@ -74,7 +74,7 @@
+       return url
+ 
+    def _buildStatusEntryUrl(self, repo, date):
+-      return self._buildAbsolutePageUrl() + &quot;entry?repo=&quot;+rdw_helpers.encodeUrl(repo)+&quot;&amp;date=&quot;+rdw_helpers.encodeUrl(date.getUrlString())
++      return self._buildAbsolutePageUrl(False) + &quot;entry?repo=&quot;+rdw_helpers.encodeUrl(repo)+&quot;&amp;date=&quot;+rdw_helpers.encodeUrl(date.getUrlString())
+    
+    def _getUserMessagesForDay(self, date):
+       userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000084.html">[Rdiffweb-commits] r127 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000086.html">[Rdiffweb-commits] r129 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#85">[ date ]</a>
+              <a href="thread.html#85">[ thread ]</a>
+              <a href="subject.html#85">[ subject ]</a>
+              <a href="author.html#85">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

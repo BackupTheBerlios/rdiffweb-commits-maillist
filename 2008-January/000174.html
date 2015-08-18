@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r217 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r217%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801080133.m081XK9Y027631%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000173.html">
+   <LINK REL="Next"  HREF="000175.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r217 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r217%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801080133.m081XK9Y027631%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r217 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  8 02:33:20 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000173.html">[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+</A></li>
+        <LI>Next message: <A HREF="000175.html">[Rdiffweb-commits] r218 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#174">[ date ]</a>
+              <a href="thread.html#174">[ thread ]</a>
+              <a href="subject.html#174">[ subject ]</a>
+              <a href="author.html#174">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-08 02:33:16 +0100 (Tue, 08 Jan 2008)
+New Revision: 217
+
+Modified:
+   trunk/rdiffWeb/page_setup.py
+Log:
+Stop requiring spwd module in setup page. This fixes the module for python 2.4.
+
+Modified: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-06 21:09:21 UTC (rev 216)
++++ trunk/rdiffWeb/page_setup.py	2008-01-08 01:33:16 UTC (rev 217)
+@@ -2,7 +2,6 @@
+ 
+ import cherrypy
+ import json
+-import spwd
+ import os
+ import stat
+ import crypt
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000173.html">[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+</A></li>
+	<LI>Next message: <A HREF="000175.html">[Rdiffweb-commits] r218 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#174">[ date ]</a>
+              <a href="thread.html#174">[ thread ]</a>
+              <a href="subject.html#174">[ subject ]</a>
+              <a href="author.html#174">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

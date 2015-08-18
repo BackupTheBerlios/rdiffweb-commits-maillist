@@ -1,0 +1,356 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r107%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200709131416.l8DEG1QP016563%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000063.html">
+   <LINK REL="Next"  HREF="000065.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r107%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200709131416.l8DEG1QP016563%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Sep 13 16:16:01 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000063.html">[Rdiffweb-commits] r106 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000065.html">[Rdiffweb-commits] r108 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-13 16:15:53 +0200 (Thu, 13 Sep 2007)
+New Revision: 107
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/rdw_helpers.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Adding email notification options to the preferences page.
+
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/page_main.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -3,8 +3,7 @@
+ import urllib
+ import os.path
+ 
+-import db_file
+-import db_mysql
++import db
+ import rdw_templating
+ import rdw_helpers
+ import rdw_config
+@@ -21,7 +20,7 @@
+ class rdiffPage:
+    _cpFilterList = getFilters()
+    def __init__(self):
+-      self.userDB = self._getUserDBModule()
++      self.userDB = db.userDB().getUserDBModule()
+ 
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+@@ -40,9 +39,7 @@
+       return &quot;/&quot;
+ 
+    def compileTemplate(self, templatePath, **kwargs):
+-      (packageDir, ignored) = os.path.split(__file__)
+-      templateText = open(rdw_helpers.joinPaths(packageDir, &quot;templates&quot;, templatePath), &quot;r&quot;).read()
+-      return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++      return rdw_helpers.compileTemplate(templatePath, **kwargs)
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
+@@ -58,15 +55,7 @@
+       if realDestPath.find(self.userDB.getUserRoot(self.getUsername())) != 0:      
+          raise rdw_helpers.accessDeniedError
+ 
+-   def _getUserDBModule(self):
+-      authModuleSetting = rdw_config.getConfigSetting(&quot;UserDB&quot;);
+-      if authModuleSetting.lower() == &quot;file&quot;:
+-         return db_file.fileUserDB()
+-      if authModuleSetting.lower() == &quot;mysql&quot;:
+-         return db_mysql.mysqlUserDB()
+-      assert(False)
+ 
+-
+    ########################## PAGE HELPER FUNCTIONS ##################################
+    def startPage(self, title, rssUrl = &quot;&quot;, rssTitle = &quot;&quot;):
+       return self.compileTemplate(&quot;page_start.html&quot;, title=title, rssLink=rssUrl, rssTitle=rssTitle) + self.writeTopLinks()
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -4,6 +4,8 @@
+ import rdw_helpers, page_main, librdiff
+ import os
+ import urllib
++import rdw_spider_repos
++import email_notification
+ 
+ 
+ class rdiffPreferencesPage(page_main.rdiffPage):
+@@ -14,20 +16,61 @@
+    
+    def changePassword(self, currentPassword, newPassword, confirmPassword):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage(&quot;Password changing is not supported with the active user database.&quot;, &quot;&quot;)
++         return self.getPrefsPage(errorMessage=&quot;Password changing is not supported with the active user database.&quot;)
+       
+       if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
+-         return self.getPrefsPage(&quot;The 'Current Password' is invalid.&quot;, &quot;&quot;)
++         return self.getPrefsPage(errorMessage=&quot;The 'Current Password' is invalid.&quot;)
+       
+       if newPassword != confirmPassword:
+-         return self.getPrefsPage(&quot;The passwords do not match.&quot;, &quot;&quot;)
++         return self.getPrefsPage(errorMessage=&quot;The passwords do not match.&quot;)
+ 
+       self.userDB.setUserPassword(self.getUsername(), newPassword)
+       
+-      return self.getPrefsPage(&quot;&quot;, &quot;Password updated successfully.&quot;)
++      return self.getPrefsPage(statusMessage=&quot;Password updated successfully.&quot;)
+    changePassword.exposed = True
+    
+-   def getPrefsPage(self, errorMessage, statusMessage):
++   def updateRepos(self):
++      rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
++      return self.getPrefsPage(statusMessage=&quot;Successfully updated repositories.&quot;)
++   updateRepos.exposed = True
++   
++   def setNotifications(self, **parms):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
++      
++      repos = self.userDB.getUserRepoPaths(self.getUsername())
++      
++      for parmName in parms.keys():
++         if parmName == &quot;userEmail&quot;:
++            self.userDB.setUserEmail(self.getUsername(), parms[parmName])
++         if parmName.endswith(&quot;numDays&quot;):
++            backupName = parmName[:-7]
++            print &quot;setting backup&quot;, backupName
++            if backupName in repos:
++               if parms[parmName] == &quot;Don't notify&quot;:
++                  maxDays = 0
++               else:
++                  maxDays = int(parms[parmName][0])
++               self.userDB.setRepoMaxAge(self.getUsername(), backupName, maxDays)
++               
++      return self.getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
++   
++   setNotifications.exposed = True
++   
++      
++   
++   def getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+-      return self.startPage(title) + self.compileTemplate(&quot;user_prefs.html&quot;, title=title, error=errorMessage, message=statusMessage) + self.endPage()
++      email = self.userDB.getUserEmail(self.getUsername());
++      if not email:
++         email = &quot;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">joe at example.com</A>&quot;
++      parms = { &quot;title&quot; : title, &quot;error&quot; : errorMessage, &quot;message&quot; : statusMessage, &quot;userEmail&quot; : email, &quot;notificationsEnabled&quot; : False }
++      if email_notification.emailNotificationIsEnabled():
++         repos = self.userDB.getUserRepoPaths(self.getUsername())
++         backups = [{ &quot;backupName&quot; : repo, &quot;maxDays&quot; : self.userDB.getRepoMaxAge(self.getUsername(), repo) } for repo in repos]
++         
++         parms.update({ &quot;notificationsEnabled&quot; : True, &quot;backups&quot; : backups })
++         
++      return self.startPage(title) + self.compileTemplate(&quot;user_prefs.html&quot;, **parms) + self.endPage()
+       
++
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -8,6 +8,8 @@
+ import urllib
+ import zipfile
+ 
++import rdw_templating
++
+ def joinPaths(parentPath, *args):
+    args = [x.lstrip(&quot;/&quot;) for x in args]
+    return os.path.join(parentPath, *args)
+@@ -70,6 +72,11 @@
+    (filesize, name) = sizeNames[-1]
+    return formatNumStr(1.0*filesize / size, 2) + &quot; &quot; + name
+ 
++def compileTemplate(templatePath, **kwargs):
++   (packageDir, ignored) = os.path.split(__file__)
++   templateText = open(joinPaths(packageDir, &quot;templates&quot;, templatePath), &quot;r&quot;).read()
++   return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++
+ class rdwTime:
+    &quot;&quot;&quot;Time information has two components: the local time, stored in GMT as seconds since Epoch,
+    and the timezone, stored as a seconds offset.  Since the server may not be in the same timezone
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/static/main.css	2007-09-13 14:15:53 UTC (rev 107)
+@@ -94,8 +94,20 @@
+    text-decoration: none;
+ }
+ 
+-.warning
++.warning,
++.error
+ {
+    color: red
+ }
+ 
++.message
++{
++   color: blue
++}
++
++table.notificationsTable td
++{
++   vertical-align: top;
++   padding-right: 0.5em;
++   text-align: right;
++}
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:15:53 UTC (rev 107)
+@@ -1,8 +1,38 @@
++&lt;!--StartDelete--&gt;
++&lt;html&gt;
++&lt;head&gt;
++   &lt;link rel=&quot;stylesheet&quot; href=&quot;../static/main.css&quot; type=&quot;text/css&quot; /&gt;
++&lt;/head&gt;
++&lt;body&gt;
++&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;../static/prefs.js&quot;&gt;&lt;/script&gt;
++&lt;!--EndDelete--&gt;
++&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot; src=&quot;/static/prefs.js&quot;&gt;&lt;/script&gt;
++
++&lt;!--StartIncludeIf:notificationsEnabled--&gt;
++&lt;script type=&quot;text/javascript&quot; language=&quot;javascript&quot;&gt;
++
++var backupData = {
++&lt;!--StartRepeat:backups--&gt;
++&quot;^backupName$&quot; : ^maxDays$,
++&lt;!--EndRepeat:backups--&gt;
++}
++
++window.onload = function()
++{
++   for (i in backupData)
++   {
++      droplist = document.getElementById(i+&quot;Select&quot;);
++      droplist.selectedIndex = backupData[i]
++   }
++}
++&lt;/script&gt;
++&lt;!--EndIncludeIf:notificationsEnabled--&gt;
++
+ &lt;h2&gt;User Preferences&lt;/h2&gt;
+ &lt;p&gt;
++&lt;!--StartIncludeIf:error--&gt;&lt;p class=&quot;error&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
++&lt;!--StartIncludeIf:message--&gt;&lt;p class=&quot;message&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
+ &lt;h3&gt;Change Password&lt;/h3&gt;
+-&lt;!--StartIncludeIf:error--&gt;&lt;p style=&quot;color:red&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
+-&lt;!--StartIncludeIf:message--&gt;&lt;p style=&quot;color:blue&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
+ &lt;form action=&quot;changePassword&quot; method=&quot;post&quot;&gt;
+ &lt;table&gt;
+ &lt;tr&gt;
+@@ -22,3 +52,48 @@
+ 
+ &lt;input type=&quot;submit&quot; value=&quot;Change Password&quot; /&gt;
+ &lt;/form&gt;
++
++&lt;h3&gt;Update Backup Locations&lt;/h3&gt;
++&lt;a href=&quot;updateRepos&quot;&gt;Find and update backup locations&lt;/a&gt;
++
++&lt;!--StartIncludeIf:notificationsEnabled--&gt;
++&lt;h3&gt;Backup Notifications&lt;/h3&gt;
++&lt;form action=&quot;setNotifications&quot; method=&quot;post&quot;&gt;
++
++&lt;table class=&quot;notificationsTable&quot;&gt;
++&lt;tr&gt;
++   &lt;td&gt;Notify me at&lt;/td&gt;
++&lt;!--StartIncludeIf:userEmail--&gt;
++   &lt;td&gt;&lt;input name=&quot;userEmail&quot; value=&quot;^userEmail$&quot;&gt;&lt;/td&gt;
++&lt;!--EndIncludeIf:userEmail--&gt;
++&lt;!--StartDeleteIf:userEmail--&gt;
++   &lt;td&gt;&lt;input name=&quot;userEmail&quot; value=&quot;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">joe at example.com</A>&quot;&gt;&lt;/td&gt;
++&lt;!--EndDeleteIf:userEmail--&gt;
++   &lt;td align=&quot;left&quot;&gt;
++      when my backups do not get backed up for:
++   &lt;/td&gt;
++&lt;/tr&gt;
++&lt;/table&gt;
++&lt;table class=&quot;notificationsTable&quot;&gt;
++&lt;!--StartRepeat:backups--&gt;
++&lt;tr&gt;
++   &lt;td&gt;^backupName$ : &lt;/td&gt;
++   &lt;td&gt;
++      &lt;select name=&quot;^backupName$numDays&quot; id=&quot;^backupName$Select&quot;&gt;
++         &lt;option selected&gt;Don't notify
++         &lt;option&gt;1 day
++         &lt;option&gt;2 days
++         &lt;option&gt;3 days
++         &lt;option&gt;4 days
++         &lt;option&gt;5 days
++         &lt;option&gt;6 days
++         &lt;option&gt;7 days
++      &lt;/select&gt;
++   &lt;/td&gt;
++&lt;/tr&gt;
++&lt;!--EndRepeat:backups--&gt;
++&lt;/table&gt;
++&lt;/table&gt;
++&lt;input type=&quot;submit&quot; value=&quot;Change Notifications&quot; /&gt;
++&lt;/form&gt;
++&lt;!--EndIncludeIf:notificationsEnabled--&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000063.html">[Rdiffweb-commits] r106 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000065.html">[Rdiffweb-commits] r108 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

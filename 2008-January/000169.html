@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r212 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r212%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031609.m03G9ShE010063%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000168.html">
+   <LINK REL="Next"  HREF="000170.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r212 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r212%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801031609.m03G9ShE010063%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r212 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Jan  3 17:09:28 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000168.html">[Rdiffweb-commits] r211 - trunk/rdiffWeb/templates
+</A></li>
+        <LI>Next message: <A HREF="000170.html">[Rdiffweb-commits] r213 - trunk/init
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#169">[ date ]</a>
+              <a href="thread.html#169">[ thread ]</a>
+              <a href="subject.html#169">[ subject ]</a>
+              <a href="author.html#169">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-03 17:09:24 +0100 (Thu, 03 Jan 2008)
+New Revision: 212
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+Log:
+Actually set password when adding a new user.
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2008-01-03 14:46:37 UTC (rev 211)
++++ trunk/rdiffWeb/page_admin.py	2008-01-03 16:09:24 UTC (rev 212)
+@@ -18,6 +18,7 @@
+       # We need to change values. Change them, then give back that main page again, with a message
+       action = cherrypy.request.params[&quot;action&quot;]
+       username = cherrypy.request.params[&quot;username&quot;]
++      password = cherrypy.request.params[&quot;password&quot;]
+       userRoot = cherrypy.request.params[&quot;userRoot&quot;]
+       userIsAdmin = cherrypy.request.params.get(&quot;isAdmin&quot;, False) != False
+       
+@@ -33,6 +34,7 @@
+          if username == &quot;&quot;:
+             return self._generatePageHtml(&quot;&quot;, &quot;The username is invalid.&quot;, username, userRoot, userIsAdmin)
+          self.getUserDB().addUser(username)
++         self.getUserDB().setUserPassword(username, password)
+          self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml(&quot;User added successfully.&quot;, &quot;&quot;)
+       
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000168.html">[Rdiffweb-commits] r211 - trunk/rdiffWeb/templates
+</A></li>
+	<LI>Next message: <A HREF="000170.html">[Rdiffweb-commits] r213 - trunk/init
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#169">[ date ]</a>
+              <a href="thread.html#169">[ thread ]</a>
+              <a href="subject.html#169">[ subject ]</a>
+              <a href="author.html#169">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

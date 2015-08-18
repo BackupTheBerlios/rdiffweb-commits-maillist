@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r174%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200711242056.lAOKuiHn020826%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000130.html">
+   <LINK REL="Next"  HREF="000132.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r174%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200711242056.lAOKuiHn020826%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r174 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Nov 24 21:56:44 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000130.html">[Rdiffweb-commits] r173 - in trunk/rdiffWeb: . templates
+</A></li>
+        <LI>Next message: <A HREF="000132.html">[Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#131">[ date ]</a>
+              <a href="thread.html#131">[ thread ]</a>
+              <a href="subject.html#131">[ subject ]</a>
+              <a href="author.html#131">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-11-24 21:56:29 +0100 (Sat, 24 Nov 2007)
+New Revision: 174
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Rework code for preferences page to make it easier to add new preferences.
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-11-23 21:07:34 UTC (rev 173)
++++ trunk/rdiffWeb/page_prefs.py	2007-11-24 20:56:29 UTC (rev 174)
+@@ -12,33 +12,41 @@
+    
+    sampleEmail = '<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">joe at example.com</A>'
+    
+-   def index(self):
+-      return self.getPrefsPage(&quot;&quot;, &quot;&quot;)
++   def index(self, **parms):
++      if parms:
++         action = parms['form']
++         if action == 'setPassword':
++            return self._changePassword(parms['current'], parms['new'], parms['confirm'])
++         elif action == 'updateRepos':
++            return self._updateRepos()
++         elif action == 'setNotifications':
++            return self._setNotifications(parms)
++         else:
++            return self._getPrefsPage(errorMessage='Invalid setting.')
++         
++      return self._getPrefsPage('', '')
+    index.exposed = True
+    
+-   def changePassword(self, currentPassword, newPassword, confirmPassword):
++   def _changePassword(self, currentPassword, newPassword, confirmPassword):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage(errorMessage=&quot;Password changing is not supported with the active user database.&quot;)
++         return self._getPrefsPage(errorMessage=&quot;Password changing is not supported with the active user database.&quot;)
+       
+       if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
+-         return self.getPrefsPage(errorMessage=&quot;The 'Current Password' is invalid.&quot;)
++         return self._getPrefsPage(errorMessage=&quot;The 'Current Password' is invalid.&quot;)
+       
+       if newPassword != confirmPassword:
+-         return self.getPrefsPage(errorMessage=&quot;The passwords do not match.&quot;)
++         return self._getPrefsPage(errorMessage=&quot;The passwords do not match.&quot;)
+ 
+-      self.userDB.setUserPassword(self.getUsername(), newPassword)
+-      
+-      return self.getPrefsPage(statusMessage=&quot;Password updated successfully.&quot;)
+-   changePassword.exposed = True
++      self.userDB.setUserPassword(self.getUsername(), newPassword)      
++      return self._getPrefsPage(statusMessage=&quot;Password updated successfully.&quot;)
+    
+-   def updateRepos(self):
++   def _updateRepos(self):
+       rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
+-      return self.getPrefsPage(statusMessage=&quot;Successfully updated backup locations.&quot;)
+-   updateRepos.exposed = True
+-   
+-   def setNotifications(self, **parms):
++      return self._getPrefsPage(statusMessage=&quot;Successfully updated backup locations.&quot;)
++
++   def _setNotifications(self, parms):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
++         return self._getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
+       
+       repos = self.userDB.getUserRepoPaths(self.getUsername())
+       
+@@ -56,13 +64,9 @@
+                   maxDays = int(parms[parmName][0])
+                self.userDB.setRepoMaxAge(self.getUsername(), backupName, maxDays)
+                
+-      return self.getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
++      return self._getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
+    
+-   setNotifications.exposed = True
+-   
+-      
+-   
+-   def getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
++   def _getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
+       title = &quot;User Preferences&quot;
+       email = self.userDB.getUserEmail(self.getUsername());
+       parms = {
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-11-23 21:07:34 UTC (rev 173)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-11-24 20:56:29 UTC (rev 174)
+@@ -10,22 +10,23 @@
+ &lt;p&gt;
+ &lt;!--StartIncludeIf:error--&gt;&lt;p class=&quot;error&quot;&gt;^error$&lt;/p&gt;&lt;!--EndIncludeIf:error--&gt;
+ &lt;!--StartIncludeIf:message--&gt;&lt;p class=&quot;message&quot;&gt;^message$&lt;/p&gt;&lt;!--EndIncludeIf:message--&gt;
+-&lt;form action=&quot;changePassword&quot; method=&quot;post&quot;&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;setPassword&quot;/&gt;
+ &lt;div class=&quot;groupboxDiv&quot;&gt;
+ &lt;div class=&quot;roundedBorderContents&quot;&gt;
+ &lt;h3 class=&quot;groupboxHeader&quot;&gt;Change Password&lt;/h3&gt;
+ &lt;table&gt;
+ &lt;tr&gt;
+    &lt;td&gt;Current Password:&lt;/td&gt;
+-   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;currentPassword&quot;/&gt;&lt;/td&gt;
++   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;current&quot;/&gt;&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+    &lt;td&gt;New Password:&lt;/td&gt;
+-   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;newPassword&quot;/&gt;&lt;/td&gt;
++   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;new&quot;/&gt;&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+    &lt;td&gt;Confirm New Password:&lt;/td&gt;
+-   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;confirmPassword&quot;/&gt;&lt;/td&gt;
++   &lt;td&gt;&lt;input class=&quot;textInput&quot; type=&quot;password&quot; name=&quot;confirm&quot;/&gt;&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+    &lt;td style=&quot;height: 2em&quot;&gt; &lt;input class=&quot;groupboxButton&quot; type=&quot;submit&quot; value=&quot;Change Password&quot; /&gt;&lt;/td&gt;
+@@ -36,7 +37,8 @@
+ &lt;/form&gt;
+ 
+ 
+-&lt;form action=&quot;updateRepos&quot; method=&quot;post&quot;&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;updateRepos&quot;/&gt;
+ &lt;div class=&quot;groupboxDiv&quot;&gt;
+ &lt;div class=&quot;roundedBorderContents&quot;&gt;
+ &lt;h3 class=&quot;groupboxHeader&quot;&gt;Update Backup Locations&lt;/h3&gt;
+@@ -45,11 +47,30 @@
+ &lt;/div&gt;
+ &lt;/form&gt;
+ 
++&lt;!--StartDelete--&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;setRestoreType&quot;/&gt;
++&lt;div class=&quot;groupboxDiv&quot;&gt;
++   &lt;div class=&quot;roundedBorderContents&quot;&gt;
++      &lt;h3 class=&quot;groupboxHeader&quot;&gt;Directory Restore Format&lt;/h3&gt;
++         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;zipRestoreType&quot;&gt;&lt;/input&gt;Restore my directories in &lt;b&gt;.zip&lt;/b&gt; format&lt;/label&gt;
++      &lt;br/&gt;
++         &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tgzRestoreType&quot;&gt;&lt;/input&gt;Restore my directories in &lt;b&gt;.tar.gz&lt;/b&gt; format&lt;/label&gt;
++      &lt;br/&gt;&lt;br/&gt;
++         (If unsure, select the .zip format.)
++      &lt;br/&gt;
++      &lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Update Restore Preferences&quot; /&gt;
++   &lt;/div&gt;
++&lt;/div&gt;
++&lt;/form&gt;
++&lt;!--EndDelete--&gt;
++
+ &lt;!--StartIncludeIf:notificationsEnabled--&gt;
+-&lt;form action=&quot;setNotifications&quot; method=&quot;post&quot;&gt;
++&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
++&lt;input style=&quot;display:none&quot; name=&quot;form&quot; value=&quot;setNotifications&quot;/&gt;
+ &lt;div class=&quot;groupboxDiv&quot;&gt;
+ &lt;div class=&quot;roundedBorderContents&quot;&gt;
+-&lt;h3 class=&quot;groupboxHeader&quot;&gt;Backup Notifications&lt;/h3&gt;
++   &lt;h3 class=&quot;groupboxHeader&quot;&gt;Backup Notifications&lt;/h3&gt;
+    &lt;table class=&quot;emailTable&quot;&gt;
+       &lt;tr&gt;
+          &lt;td&gt;Notify me at&lt;/td&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000130.html">[Rdiffweb-commits] r173 - in trunk/rdiffWeb: . templates
+</A></li>
+	<LI>Next message: <A HREF="000132.html">[Rdiffweb-commits] r175 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#131">[ date ]</a>
+              <a href="thread.html#131">[ thread ]</a>
+              <a href="subject.html#131">[ subject ]</a>
+              <a href="author.html#131">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

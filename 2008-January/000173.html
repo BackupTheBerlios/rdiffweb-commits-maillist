@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r216%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200801062109.m06L9Qlp011126%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000172.html">
+   <LINK REL="Next"  HREF="000174.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r216%20-%20trunk/rdiffWeb/templates&In-Reply-To=%3C200801062109.m06L9Qlp011126%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r216 - trunk/rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Jan  6 22:09:26 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000172.html">[Rdiffweb-commits] r215 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000174.html">[Rdiffweb-commits] r217 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-06 22:09:21 +0100 (Sun, 06 Jan 2008)
+New Revision: 216
+
+Modified:
+   trunk/rdiffWeb/templates/setup.html
+Log:
+Web-based configuration is not yet supported for setups with the root account disabled.
+
+Modified: trunk/rdiffWeb/templates/setup.html
+===================================================================
+--- trunk/rdiffWeb/templates/setup.html	2008-01-06 21:08:19 UTC (rev 215)
++++ trunk/rdiffWeb/templates/setup.html	2008-01-06 21:09:21 UTC (rev 216)
+@@ -24,13 +24,19 @@
+       &lt;!--StartIncludeIf:rootEnabled--&gt;
+       Enter the root password to continue: &lt;input type=&quot;password&quot; name=&quot;rootpassword&quot; id=&quot;rootpassword&quot;/&gt;
+       &lt;!--EndIncludeIf:rootEnabled--&gt;
+-      &lt;!--StartDeleteIf:rootEnabled--&gt;
++      &lt;!--StartDelete--&gt;
+       rdiffWeb has detected that the root account has been disabled.&lt;br/&gt;
+       Enter the password for the user that installed rdiffWeb: &lt;input type=&quot;password&quot; name=&quot;rootpassword&quot; id=&quot;rootpassword&quot;/&gt;
++      &lt;!--EndDelete--&gt;
++      &lt;!--StartDeleteIf:rootEnabled--&gt;
++      &lt;div style=&quot;color: red&quot;&gt;rdiffWeb has detected that the root account has been disabled.&lt;br/&gt;
++      Web-based setup for this configuration is not supported. Please run &quot;rdiff-web-config&quot; from the console with root privileges.&lt;/div&gt;
+       &lt;!--EndDeleteIf:rootEnabled--&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
++      &lt;!--StartIncludeIf:rootEnabled--&gt;
+       &lt;button type=&quot;button&quot; id=&quot;rootpasswordbtn&quot;&gt;Start setup&lt;/button&gt;
++      &lt;!--EndIncludeIf:rootEnabled--&gt;
+    &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;div id=&quot;adminSetup&quot; style=&quot;display: none&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000172.html">[Rdiffweb-commits] r215 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000174.html">[Rdiffweb-commits] r217 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r260 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r260%20-%20trunk/rdiffWeb&In-Reply-To=%3C200902021442.n12Egic7023506%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000218.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r260 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r260%20-%20trunk/rdiffWeb&In-Reply-To=%3C200902021442.n12Egic7023506%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r260 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Feb  2 15:42:44 CET 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000218.html">[Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-02-02 15:42:42 +0100 (Mon, 02 Feb 2009)
+New Revision: 260
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Fix typos in db generation script.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-01-23 16:01:50 UTC (rev 259)
++++ trunk/rdiffWeb/db_sqlite.py	2009-02-02 14:42:42 UTC (rev 260)
+@@ -197,8 +197,8 @@
+ UserRoot varchar (255) NOT NULL DEFAULT &quot;&quot;,
+ IsAdmin tinyint NOT NULL DEFAULT FALSE,
+ UserEmail varchar (255) NOT NULL DEFAULT &quot;&quot;,
+-RestoreFormat tinyint NOT NULL DEFAULT TRUE),
+-AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE)&quot;&quot;&quot;,
++RestoreFormat tinyint NOT NULL DEFAULT TRUE,
++AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0)&quot;&quot;&quot;,
+ &quot;&quot;&quot;create table repos (
+ RepoID integer primary key autoincrement,
+ UserID int(11) NOT NULL, 
+@@ -245,7 +245,7 @@
+       # Handle the addition of adminMonitoredMaxAge
+       if not u'AdminMonitoredMaxAge' in self._getFieldNames('users'):
+          print 'Adding AdminMonitoredMaxAge column to users table...'
+-         self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT FALSE')
++         self._executeQuery('ALTER TABLE users ADD COLUMN AdminMonitoredMaxAge tinyint NOT NULL DEFAULT 0')
+ 
+ 
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000218.html">[Rdiffweb-commits] r261 - in trunk: . rdiffWeb rdiffWeb/templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

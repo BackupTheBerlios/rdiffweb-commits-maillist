@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r132 - in trunk/tests: . inprogress_timezone	inprogress_timezone/repo inprogress_timezone/repo/rdiff-backup-data
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r132%20-%20in%20trunk/tests%3A%20.%20inprogress_timezone%0A%09inprogress_timezone/repo%20inprogress_timezone/repo/rdiff-backup-data&In-Reply-To=%3C200709292315.l8TNFN18013594%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000088.html">
+   <LINK REL="Next"  HREF="000090.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r132 - in trunk/tests: . inprogress_timezone	inprogress_timezone/repo inprogress_timezone/repo/rdiff-backup-data</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r132%20-%20in%20trunk/tests%3A%20.%20inprogress_timezone%0A%09inprogress_timezone/repo%20inprogress_timezone/repo/rdiff-backup-data&In-Reply-To=%3C200709292315.l8TNFN18013594%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r132 - in trunk/tests: . inprogress_timezone	inprogress_timezone/repo inprogress_timezone/repo/rdiff-backup-data">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Sep 30 01:15:23 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000088.html">[Rdiffweb-commits] r131 - tags
+</A></li>
+        <LI>Next message: <A HREF="000090.html">[Rdiffweb-commits] r133 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-09-30 01:15:03 +0200 (Sun, 30 Sep 2007)
+New Revision: 132
+
+Added:
+   trunk/tests/inprogress_timezone/
+   trunk/tests/inprogress_timezone/browse_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/inprogress_timezone/locations_results.txt
+   trunk/tests/inprogress_timezone/repo/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data
+Log:
+Add (currently failing) test for timezone differences and inprogress backups
+
+
+Added: trunk/tests/inprogress_timezone/browse_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/browse_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/browse_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,5 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent.
++Name	Size	Revision	Number_Previous_Revisions	Exists?
+
+Added: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-09-29 17:13:22			True
++2007-09-29 17:09:27	0 bytes		False
+
+Added: trunk/tests/inprogress_timezone/locations_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/locations_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/locations_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-09-29 17:13:22	In Progress
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,30 @@
++Exception 'Truncated header string (problem probably originated remotely)' raised of class '&lt;class 'rdiff_backup.connection.ConnectionReadError'&gt;':
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/robust.py&quot;, line 32, in check_common_error
++    try: return function(*args)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py&quot;, line 96, in copy
++    if rpin.isreg(): copy_reg_file(rpin, rpout, compress)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py&quot;, line 118, in copy_reg_file
++    rpout.write_from_fileobj(rpin.open(&quot;rb&quot;), compress = compress)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py&quot;, line 978, in write_from_fileobj
++    copyfileobj(fp, outfp)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py&quot;, line 58, in copyfileobj
++    inbuf = inputfp.read(blocksize)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py&quot;, line 1201, in read
++    def read(self, length = -1): return self.file.read(length)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py&quot;, line 117, in read
++    if not self.addtobuffer(): break
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py&quot;, line 132, in addtobuffer
++    type, data = self.iwf._get()
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py&quot;, line 401, in _get
++    if not self.buf: self.buf += self.file.read()
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/connection.py&quot;, line 513, in read
++    return self.connection.VirtualFile.readfromid(self.id, length)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/connection.py&quot;, line 445, in __call__
++    return apply(self.connection.reval, (self.name,) + args)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/connection.py&quot;, line 365, in reval
++    result = self.get_response(req_num)
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/connection.py&quot;, line 314, in get_response
++    try: req_num, object = self._get()
++  File &quot;/usr/lib/python2.5/site-packages/rdiff_backup/connection.py&quot;, line 230, in _get
++    raise ConnectionReadError(&quot;Truncated header string (problem &quot;
++
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1 @@
++PID 11283
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1 @@
++PID 11397
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,18 @@
++StartTime 1191103767.00 (Sat Sep 29 17:09:27 2007)
++EndTime 1191103769.29 (Sat Sep 29 17:09:29 2007)
++ElapsedTime 2.29 (2.29 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000088.html">[Rdiffweb-commits] r131 - tags
+</A></li>
+	<LI>Next message: <A HREF="000090.html">[Rdiffweb-commits] r133 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

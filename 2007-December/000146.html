@@ -1,0 +1,510 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r189 - in trunk: . rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r189%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200712170202.lBH220rJ006581%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000145.html">
+   <LINK REL="Next"  HREF="000147.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r189 - in trunk: . rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r189%20-%20in%20trunk%3A%20.%20rdiffWeb&In-Reply-To=%3C200712170202.lBH220rJ006581%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r189 - in trunk: . rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Dec 17 03:02:00 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000145.html">[Rdiffweb-commits] r188 - tags
+</A></li>
+        <LI>Next message: <A HREF="000147.html">[Rdiffweb-commits] r190 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#146">[ date ]</a>
+              <a href="thread.html#146">[ thread ]</a>
+              <a href="subject.html#146">[ subject ]</a>
+              <a href="author.html#146">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-12-17 03:01:52 +0100 (Mon, 17 Dec 2007)
+New Revision: 189
+
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_restore.py
+   trunk/rdiffWeb/page_status.py
+Log:
+Switch from using cherrypy 2.x to cherrypy 3.0. This paves the way for adding SSL support.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiff-web	2007-12-17 02:01:52 UTC (rev 189)
+@@ -9,27 +9,23 @@
+ import rdiffWeb.email_notification
+ import threading
+ import rdiffWeb.page_error
++import rdiffWeb.filter_authentication
+ 
+ if __name__ == &quot;__main__&quot;:
+-   
+-   # Initialize config options for static files, so that if we error out, then we can at least display a basic web page.
+-   cherrypy.config.update({
+-      '/static' : {
+-         'staticFilter.on' : True,
+-         'staticFilter.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+-         'staticFilter.dir': &quot;static&quot;,
+-         'rdwAuthenticateFilter.on' : False
+-      }
+-   })
+-   
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+    if not rdiffWeb.rdw_config.getConfigFile():
+       if os.getuid() != 0:
+          error = &quot;&lt;h2&gt;Error: rdiffWeb must be run as root.&lt;/h2&gt;&quot;
+       else:
+          error =  &quot;&lt;h2&gt;Error: rdiffWeb has been installed, but no configuration file exists.&lt;br/&gt;Please run 'rdiff-web-config' to configure settings, then restart rdiffWeb.&lt;/h2&gt;&quot;
+-      cherrypy.root = rdiffWeb.page_error.rdiffErrorPage(error)
+-      cherrypy.server.start()
++      root = rdiffWeb.page_error.rdiffErrorPage(error)
++      cherrypy.quickstart(root, config={
++         '/static' : {
++            'tools.staticdir.on' : True,
++            'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
++            'tools.staticdir.dir': &quot;static&quot;,
++         }
++      })
+       sys.exit(2)
+ 
+ 
+@@ -70,59 +66,67 @@
+    import rdiffWeb.page_status
+    import rdiffWeb.page_prefs
+ 
+-   # OK, we're good to go.  Start the server.
+-   server = rdiffWeb.page_locations.rdiffLocationsPage()
+-
+    serverPort = 8080
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;) != &quot;&quot;:
+       serverPort = int(rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;))
+-   settings = {
+-      'sessionFilter.on' : True,
+-      'gzipFilter.on': True,
+-      'encodingFilter.on' : True,
++   environment = &quot;development&quot;
++   if not debug:
++      environment = &quot;production&quot;
++   global_settings = {
++      'tools.encode.on' : True,
++      'tools.gzip.on': True,
++      'tools.sessions.on' : True,
++      'tools.authenticate.on' : True,
+       'autoreload.on' : autoReload,
+-      'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
+-      'server.socketPort' : serverPort,
+-      'server.logFile' : logFile,
++      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
++      'server.socket_port' : serverPort,
++      'server.log_file' : logFile,
++      'log.screen': True,
++      'server.environment': environment,
++   }
++   
++   page_settings = {
+       '/': {
+-         'rdwAuthenticateFilter.on' : True,
+-         'rdwAuthenticateFilter.checkLoginAndPassword' : server.checkAuthentication
++         'tools.authenticate.checkAuth' : rdiffWeb.page_locations.rdiffLocationsPage().checkAuthentication,
++         'tools.authenticate.on' : True,
+       },
+       '/status/feed': {
+-         'rdwAuthenticateFilter.method' : 'HTTP Header'
++         'tools.authenticate.authMethod' : 'HTTP Header'
+       },
+       '/restore': {
+-         'encodingFilter.on': False,
++         'tools.encode.on': False,
++      },
++      '/static' : {
++         'tools.staticdir.on' : True,
++         'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
++         'tools.staticdir.dir': &quot;static&quot;,
++         'tools.authenticate.on' : False,
+       }
+    }
+-   if not debug:
+-      settings['server.environment'] = &quot;production&quot;
+ 
+-   if not verbose:
+-      settings['server.logToScreen'] = False
+-
+    if rdiffWeb.rdw_config.getConfigSetting(&quot;SessionStorage&quot;).lower() == &quot;disk&quot;:
+       sessionDir = rdiffWeb.rdw_config.getConfigSetting(&quot;SessionDir&quot;)
+       if os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK):
+          cherrypy.log(&quot;Setting session mode to disk in directory %s&quot; % sessionDir)
+-         settings['sessionFilter'] = True
+-         settings['sessionFilter.storageType'] = 'File'
+-         settings['sessionFilter.storagePath'] = sessionDir
++         global_settings['tools.sessions.on'] = True
++         global_settings['tools.sessions.storage_type'] = 'file'
++         global_settings['tools.sessions.storage_path'] = sessionDir
+ 
+-   cherrypy.config.update(settings)
+-   cherrypy.root = rdiffWeb.page_locations.rdiffLocationsPage()
+-   cherrypy.root.browse = rdiffWeb.page_browse.rdiffBrowsePage()
+-   cherrypy.root.restore = rdiffWeb.page_restore.rdiffRestorePage()
+-   cherrypy.root.history = rdiffWeb.page_history.rdiffHistoryPage()
+-   cherrypy.root.status = rdiffWeb.page_status.rdiffStatusPage()
+-   cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
+-   cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
++   cherrypy.config.update(global_settings)
++   root = rdiffWeb.page_locations.rdiffLocationsPage()
++   root.browse = rdiffWeb.page_browse.rdiffBrowsePage()
++   root.restore = rdiffWeb.page_restore.rdiffRestorePage()
++   root.history = rdiffWeb.page_history.rdiffHistoryPage()
++   root.status = rdiffWeb.page_status.rdiffStatusPage()
++   root.admin = rdiffWeb.page_admin.rdiffAdminPage()
++   root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
+    
+    # Start repo spider thread
+-   killEvent = threading.Event()
++   if not debug:
++      killEvent = threading.Event()
++   
++      rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
++      rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
++      cherrypy.server.on_stop_server_list.append(lambda: killEvent.set())
+ 
+-   rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
+-   rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
+-   cherrypy.server.on_stop_server_list.append(lambda: killEvent.set())
+-   
+-   cherrypy.server.start()
++   cherrypy.quickstart(root, config=page_settings)
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiffWeb/filter_authentication.py	2007-12-17 02:01:52 UTC (rev 189)
+@@ -1,97 +1,94 @@
+ #!/usr/bin/python
+ 
+ import cherrypy
+-try:
+-   from cherrypy.filters.basefilter import BaseFilter
+-except:
+-   from cherrypy.lib.filter.basefilter import BaseFilter
+ import page_main
+ import rdw_helpers
+ import base64
+ 
+-class rdwAuthenticationFilter(BaseFilter):
+-   loginUrl = &quot;/doLogin&quot;
+-   logoutUrl = &quot;/doLogout&quot;
+-   sessionUserNameKey = &quot;username&quot;
++_loginUrl = &quot;/login&quot;
++_logoutUrl = &quot;/logout&quot;
++_sessionUserNameKey = &quot;username&quot;
+ 
+-   def beforeMain(self):
+-      if not cherrypy.config.get(&quot;rdwAuthenticateFilter.on&quot;, False):
+-         return
+-      checkLoginAndPassword = cherrypy.config.get(&quot;rdwAuthenticateFilter.checkLoginAndPassword&quot;, lambda username, password: u&quot;Invalid username or password&quot;)
++def handle_authentication(authMethod='', checkAuth=None):
++   checkLoginAndPassword = checkAuth
++   if not checkLoginAndPassword:
++      checkLoginAndPassword = (lambda username, password: u&quot;Invalid username or password&quot;)
+ 
+-      if cherrypy.request.path == self.logoutUrl:
+-         cherrypy.session[self.sessionUserNameKey] = None
+-         cherrypy.request.user = None
++   if cherrypy.request.path_info == _logoutUrl:
++      cherrypy.session[_sessionUserNameKey] = None
++      cherrypy.request.user = None
++      raise cherrypy.HTTPRedirect(&quot;/&quot;)
++
++   elif cherrypy.session.get(_sessionUserNameKey):
++      # page passes credentials; allow to be processed
++      if cherrypy.request.path_info == _loginUrl:
+          raise cherrypy.HTTPRedirect(&quot;/&quot;)
++      return False
+ 
+-      elif cherrypy.session.get(self.sessionUserNameKey):
+-         # page passes credentials; allow to be processed
+-         if cherrypy.request.path == self.loginUrl:
+-            raise cherrypy.HTTPRedirect(&quot;/&quot;)
+-         return
++   if authMethod == &quot;HTTP Header&quot;:
++      # if not already authenticated, authenticate via the Authorization header
++      httpAuth = _getHTTPAuthorizationCredentials(cherrypy.request.headers.get(&quot;Authorization&quot;, &quot;&quot;))
++      if httpAuth:
++         error = checkLoginAndPassword(httpAuth[&quot;login&quot;], httpAuth[&quot;password&quot;])
++         if not error:
++            return False
++      else:
++         error = &quot;&quot;
+ 
+-      if cherrypy.config.get(&quot;rdwAuthenticateFilter.method&quot;, &quot;&quot;) == &quot;HTTP Header&quot;:
+-         # if not already authenticated, authenticate via the Authorization header
+-         httpAuth = self._getHTTPAuthorizationCredentials(cherrypy.request.headerMap.get(&quot;Authorization&quot;, &quot;&quot;))
+-         if httpAuth:
+-            error = checkLoginAndPassword(httpAuth[&quot;login&quot;], httpAuth[&quot;password&quot;])
+-            if not error:
+-               return
+-         else:
+-            error = &quot;&quot;
++      cherrypy.response.status = &quot;401 Unauthorized&quot;
++      cherrypy.response.body = &quot;Not Authorized\n&quot; + error
++      cherrypy.response.headers[&quot;WWW-Authenticate&quot;] = 'Basic realm=&quot;rdiffWeb&quot;'
++      return True
+ 
+-         cherrypy.response.status = &quot;401 Unauthorized&quot;
+-         cherrypy.response.body = &quot;Not Authorized\n&quot; + error
+-         cherrypy.response.headerMap[&quot;WWW-Authenticate&quot;] = 'Basic realm=&quot;rdiffWeb&quot;'
+-         cherrypy.request.execute_main = False
+-         return
++   loginKey = &quot;login&quot;
++   passwordKey = &quot;password&quot;
++   redirectKey = &quot;redirect&quot;
+ 
+-      loginKey = &quot;login&quot;
+-      passwordKey = &quot;password&quot;
+-      redirectKey = &quot;redirect&quot;
++   loginParms = {&quot;message&quot;: &quot;&quot;, &quot;action&quot;: _loginUrl,
++      &quot;loginKey&quot;: loginKey, &quot;passwordKey&quot;: passwordKey, &quot;redirectKey&quot;: redirectKey,
++      &quot;loginValue&quot;: &quot;&quot;, &quot;redirectValue&quot;: cherrypy.request.path_info + &quot;?&quot; + cherrypy.request.query_string }
+ 
+-      loginParms = {&quot;message&quot;: &quot;&quot;, &quot;action&quot;: self.loginUrl,
+-         &quot;loginKey&quot;: loginKey, &quot;passwordKey&quot;: passwordKey, &quot;redirectKey&quot;: redirectKey,
+-         &quot;loginValue&quot;: &quot;&quot;, &quot;redirectValue&quot;: cherrypy.request.path + &quot;?&quot; + cherrypy.request.queryString }
++   if cherrypy.request.path_info == _loginUrl and cherrypy.request.method == &quot;POST&quot;:
++      # check for login credentials
++      loginValue = cherrypy.request.params[loginKey]
++      passwordValue = cherrypy.request.params[passwordKey]
++      redirectValue = cherrypy.request.params[redirectKey]
++      errorMsg = checkLoginAndPassword(loginValue, passwordValue)
++      if not errorMsg:
++         cherrypy.session[_sessionUserNameKey] = loginValue
++         if not redirectValue:
++            redirectValue = &quot;/&quot;
++         raise cherrypy.HTTPRedirect(redirectValue)
+ 
+-      if cherrypy.request.path == self.loginUrl and cherrypy.request.method == &quot;POST&quot;:
+-         # check for login credentials
+-         loginValue = cherrypy.request.paramMap[loginKey]
+-         passwordValue = cherrypy.request.paramMap[passwordKey]
+-         redirectValue = cherrypy.request.paramMap[redirectKey]
+-         errorMsg = checkLoginAndPassword(loginValue, passwordValue)
+-         if not errorMsg:
+-            cherrypy.session[self.sessionUserNameKey] = loginValue
+-            if not redirectValue:
+-               redirectValue = &quot;/&quot;
+-            raise cherrypy.HTTPRedirect(redirectValue)
++      # update form values
++      loginParms[&quot;message&quot;] = errorMsg
++      loginParms[&quot;loginValue&quot;] = loginValue
++      loginParms[&quot;redirectValue&quot;] = redirectValue
+ 
+-         # update form values
+-         loginParms[&quot;message&quot;] = errorMsg
+-         loginParms[&quot;loginValue&quot;] = loginValue
+-         loginParms[&quot;redirectValue&quot;] = redirectValue
++   # write login page
++   loginPage = page_main.rdiffPage()
++   cherrypy.response.body = loginPage.compileTemplate(&quot;page_start.html&quot;, title=&quot;Login Required - rdiffWeb&quot;, rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate(&quot;login.html&quot;, **loginParms)
++   return True
+ 
+-      # write login page
+-      loginPage = page_main.rdiffPage()
+-      cherrypy.response.body = loginPage.compileTemplate(&quot;page_start.html&quot;, title=&quot;Login Required - rdiffWeb&quot;, rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate(&quot;login.html&quot;, **loginParms)
+-      cherrypy.request.execute_main = False      
++cherrypy.tools.authenticate = cherrypy._cptools.HandlerTool(handle_authentication)
+ 
+-   def _getHTTPAuthorizationCredentials(self, authHeader):
+-      try:
+-         (realm, authEnc) = authHeader.split()
+-      except ValueError:
+-         return None
+ 
+-      if realm.lower() == &quot;basic&quot;:
+-         auth = base64.decodestring(authEnc)
+-         colon = auth.find(&quot;:&quot;)
+-         if colon != -1:
+-            return { &quot;login&quot;: auth[:colon], &quot;password&quot;: auth[colon+1:] }
+-         else:
+-            return { &quot;login&quot;: auth, &quot;password&quot;: &quot;&quot; }
+-
++def _getHTTPAuthorizationCredentials(authHeader):
++   try:
++      (realm, authEnc) = authHeader.split()
++   except ValueError:
+       return None
+ 
++   if realm.lower() == &quot;basic&quot;:
++      auth = base64.decodestring(authEnc)
++      colon = auth.find(&quot;:&quot;)
++      if colon != -1:
++         return { &quot;login&quot;: auth[:colon], &quot;password&quot;: auth[colon+1:] }
++      else:
++         return { &quot;login&quot;: auth, &quot;password&quot;: &quot;&quot; }
++
++   return None
++
+ ##################### Unit Tests #########################
+ 
+ import unittest, os
+@@ -99,10 +96,9 @@
+    &quot;&quot;&quot;Unit tests for the rdwAuthenticationFilter class&quot;&quot;&quot;
+ 
+    def testAuthorization(self):
+-      filter = rdwAuthenticationFilter()
+-      assert not filter._getHTTPAuthorizationCredentials(&quot;&quot;)
+-      assert not filter._getHTTPAuthorizationCredentials(&quot;Basic Username Password&quot;)
+-      assert not filter._getHTTPAuthorizationCredentials(&quot;Digest &quot; + base64.encodestring(&quot;username&quot;))
+-      assert filter._getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;username&quot;)) == { &quot;login&quot;: &quot;username&quot;, &quot;password&quot;: &quot;&quot; }
+-      assert filter._getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;user:pass&quot;)) == { &quot;login&quot;: &quot;user&quot;, &quot;password&quot;: &quot;pass&quot; }
+-      assert filter._getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;user:pass:word&quot;)) == { &quot;login&quot;: &quot;user&quot;, &quot;password&quot;: &quot;pass:word&quot; }
++      assert not _getHTTPAuthorizationCredentials(&quot;&quot;)
++      assert not _getHTTPAuthorizationCredentials(&quot;Basic Username Password&quot;)
++      assert not _getHTTPAuthorizationCredentials(&quot;Digest &quot; + base64.encodestring(&quot;username&quot;))
++      assert _getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;username&quot;)) == { &quot;login&quot;: &quot;username&quot;, &quot;password&quot;: &quot;&quot; }
++      assert _getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;user:pass&quot;)) == { &quot;login&quot;: &quot;user&quot;, &quot;password&quot;: &quot;pass&quot; }
++      assert _getHTTPAuthorizationCredentials(&quot;Basic &quot; + base64.encodestring(&quot;user:pass:word&quot;)) == { &quot;login&quot;: &quot;user&quot;, &quot;password&quot;: &quot;pass:word&quot; }
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiffWeb/page_admin.py	2007-12-17 02:01:52 UTC (rev 189)
+@@ -16,11 +16,10 @@
+          return self._generatePageHtml(&quot;&quot;, &quot;&quot;)
+       
+       # We need to change values. Change them, then give back that main page again, with a message
+-      print cherrypy.request.paramMap
+-      action = cherrypy.request.paramMap[&quot;action&quot;]
+-      username = cherrypy.request.paramMap[&quot;username&quot;]
+-      userRoot = cherrypy.request.paramMap[&quot;userRoot&quot;]
+-      userIsAdmin = cherrypy.request.paramMap.get(&quot;isAdmin&quot;, False) != False
++      action = cherrypy.request.params[&quot;action&quot;]
++      username = cherrypy.request.params[&quot;username&quot;]
++      userRoot = cherrypy.request.params[&quot;userRoot&quot;]
++      userIsAdmin = cherrypy.request.params.get(&quot;isAdmin&quot;, False) != False
+       
+       if action == &quot;edit&quot;:
+          if not self.userDB.userExists(username):
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiffWeb/page_main.py	2007-12-17 02:01:52 UTC (rev 189)
+@@ -7,19 +7,9 @@
+ import rdw_templating
+ import rdw_helpers
+ import rdw_config
+-import filter_https
+-import filter_authentication
+-import cherrypy.filters.encodingfilter
+ 
+-def getFilters():
+-   filters = [filter_authentication.rdwAuthenticationFilter(), cherrypy.filters.encodingfilter.EncodingFilter()]
+-   if rdw_config.getConfigSetting(&quot;UseHttps&quot;).upper() == &quot;TRUE&quot;:
+-      filters.append(filter_https.rdwHttpsFilter())
+-   return filters
+-
+-
+ class rdiffPage:
+-   _cpFilterList = getFilters()
++
+    def __init__(self):
+       self.userDB = db.userDB().getUserDBModule()
+ 
+@@ -70,7 +60,7 @@
+          pages.append((&quot;/prefs&quot;, &quot;Preferences&quot;))
+       if self.userDB.userIsAdmin(self.getUsername()):
+          pages.append((&quot;/admin&quot;, &quot;Admin&quot;))
+-      pages.append((&quot;/doLogout&quot;, &quot;Log Out&quot;))
++      pages.append((&quot;/logout&quot;, &quot;Log Out&quot;))
+       links = []
+       for page in pages:
+          (url, title) = page
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiffWeb/page_restore.py	2007-12-17 02:01:52 UTC (rev 189)
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+ 
+-from cherrypy.lib.cptools import serveFile
++from cherrypy.lib.static import serve_file
+ import rdw_helpers, page_main, librdiff
+ import os
+ 
+@@ -43,6 +43,6 @@
+       (directory, filename) = os.path.split(filePath)
+       file = autoDeleteDir(directory)
+       filename = &quot;\&quot;&quot;+filename.replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;)+&quot;\&quot;&quot; # quote file to handle files with spaces, while escaping quotes in filename
+-      return serveFile(filePath, None, disposition=&quot;attachment&quot;, name=filename)
++      return serve_file(filePath, None, disposition=&quot;attachment&quot;, name=filename)
+    index.exposed = True
+ 
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-12-05 20:51:03 UTC (rev 188)
++++ trunk/rdiffWeb/page_status.py	2007-12-17 02:01:52 UTC (rev 189)
+@@ -36,7 +36,7 @@
+    entry.exposed = True
+ 
+    def feed(self, failures=&quot;&quot;):
+-      cherrypy.response.headerMap[&quot;Content-Type&quot;] = &quot;text/xml&quot;
++      cherrypy.response.headers[&quot;Content-Type&quot;] = &quot;text/xml&quot;
+       userMessages = self._getRecentUserMessages(failures != &quot;&quot;)
+       statusUrl = self._buildAbsolutePageUrl(failures != &quot;&quot;)
+       return self.compileTemplate(&quot;status.xml&quot;, username=self.getUsername(), link=statusUrl, messages=userMessages)
+@@ -96,8 +96,6 @@
+       endTime.tzOffset = date.tzOffset
+       endTime.setTime(23, 59, 59)
+       
+-      print startTime.getDisplayString(), endTime.getDisplayString()
+-
+       return self._getUserMessages(userRepos, True, False, startTime, endTime)
+ 
+    def _getRecentUserMessages(self, failuresOnly):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000145.html">[Rdiffweb-commits] r188 - tags
+</A></li>
+	<LI>Next message: <A HREF="000147.html">[Rdiffweb-commits] r190 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#146">[ date ]</a>
+              <a href="thread.html#146">[ thread ]</a>
+              <a href="subject.html#146">[ subject ]</a>
+              <a href="author.html#146">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

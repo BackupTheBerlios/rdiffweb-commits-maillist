@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r53 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r53%20-%20trunk&In-Reply-To=%3C200605272037.k4RKbxqf010781%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000009.html">
+   <LINK REL="Next"  HREF="000011.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r53 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r53%20-%20trunk&In-Reply-To=%3C200605272037.k4RKbxqf010781%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r53 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat May 27 22:37:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000009.html">[Rdiffweb-commits] r52 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000011.html">[Rdiffweb-commits] r54 - trunk/init
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#10">[ date ]</a>
+              <a href="thread.html#10">[ thread ]</a>
+              <a href="subject.html#10">[ subject ]</a>
+              <a href="author.html#10">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-05-27 22:37:56 +0200 (Sat, 27 May 2006)
+New Revision: 53
+
+Modified:
+   trunk/rdiff-web
+   trunk/rdiff-web-config
+   trunk/rdw.conf.sample
+Log:
+Adding ServerPort setting, and fixing permissions on config files
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2006-05-27 14:43:12 UTC (rev 52)
++++ trunk/rdiff-web	2006-05-27 20:37:56 UTC (rev 53)
+@@ -55,6 +55,7 @@
+    settings = {
+       'sessionFilter.on' : True,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerName&quot;),
++      'server.socketPort' : rdiffWeb.rdw_config.getConfigSetting(&quot;ServerPort&quot;),
+       '/static' : {
+          'staticFilter.on' : True,
+          'staticFilter.dir': &quot;static&quot;,
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2006-05-27 14:43:12 UTC (rev 52)
++++ trunk/rdiff-web-config	2006-05-27 20:37:56 UTC (rev 53)
+@@ -33,7 +33,9 @@
+ def addConfigFileLine(lineText):
+    if not os.access(&quot;/etc/rdiffweb&quot;, os.F_OK):
+       os.mkdir(&quot;/etc/rdiffweb&quot;, stat.S_IRWXU)
+-   open(&quot;/etc/rdiffweb/rdw.conf&quot;, &quot;a&quot;).write(lineText+&quot;\n&quot;)
++   configFilePath = &quot;/etc/rdiffweb/rdw.conf&quot;
++   open(configFilePath, &quot;a&quot;).write(lineText+&quot;\n&quot;)
++   os.chmod(configFilePath, stat.S_IRWXU)
+ 
+ def fileSetup():
+    print &quot;File backend chosen.\n&quot;
+@@ -182,6 +184,9 @@
+       print &quot;Error: this script must be run as root.&quot;
+       sys.exit(2)
+ 
++   addConfigFileLine(&quot;ServerName=localhost&quot;)
++   addConfigFileLine(&quot;ServerPort=8080&quot;)
++
+    print &quot;Welcome to the rdiffWeb configuration script.\n&quot;
+    backend = promptUser(&quot;&quot;&quot;First, a configuration backend must be chosen.  There are two options: file and mysql.
+ The file backend is simpler to set up, but is limited to a single user, and backup locations must be specified by hand (or by using this script).
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2006-05-27 14:43:12 UTC (rev 52)
++++ trunk/rdw.conf.sample	2006-05-27 20:37:56 UTC (rev 53)
+@@ -1,4 +1,5 @@
+ ServerName=localhost
++ServerPort=8080
+ UserDB=file
+ Username=user
+ Password=pass
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000009.html">[Rdiffweb-commits] r52 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000011.html">[Rdiffweb-commits] r54 - trunk/init
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#10">[ date ]</a>
+              <a href="thread.html#10">[ thread ]</a>
+              <a href="subject.html#10">[ subject ]</a>
+              <a href="author.html#10">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

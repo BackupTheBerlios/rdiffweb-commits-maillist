@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r268 - in trunk/rdiffWeb: . static templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r268%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904251629.n3PGT3Y9021134%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000226.html">
+   <LINK REL="Next"  HREF="000228.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r268 - in trunk/rdiffWeb: . static templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r268%20-%20in%20trunk/rdiffWeb%3A%20.%20static%20templates&In-Reply-To=%3C200904251629.n3PGT3Y9021134%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r268 - in trunk/rdiffWeb: . static templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Apr 25 18:29:03 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000226.html">[Rdiffweb-commits] r267 - trunk/rdiffWeb/static
+</A></li>
+        <LI>Next message: <A HREF="000228.html">[Rdiffweb-commits] r269 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-04-25 18:28:58 +0200 (Sat, 25 Apr 2009)
+New Revision: 268
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/history.html
+Log:
+Misc cleanup: fix history listings with errors, and other UI cleanup.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-04-25 15:55:58 UTC (rev 267)
++++ trunk/rdiffWeb/db_sqlite.py	2009-04-25 16:28:58 UTC (rev 268)
+@@ -51,7 +51,10 @@
+ 
+    def allowRepoDeletion(self, username):
+       if not self.userExists(username): return False
+-      return bool(self._getUserField(username, &quot;AllowRepoDeletion&quot;))
++      field = self._getUserField(username, &quot;AllowRepoDeletion&quot;)
++      if type(field) == str or type(field) == unicode:
++         return field and str(field).lower() == 'true'
++      return bool(field)
+ 
+    def getUserList(self):
+       query = &quot;SELECT UserName FROM users&quot;
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2009-04-25 15:55:58 UTC (rev 267)
++++ trunk/rdiffWeb/page_locations.py	2009-04-25 16:28:58 UTC (rev 268)
+@@ -90,7 +90,7 @@
+       repos = self.getUserDB().getUserRepoPaths(self.getUsername())
+       repos.remove(repo)
+       self.getUserDB().setUserRepos(self.getUsername(), repos)
+-      return self._generate_page(message=&quot;The repo \&quot;%s\&quot; was successfully deleted.&quot; % repo)
++      return self._generate_page(message=&quot;The backup location \&quot;%s\&quot; was successfully deleted.&quot; % repo)
+  
+    def _generate_page(self, message='', error=''):
+       page = self.startPage(&quot;Backup Locations&quot;)
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2009-04-25 15:55:58 UTC (rev 267)
++++ trunk/rdiffWeb/static/main.css	2009-04-25 16:28:58 UTC (rev 268)
+@@ -67,7 +67,7 @@
+ /* Lightboxes */
+ #LightboxBackground
+ {
+-   position: absolute;
++   position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+@@ -80,7 +80,7 @@
+ #LightboxForeground
+ {
+    text-align: center;
+-   position: absolute;
++   position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2009-04-25 15:55:58 UTC (rev 267)
++++ trunk/rdiffWeb/templates/history.html	2009-04-25 16:28:58 UTC (rev 268)
+@@ -26,6 +26,7 @@
+          &lt;/div&gt;
+       &lt;/td&gt;
+       &lt;td&gt;Result&lt;/td&gt;
++      &lt;td&gt;&lt;/td&gt;
+       &lt;!--StartIncludeIf:allowHistoryDeletion--&gt;&lt;td&gt;&lt;/td&gt;&lt;!--EndIncludeIf:allowHistoryDeletion--&gt;
+    &lt;/tr&gt;
+ &lt;/thead&gt;
+@@ -58,6 +59,7 @@
+          Success
+       &lt;!--EndDeleteIf:inProgress--&gt;
+       &lt;/td&gt;
++      &lt;td&gt;&lt;/td&gt;
+       &lt;!--EndDeleteIf:errors--&gt;
+ 
+       &lt;!--StartIncludeIf:allowHistoryDeletion--&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000226.html">[Rdiffweb-commits] r267 - trunk/rdiffWeb/static
+</A></li>
+	<LI>Next message: <A HREF="000228.html">[Rdiffweb-commits] r269 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

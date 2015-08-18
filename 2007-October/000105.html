@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r148 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r148%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710101611.l9AGBdYR021577%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000104.html">
+   <LINK REL="Next"  HREF="000106.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r148 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r148%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710101611.l9AGBdYR021577%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r148 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Oct 10 18:11:39 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000104.html">[Rdiffweb-commits] r147 - in trunk/tests: . quoting quoting/repo	quoting/repo/; 067ap; 067ase; 068ir quoting/repo/rdiff-backup-data	quoting/repo/rdiff-backup-data/increments	quoting/repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+        <LI>Next message: <A HREF="000106.html">[Rdiffweb-commits] r149 - in trunk/tests/quoting: . repo/; 067ap;	067ase;	068ir repo/rdiff-backup-data repo/rdiff-backup-data/increments	repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#105">[ date ]</a>
+              <a href="thread.html#105">[ thread ]</a>
+              <a href="subject.html#105">[ subject ]</a>
+              <a href="author.html#105">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-10 18:11:36 +0200 (Wed, 10 Oct 2007)
+New Revision: 148
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix increment sizes in quoted repos
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-10 01:41:49 UTC (rev 147)
++++ trunk/rdiffWeb/librdiff.py	2007-10-10 16:11:36 UTC (rev 148)
+@@ -27,9 +27,6 @@
+       self.errorString = &quot;An unknown error occurred.&quot;
+ 
+ ##### Helper Functions #####
+-def getSessionStatsFileName(dateString):
+-   return &quot;session_statistics.&quot;+dateString+&quot;.data&quot;
+-
+ def rsplit(string, sep, count=-1):
+     L = [part[::-1] for part in string[::-1].split(sep[::-1], count)]
+     L.reverse()
+@@ -127,12 +124,15 @@
+       
+       charsToQuotePath = joinPaths(repoRoot, rdiffDataDirName, &quot;chars_to_quote&quot;)
+       if os.path.exists(charsToQuotePath):
+-         self.quoteRegex = re.compile(&quot;[^/%s]|;&quot; % open(charsToQuotePath).read(), re.S)
++         charsToQuoteStr = open(charsToQuotePath).read()
++         if charsToQuoteStr:
++            self.quoteRegex = re.compile(&quot;[^/%s]|;&quot; % charsToQuoteStr, re.S)
+       
+    def getUnquotedPath(self, quotedPath):
+       return self.unquoteRegex.sub(self.getUnquotedChar, quotedPath)
+    
+    def getQuotedPath(self, unQuotedPath):
++      if not hasattr(self, &quot;quoteRegex&quot;): return unQuotedPath
+       return self.quoteRegex.sub(self.getQuotedChar, unQuotedPath)
+    
+    # This function just gives back the original text if it can decode it
+@@ -224,11 +224,14 @@
+       return self._getFirstBackupAfterDate(incrementEntry(self.pathQuoter, files[-1]).getDate())
+ 
+ 
+-def getSessionStatsFile(rdiffDataDir, entry):
++def getSessionStatsFile(rdiffDataDir, entry, pathQuoter):
+    &quot;&quot;&quot;Attempts to get the sessions statistics file for a given backup. Tries the following to find a match:
+       1. The date with no timezone information
+       2. The date, 1 hour in the past, with no timezone information
+       3. The date with timezone information&quot;&quot;&quot;
++   def getSessionStatsFileName(dateString):
++      return &quot;session_statistics.&quot;+pathQuoter.getQuotedPath(dateString)+&quot;.data&quot;
++
+    sessionStatsPath = joinPaths(rdiffDataDir, getSessionStatsFileName(entry.getDateStringNoTZ()))
+    if os.access(sessionStatsPath, os.F_OK):
+       return sessionStatsPath
+@@ -377,7 +380,7 @@
+       except IOError:
+          errors = &quot;[Unable to read errors file.]&quot;
+       try:
+-         sessionStatsPath = getSessionStatsFile(rdiffDir, entry)
++         sessionStatsPath = getSessionStatsFile(rdiffDir, entry, pathQuoter)
+          session_stats = open(sessionStatsPath, &quot;r&quot;).read()
+          fileSize = re.compile(&quot;SourceFileSize ([0-9]+) &quot;).findall(session_stats)[0]
+          incrementSize = re.compile(&quot;IncrementFileSize ([0-9]+) &quot;).findall(session_stats)[0]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000104.html">[Rdiffweb-commits] r147 - in trunk/tests: . quoting quoting/repo	quoting/repo/; 067ap; 067ase; 068ir quoting/repo/rdiff-backup-data	quoting/repo/rdiff-backup-data/increments	quoting/repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+	<LI>Next message: <A HREF="000106.html">[Rdiffweb-commits] r149 - in trunk/tests/quoting: . repo/; 067ap;	067ase;	068ir repo/rdiff-backup-data repo/rdiff-backup-data/increments	repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#105">[ date ]</a>
+              <a href="thread.html#105">[ thread ]</a>
+              <a href="subject.html#105">[ subject ]</a>
+              <a href="author.html#105">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

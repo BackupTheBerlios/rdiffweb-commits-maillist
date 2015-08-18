@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r257 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r257%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200901202334.n0KNYjgp014995%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000213.html">
+   <LINK REL="Next"  HREF="000215.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r257 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r257%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200901202334.n0KNYjgp014995%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r257 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Jan 21 00:34:45 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000213.html">[Rdiffweb-commits] r256 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000215.html">[Rdiffweb-commits] r258 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-01-21 00:34:38 +0100 (Wed, 21 Jan 2009)
+New Revision: 257
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/templates/admin_main.html
+Log:
+Add option to send email notifications from admin page.
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2009-01-20 23:29:11 UTC (rev 256)
++++ trunk/rdiffWeb/page_admin.py	2009-01-20 23:34:38 UTC (rev 257)
+@@ -1,9 +1,11 @@
+ #!/usr/bin/python
+ 
++import cherrypy
++
++import email_notification
++import page_main
+ import rdw_helpers
+-import page_main
+ import rdw_templating
+-import cherrypy
+ import rdw_spider_repos
+ 
+ 
+@@ -52,6 +54,17 @@
+       return self._generatePageHtml(&quot;User account removed.&quot;, &quot;&quot;)
+    deleteUser.exposed = True
+ 
++   @cherrypy.expose
++   def sendEmails(self):
++      if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
++
++      emailNotifier = email_notification.emailNotifier()
++      if emailNotifier.notificationsEnabled():
++         emailNotifier.sendEmails()
++         return self._generatePageHtml(&quot;Email notifications sent.&quot;, &quot;&quot;)
++      else:
++         return self._generatePageHtml(&quot;&quot;, &quot;Email notifications are disabled.&quot;)
++
+    ############### HELPER FUNCTIONS #####################
+    def _userIsAdmin(self):
+       return self.getUserDB().userIsAdmin(self.getUsername())
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2009-01-20 23:29:11 UTC (rev 256)
++++ trunk/rdiffWeb/templates/admin_main.html	2009-01-20 23:34:38 UTC (rev 257)
+@@ -70,7 +70,14 @@
+ &lt;input type=&quot;submit&quot; value=&quot;Add User&quot; /&gt;
+ &lt;/form&gt;
+ 
++&lt;br&gt;
++&lt;form action=&quot;/admin/sendEmails/&quot; method=&quot;post&quot;&gt;
++&lt;h3&gt;Send Email Notifications&lt;/h3&gt;
++&lt;p&gt;Note that this will not affect the normally scheduled email notifications.&lt;/p&gt;
++&lt;input type=&quot;submit&quot; value=&quot;Send Emails&quot; /&gt;
++&lt;/form&gt;
+ 
++
+ &lt;!--StartDelete--&gt;
+ &lt;!--StartIncludeIf:emailsEnabled--&gt;
+ &lt;br&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000213.html">[Rdiffweb-commits] r256 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000215.html">[Rdiffweb-commits] r258 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

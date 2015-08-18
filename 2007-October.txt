@@ -1,0 +1,4248 @@
+From commits at rdiffweb.org  Tue Oct  2 05:23:43 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 2 Oct 2007 05:23:43 +0200
+Subject: [Rdiffweb-commits] r135 - in trunk/rdiffWeb: . static templates
+Message-ID: <200710020323.l923Nh85002013@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-02 05:23:34 +0200 (Tue, 02 Oct 2007)
+New Revision: 135
+
+Added:
+   trunk/rdiffWeb/static/popups.js
+Removed:
+   trunk/rdiffWeb/static/revisions_popup.js
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/dir_listing.html
+   trunk/rdiffWeb/templates/history.html
+Log:
+* Added display of increment size, including help text
+* Miscellaneous UI and wording tweaks
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/librdiff.py	2007-10-02 03:23:34 UTC (rev 135)
+@@ -46,7 +46,12 @@
+       self.changeDates = changeDates
+ 
+ class backupHistoryEntry:
+-   """Includes date, size (in bytes), and errors"""
++   def __init__(self):
++      self.date = None
++      self.size = None
++      self.errors = None
++      self.incrementSize = None
++      self.inProgress = None
+    pass
+ 
+ ##### Other objects #####
+@@ -340,9 +345,11 @@
+       try:
+          sessionStatsPath = getSessionStatsFile(rdiffDir, entry)
+          session_stats = open(sessionStatsPath, "r").read()
+-         expression = re.compile("SourceFileSize ([0-9]+) ").findall(session_stats)[0]
++         fileSize = re.compile("SourceFileSize ([0-9]+) ").findall(session_stats)[0]
++         incrementSize = re.compile("IncrementFileSize ([0-9]+) ").findall(session_stats)[0]
+       except IOError:
+-         expression = 0
++         fileSize = 0
++         incrementSize = 0
+       newEntry = backupHistoryEntry()
+       newEntry.date = entry.getDate()
+       newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate(), rdiffDirEntries)
+@@ -350,7 +357,8 @@
+          newEntry.errors = ""
+       else:
+          newEntry.errors = errors
+-      newEntry.size = int(expression)
++      newEntry.size = int(fileSize)
++      newEntry.incrementSize = int(incrementSize)
+       entries.append(newEntry)
+ 
+    if len(entries) > 0 and not includeInProgress and backupIsInProgressForRepo(repoRoot):
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/page_history.py	2007-10-02 03:23:34 UTC (rev 135)
+@@ -30,13 +30,16 @@
+       rdiffHistory.reverse()
+       entries = []
+       for historyItem in rdiffHistory:
+-         sizeStr = ""
++         fileSize = ""
++         incrementSize = ""
+          if not historyItem.inProgress:
+-            sizeStr = rdw_helpers.formatFileSizeStr(historyItem.size)
++            fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
++            incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
+          entries.append({ "date" : historyItem.date.getDisplayString(),
+                           "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+-                          "size" : sizeStr })
++                          "incrementSize" : incrementSize,
++                          "size" : fileSize })
+       return {"title" : "Backup history for "+repoName, "history" : entries}
+       
+ 
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/page_prefs.py	2007-10-02 03:23:34 UTC (rev 135)
+@@ -31,7 +31,7 @@
+    
+    def updateRepos(self):
+       rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
+-      return self.getPrefsPage(statusMessage="Successfully updated repositories.")
++      return self.getPrefsPage(statusMessage="Successfully updated backup locations.")
+    updateRepos.exposed = True
+    
+    def setNotifications(self, **parms):
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/static/main.css	2007-10-02 03:23:34 UTC (rev 135)
+@@ -76,6 +76,16 @@
+    border: 1px solid gray;
+ }
+ 
++div#incrementSizePopup
++{
++   color: black;
++   background-color: #E8EEFA;
++   font-weight: normal;
++   text-align: left;
++   width: 40em;
++   padding: 0.5em;
++}
++
+ /* Login page */
+ table.Login td
+ {
+@@ -164,3 +174,15 @@
+ .groupboxButton
+ {
+ }
++
++/* Admin page */
++
++table.usersTable td
++{
++   vertical-align: top;
++   text-align: right;
++   border-bottom:1px solid #ccc;
++   padding-bottom: 5px;
++   padding-top: 5px;
++   padding-right: 1em;
++}
+
+Copied: trunk/rdiffWeb/static/popups.js (from rev 121, trunk/rdiffWeb/static/revisions_popup.js)
+
+Deleted: trunk/rdiffWeb/static/revisions_popup.js
+===================================================================
+--- trunk/rdiffWeb/static/revisions_popup.js	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/static/revisions_popup.js	2007-10-02 03:23:34 UTC (rev 135)
+@@ -1,103 +0,0 @@
+-var fg_curPopup;
+-var fg_curTimer;
+-function showPopup(div)
+-{
+-   if (fg_curPopup && fg_curPopup != div)
+-      hidePopup();
+-   else
+-      cancelHidePopup();
+-   fg_curPopup = div;
+-   fg_curPopup.style.display = 'block';
+-   fg_curPopup.onmouseover = cancelHidePopup;
+-   fg_curPopup.onmouseout = delayHidePopup;
+-   fg_curPopup.style.marginTop = "0px";
+-
+-   // calculate the top relative to the body
+-   var top = 0;
+-   var curElem = fg_curPopup;
+-   while (curElem)
+-   {
+-      top += curElem.offsetTop || 0;
+-      curElem = curElem.offsetParent;
+-   }
+-
+-   // how far does the flyout extend beyond the screen?
+-   // (the top of the flyout should not extend beyond the top of the screen)
+-   var offscreenDistanceBottom = (top + fg_curPopup.offsetHeight) - (document.body.scrollTop + document.body.clientHeight);
+-   offscreenDistanceBottom = Math.min(offscreenDistanceBottom, top - document.body.scrollTop);
+-   if (offscreenDistanceBottom > 0)
+-      fg_curPopup.style.marginTop = "-" + offscreenDistanceBottom + "px";
+-}
+-
+-function hidePopup()
+-{
+-   if (fg_curPopup)
+-   {
+-      fg_curPopup.style.display = 'none';
+-      fg_curPopup = null;
+-      cancelHidePopup()
+-   }
+-}
+-
+-function cancelHidePopup()
+-{
+-   if (fg_curTimer)
+-   {
+-      window.clearTimeout(fg_curTimer);
+-      fg_curTimer = null;
+-   }
+-}
+-
+-function delayHidePopup()
+-{
+-   cancelHidePopup();
+-   fg_curTimer = window.setTimeout(hidePopup, 500);
+-}
+-
+-function onTableMouseOver(event)
+-{
+-   event = event || window.event;
+-   var elem = event.target || event.srcElement;
+-   if (elem.className === "PopupLink")
+-   {
+-      /* jump to the next cell */
+-      var cell = elem.parentNode;
+-      do cell = cell.nextSibling;
+-      while (cell && (!cell.tagName || cell.tagName !== "TD"));
+-      if (!cell)
+-         return;
+-
+-      /* find first DIV child */
+-      var div = cell.firstChild;
+-      while (div && (typeof div.tagName == "undefined" || div.tagName != "DIV"))
+-         div = div.nextSibling;
+-
+-      if (div)
+-         showPopup(div);
+-   }
+-}
+-
+-function onTableMouseOut(event)
+-{
+-   if (!fg_curPopup) return;
+-
+-   event = event || window.event;
+-   var elem = event.target || event.srcElement;
+-   while (elem)
+-   {
+-      if (elem.className === "PopupLink")
+-         delayHidePopup();
+-      elem = elem.parentNode;
+-   }
+-}
+-
+-
+-addOnLoadEvent(function()
+-{
+-   var table = document.getElementById("PopupTable");
+-   if (table)
+-   {
+-      table.onmouseover = onTableMouseOver;
+-      table.onmouseout = onTableMouseOut;
+-   }
+-});
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/templates/admin_main.html	2007-10-02 03:23:34 UTC (rev 135)
+@@ -7,25 +7,30 @@
+ <!--EndDelete-->
+ 
+ <h2>Admin Panel</h2>
+-<h3>Users</h3>
+-<table>
++<h3>Manage Users</h3>
++<table class="usersTable">
+ <!--StartRepeat:users-->
+    <tr>
+       <td>^username$</td>
+       <td><a href="/admin/editUser?user=^username$">Edit User</a></td>
+       <td><a href="/admin/deleteUser?user=^username$" onClick="if(!confirm('Are you sure that you wish to delete user ^username$?')) return(false) ">Delete User</a></td>
+       <td><a href="/admin/changePassword?user=^username$">Change Password</a></td>
+-      <td><a href="/admin/updateRepos?user=^username$">Find and update repositories</a></td>
+    </tr>
+ <!--EndRepeat:users-->
+ </table>
++
+ <br>
+-<a href="^addUserUrl$">Add User</a>
++<form action="^addUserUrl$" method="post">
++<h3>Add User</h3>
++<input type="submit" class="groupboxButton" value="Add User" />
++</form>
+ 
+ <!--StartDelete-->
+ <!--StartIncludeIf:emailsEnabled-->
++<br>
+ <form>
+ <div class="groupboxDiv">
++<br>
+ <h3 class="groupboxHeader">Email Notifications</h3>
+ rdiffWeb can be configured to notify user when their backups have not been run.<br>
+ To enable email notification, the following settings must be set:
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/templates/dir_listing.html	2007-10-02 03:23:34 UTC (rev 135)
+@@ -5,7 +5,7 @@
+ </head>
+ <body>
+ <!--EndDelete-->
+-<script type="text/javascript" language="javascript" src="/static/revisions_popup.js"></script>
++<script type="text/javascript" language="javascript" src="/static/popups.js"></script>
+ 
+ <h2>^title$</h2>
+ <p>
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-09-29 23:27:06 UTC (rev 134)
++++ trunk/rdiffWeb/templates/history.html	2007-10-02 03:23:34 UTC (rev 135)
+@@ -1,11 +1,12 @@
+ <!--StartDelete-->
+ <html>
+ <head>
+-   <link rel="stylesheet" href="static/main.css" type="text/css" />
++   <link rel="stylesheet" href="../static/main.css" type="text/css" />
+ </head>
+ <body>
++<script type="text/javascript" language="javascript" src="../static/globals.js"></script>
+ <!--EndDelete-->
+-<script type="text/javascript" language="javascript" src="/static/revisions_popup.js"></script>
++<script type="text/javascript" language="javascript" src="../static/popups.js"></script>
+ 
+ <h2>^title$</h2>
+ 
+@@ -15,6 +16,12 @@
+       <td></td>
+       <td>Date</td>
+       <td>Size</td>
++      <td>Increment Size<a class="PopupLink" href="javascript:void 0">?</a></td>
++      <td class="FlyoutContainer">
++         <div style="font-weight: normal" id="incrementSizePopup">
++            For each backup entry, the <b>increment size</b> is the amount of data that changed in the subsequent backup. Said another way, the increment size is the amount of disk space that could be freed if the ability to restore to that backup date would be removed.
++         </div>
++      </td>
+       <td>Result</td>
+    </tr>
+ </thead>
+@@ -24,6 +31,8 @@
+       <td class="Icon" valign="middle"><img src="/static/images/history.png"></img></td>
+       <td>^date$</td>
+       <td>^size$</td>
++      <td>^incrementSize$</td>
++      <td class="FlyoutContainer"></td>
+       <!--StartIncludeIf:errors-->
+       <td class="BackupResult">
+          <a class="PopupLink" href="javascript:void 0">Errors...</a>
+
+
+
+From commits at rdiffweb.org  Tue Oct  2 05:24:12 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 2 Oct 2007 05:24:12 +0200
+Subject: [Rdiffweb-commits] r136 - in trunk/tests: . deleted_dir
+	deleted_file initial_inprogress inprogress_timezone
+	normal_inprogress simple
+Message-ID: <200710020324.l923OCDa002029@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-02 05:24:04 +0200 (Tue, 02 Oct 2007)
+New Revision: 136
+
+Modified:
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/initial_inprogress/history_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/normal_inprogress/history_results.txt
+   trunk/tests/simple/history_results.txt
+Log:
+Adding test for previous commit's increment size reporting
+
+
+Modified: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/deleted_dir/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 21:55:35	0 bytes		False
+-2007-08-21 21:55:24	0 bytes		False
+-2007-08-21 21:55:17	0 bytes		False
++2007-08-21 21:55:35	0 bytes		False	258 bytes
++2007-08-21 21:55:24	0 bytes		False	0 bytes
++2007-08-21 21:55:17	0 bytes		False	0 bytes
+
+Modified: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/deleted_file/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 16:31:27	0 bytes		False
+-2007-08-21 16:31:24	0 bytes		False
+-2007-08-21 16:31:23	141 bytes		False
++2007-08-21 16:31:27	0 bytes		False	120 bytes
++2007-08-21 16:31:24	0 bytes		False	211 bytes
++2007-08-21 16:31:23	141 bytes		False	0 bytes
+
+Modified: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/history_template.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -2,5 +2,5 @@
+ 
+ Date	Size	Errors	In Progress?
+ <!--StartRepeat:history-->
+-^date$	^size$	^errors$	^inProgress$
++^date$	^size$	^errors$	^inProgress$	^incrementSize$
+ <!--EndRepeat:history-->
+
+Modified: trunk/tests/initial_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/initial_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,4 +1,4 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-23 10:05:06			True
++2007-08-23 10:05:06			True	
+
+Modified: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,5 +1,5 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-09-29 17:13:22			True
+-2007-09-29 17:09:27	0 bytes		False
++2007-09-29 17:13:22			True	
++2007-09-29 17:09:27	0 bytes		False	0 bytes
+
+Modified: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,5 +1,5 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-23 11:30:33			True
+-2007-08-23 11:28:05	0 bytes		False
++2007-08-23 11:30:33			True	
++2007-08-23 11:28:05	0 bytes		False	0 bytes
+
+Modified: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-10-02 03:23:34 UTC (rev 135)
++++ trunk/tests/simple/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
+@@ -1,6 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?
+-2007-08-21 14:01:42	0 bytes		False
+-2007-08-21 14:01:32	0 bytes		False
+-2007-08-21 14:01:21	141 bytes		False
++2007-08-21 14:01:42	0 bytes		False	110 bytes
++2007-08-21 14:01:32	0 bytes		False	200 bytes
++2007-08-21 14:01:21	141 bytes		False	0 bytes
+
+
+
+From commits at rdiffweb.org  Wed Oct  3 21:19:07 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 3 Oct 2007 21:19:07 +0200
+Subject: [Rdiffweb-commits] r137 - in trunk: rdiffWeb rdiffWeb/static
+	rdiffWeb/templates tests tests/deleted_dir tests/deleted_file
+	tests/initial_inprogress tests/inprogress_timezone
+	tests/normal_inprogress tests/simple
+Message-ID: <200710031919.l93JJ7w7009425@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-03 21:18:47 +0200 (Wed, 03 Oct 2007)
+New Revision: 137
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/history.html
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/initial_inprogress/history_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/normal_inprogress/history_results.txt
+   trunk/tests/simple/history_results.txt
+Log:
+* Add display of total increment size
+* Rework admin page, making UI more seamless and simplifying code
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/rdiffWeb/page_admin.py	2007-10-03 19:18:47 UTC (rev 137)
+@@ -6,143 +6,52 @@
+ import cherrypy
+ import rdw_spider_repos
+ 
+-class userDBFormValues:
+-   def __init__(self):
+-      self.valuesDict = {}
+ 
+-   def loadFromDatabase(self, user, userDBModule):
+-      if not userDBModule.userExists(user): return
+-
+-      self.valuesDict["username"] = user
+-      self.valuesDict["userRoot"] = userDBModule.getUserRoot(user)
+-      self.valuesDict["isAdmin"] = userDBModule.userIsAdmin(user)
+-
+-   def loadFromPostData(self, user, paramMap):
+-      self.valuesDict["username"] = user
+-      self.valuesDict["userRoot"] = paramMap.get("userRoot", "")
+-      self.valuesDict["isAdmin"] = paramMap.get("isAdmin", False)
+-      self.valuesDict["password"] = paramMap.get("password", False)
+-
+-   def validateValues(self, addingUser):
+-      if not self.valuesDict.get("username"):
+-         return "The username must be specified."
+-      if addingUser and not self.valuesDict.get("password"):
+-         return "The password must be specified."
+-      if not self.valuesDict.get("userRoot"):
+-         return "The user's root folder must be specified."
+-      return ""
+-
+-   def saveToDatabase(self, addingUser, userDBModule):
+-      if self.validateValues(addingUser): assert False
+-      if addingUser:
+-         userDBModule.addUser(self.getValue("username"))
+-         userDBModule.setUserPassword(self.getValue("username"), self.getValue("password"))
+-      userDBModule.setUserInfo(self.getValue("username"), self.getValue("userRoot"), self.getValue("isAdmin"))
+-
+-   def generateFormHtml(self, addingUser, showError, page):
+-
+-      errors = ""
+-      if showError: errors = self.validateValues(addingUser)
+-      parmsDict = { "username" : self.getValue("username"), "userRoot" : self.getValue("userRoot"), "isAdmin" : str(self.getValue("isAdmin")), "error" : errors }
+-      if addingUser:
+-         parmsDict["password"]=""
+-         parmsDict["submitUrl"]="addUser"
+-         parmsDict["action"]="Add User"
+-         template = "admin_add_user.html"
+-      else:
+-         parmsDict["submitUrl"]="editUser"
+-         parmsDict["action"]="Edit User"
+-         template = "admin_edit_user.html"
+-
+-      return page.compileTemplate(template, **parmsDict)
+-
+-   def getValue(self, valueName):
+-      return self.valuesDict.get(valueName, "")
+-
+-   def setValue(self, valueName, value):
+-      self.valuesDict[valueName, value]
+-
+-
+-
+ class rdiffAdminPage(page_main.rdiffPage):
+-   def index(self):
++   def index(self, **kwargs):
+       if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+-
+-      page = self.startPage("Administration")
+-      userNames = self.userDB.getUserList()
+-      users = [ { "username" : user } for user in userNames ]
+-      parms = { "users" : users, "addUserUrl" : "/admin/addUser" }
+-      page = page + self.compileTemplate("admin_main.html", **parms)
+-      return page + self.endPage()
++      
++      # If we're just showing the initial page, just do that
++      if not self._isSubmit():
++         return self._generatePageHtml("", "")
++      
++      # We need to change values. Change them, then give back that main page again, with a message
++      print cherrypy.request.paramMap
++      action = cherrypy.request.paramMap["action"]
++      username = cherrypy.request.paramMap["username"]
++      userRoot = cherrypy.request.paramMap["userRoot"]
++      userIsAdmin = cherrypy.request.paramMap.get("isAdmin", False) != False
++      
++      if action == "edit":
++         if not self.userDB.userExists(username):
++            return self._generatePageHtml("", "The user does not exist.")
++         
++         self.userDB.setUserInfo(username, userRoot, userIsAdmin)
++         return self._generatePageHtml("User information modified successfully", "")
++      elif action == "add":
++         if self.userDB.userExists(username):
++            return self._generatePageHtml("", "The specified user already exists.", username, userRoot, userIsAdmin)
++         if username == "":
++            return self._generatePageHtml("", "The username is invalid.", username, userRoot, userIsAdmin)
++         self.userDB.addUser(username)
++         self.userDB.setUserInfo(username, userRoot, userIsAdmin)
++         return self._generatePageHtml("User added successfully.", "")
++      
+    index.exposed = True
+ 
+-   def addUser(self, username="", password="", firstName="", lastName="", userRoot="", isAdmin=False):
++   def deleteUser(self, user):
+       if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+ 
+-      formVals = userDBFormValues()
+-      if self._isSubmit():
+-         formVals = userDBFormValues()
+-         formVals.loadFromPostData(username, cherrypy.request.paramMap)
+-         error = formVals.validateValues(True)
+-         if not error:
+-            formVals.saveToDatabase(True, self.userDB)
+-            return self.writeMessagePage("Success", "User added successfully.")
++      if not self.userDB.userExists(user):
++         return self._generatePageHtml("", "The user does not exist.")
+ 
+-      page = self.startPage("Add User")
+-      page = page + formVals.generateFormHtml(True, self._isSubmit(), self)
+-      return page + self.endPage()
+-   addUser.exposed = True
++      if user == self.getUsername():
++         return self._generatePageHtml("", "You cannot remove your own account!.")
+ 
+-   def editUser(self, user, firstName="", lastName="", userRoot="", isAdmin=""):
+-      if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+-
+-      formVals = userDBFormValues()
+-      if self._isSubmit():
+-         formVals.loadFromPostData(user, cherrypy.request.paramMap)
+-         error = formVals.validateValues(False)
+-         if not error:
+-            formVals.saveToDatabase(False, self.userDB)
+-            return self.writeMessagePage("Success", "User modified successfully.")
+-      else:
+-         formVals.loadFromDatabase(user, self.userDB)
+-
+-      page = self.startPage("Edit User")
+-      page = page + formVals.generateFormHtml(False, self._isSubmit(), self)
+-      return page + self.endPage()
+-   editUser.exposed = True
+-
+-   def deleteUser(self, user):
+-      if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+-      if not self.userDB.userExists(user): return
+-
+       self.userDB.deleteUser(user)
+-      return self.writeMessagePage("Success", "User account removed.")
+-
++      return self._generatePageHtml("User account removed.", "")
+    deleteUser.exposed = True
+ 
+-   def changePassword(self, user, password=""):
+-      if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+-      if not self.userDB.userExists(user): return
+-
+-      if self._isSubmit():
+-         self.userDB.setUserPassword(user, password)
+-         if not password:
+-            return self.writeMessagePage("Success", "Password cleared, account disabled.")
+-         else:
+-            return self.writeMessagePage("Success", "Password modified successfully.")
+-
+-      page = self.startPage("Change User Password")
+-      page = page + self.compileTemplate("admin_change_password.html", username=user)
+-      return page + self.endPage()
+-   changePassword.exposed = True
+-
+-   def updateRepos(self, user):
+-      if not self._userIsAdmin(): return self.writeErrorPage("Access denied.")
+-      if not self.userDB.userExists(user): return
+-      rdw_spider_repos.findReposForUser(user, self.userDB)
+-      return self.writeMessagePage("Success", "Successfully updated repositories.")
+-   updateRepos.exposed = True
+-
+    ############### HELPER FUNCTIONS #####################
+    def _userIsAdmin(self):
+       return self.userDB.userIsAdmin(self.getUsername())
+@@ -150,5 +59,14 @@
+    def _isSubmit(self):
+       return cherrypy.request.method == "POST"
+ 
++   def _generatePageHtml(self, message, error, username="", userRoot="", isAdmin=False):
++      userNames = self.userDB.getUserList()
++      users = [ { "username" : user, "isAdmin" : self.userDB.userIsAdmin(user), "userRoot" : self.userDB.getUserRoot(user) } for user in userNames ]
++      parms = { "users" : users, 
++                "username" : username, 
++                "userRoot" : userRoot, 
++                "isAdmin" : isAdmin,
++                "message" : message,
++                "error" : error }
++      return self.startPage("Administration") + self.compileTemplate("admin_main.html", **parms) + self.endPage()
+ 
+-
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/rdiffWeb/page_history.py	2007-10-03 19:18:47 UTC (rev 137)
+@@ -29,18 +29,20 @@
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
++      totalIncrementSize = 0
+       for historyItem in rdiffHistory:
+          fileSize = ""
+          incrementSize = ""
+          if not historyItem.inProgress:
+             fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
+             incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
++            totalIncrementSize += historyItem.incrementSize
+          entries.append({ "date" : historyItem.date.getDisplayString(),
+                           "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+                           "incrementSize" : incrementSize,
+                           "size" : fileSize })
+-      return {"title" : "Backup history for "+repoName, "history" : entries}
++      return {"title" : "Backup history for "+repoName, "history" : entries, "totalBackups" : len(rdiffHistory), "totalIncrementSize" : rdw_helpers.formatFileSizeStr(totalIncrementSize)}
+       
+ 
+ class historyPageTest(page_main.pageTest, rdiffHistoryPage):
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/rdiffWeb/static/main.css	2007-10-03 19:18:47 UTC (rev 137)
+@@ -176,13 +176,32 @@
+ }
+ 
+ /* Admin page */
++table.usersTable
++{
++   border-collapse: collapse;
++}
+ 
+ table.usersTable td
+ {
+    vertical-align: top;
+-   text-align: right;
+-   border-bottom:1px solid #ccc;
++   /*text-align: right;*/
++   border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+    padding-top: 5px;
+    padding-right: 1em;
+ }
++
++table.usersTable tr.userEditingRow td
++{
++   border-bottom: 0px;
++}
++
++table.usersTable tr.notEditingRow,
++table.usersTable tr.notChangingPasswordRow
++{
++   display: none;
++}
++table.usersTable tr.editingRow,
++table.usersTable tr.changingPasswordRow
++{
++}
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/rdiffWeb/templates/admin_main.html	2007-10-03 19:18:47 UTC (rev 137)
+@@ -4,27 +4,73 @@
+    <link rel="stylesheet" href="../static/main.css" type="text/css" />
+ </head>
+ <body>
++<script type="text/javascript" language="javascript" src="../static/globals.js"></script>
+ <!--EndDelete-->
++<script type="text/javascript" language="javascript" src="../static/admin.js"></script>
+ 
++
+ <h2>Admin Panel</h2>
++<!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
++<!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+ <h3>Manage Users</h3>
+ <table class="usersTable">
+ <!--StartRepeat:users-->
+-   <tr>
++   <tr class="userNotEditingRow">
+       <td>^username$</td>
+-      <td><a href="/admin/editUser?user=^username$">Edit User</a></td>
++      <td><a href="javascript:void 0" class="editLink">Edit User</a></td>
+       <td><a href="/admin/deleteUser?user=^username$" onClick="if(!confirm('Are you sure that you wish to delete user ^username$?')) return(false) ">Delete User</a></td>
+-      <td><a href="/admin/changePassword?user=^username$">Change Password</a></td>
+    </tr>
++   <tr class="notEditingRow">
++      <form action="" method="post">
++         <td colspan="4" style="text-align:left">
++            <input style="display:none" name="action" value="edit" />
++            <input style="display:none" name="username" value="^username$" />
++            <div>
++               User Root Directory: <input class="textInput" name="userRoot" value="^userRoot$" />
++            </div>
++            <div style="text-align:left">
++               <!--StartIncludeIf:isAdmin--><input checked type="checkbox" name="isAdmin" /><!--EndIncludeIf:isAdmin-->
++               <!--StartDeleteIf:isAdmin--><input type="checkbox" name="isAdmin" /><!--EndDeleteIf:isAdmin-->
++            User is admin?
++            </div>
++            <br/>
++            <div><input type="submit" class="groupboxButton" value="Save Changes" /></div>
++         </td>
++      </form>
++   </tr>
+ <!--EndRepeat:users-->
+ </table>
+ 
+ <br>
+-<form action="^addUserUrl$" method="post">
++<form action="" method="post">
++<input style="display:none" name="action" value="add" />
+ <h3>Add User</h3>
+-<input type="submit" class="groupboxButton" value="Add User" />
++<table>
++   <tr>
++      <td>Username:</td>
++      <td><input name="username" value="^username$" /></td>
++   </tr>
++   <tr>
++      <td>Password:</td>
++      <td><input name="password"></td>
++   </tr>
++   <tr>
++      <td>User Root Directory:</td>
++      <td><input name="userRoot" value="^userRoot$" /></td>
++   </tr>
++   <tr>
++      <td>
++         <!--StartIncludeIf:isAdmin--><input checked type="checkbox" name="isAdmin" /><!--EndIncludeIf:isAdmin-->
++         <!--StartDeleteIf:isAdmin--><input type="checkbox" name="isAdmin" /><!--EndDeleteIf:isAdmin-->
++         User is admin?
++      </td>
++   </tr>
++</table>
++<br>
++<input type="submit" value="Add User" />
+ </form>
+ 
++
+ <!--StartDelete-->
+ <!--StartIncludeIf:emailsEnabled-->
+ <br>
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/rdiffWeb/templates/history.html	2007-10-03 19:18:47 UTC (rev 137)
+@@ -2,14 +2,15 @@
+ <html>
+ <head>
+    <link rel="stylesheet" href="../static/main.css" type="text/css" />
++   <link rel="stylesheet" href="../static/borders.css" type="text/css" />
+ </head>
+ <body>
+ <script type="text/javascript" language="javascript" src="../static/globals.js"></script>
++<script type="text/javascript" language="javascript" src="../static/borders.js"></script>
+ <!--EndDelete-->
+ <script type="text/javascript" language="javascript" src="../static/popups.js"></script>
+ 
+ <h2>^title$</h2>
+-
+ <table id="PopupTable">
+ <thead>
+    <tr>
+@@ -18,8 +19,9 @@
+       <td>Size</td>
+       <td>Increment Size<a class="PopupLink" href="javascript:void 0">?</a></td>
+       <td class="FlyoutContainer">
+-         <div style="font-weight: normal" id="incrementSizePopup">
+-            For each backup entry, the <b>increment size</b> is the amount of data that changed in the subsequent backup. Said another way, the increment size is the amount of disk space that could be freed if the ability to restore to that backup date would be removed.
++         <div id="incrementSizePopup">
++            For each backup entry, the <b>increment size</b> is the amount of data that changed in the subsequent backup. Said another way, the increment size is the amount of disk space that could be freed if the ability to restore to that backup date would be removed.<br>
++            <b>You would free ^totalIncrementSize$ if you removed the ability to restore from any prior backup.</b>
+          </div>
+       </td>
+       <td>Result</td>
+@@ -61,3 +63,4 @@
+ </tbody>
+ </table>
+ 
++
+
+Modified: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/deleted_dir/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -4,3 +4,4 @@
+ 2007-08-21 21:55:35	0 bytes		False	258 bytes
+ 2007-08-21 21:55:24	0 bytes		False	0 bytes
+ 2007-08-21 21:55:17	0 bytes		False	0 bytes
++3 backups, with 258 bytes in increments
+\ No newline at end of file
+
+Modified: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/deleted_file/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -4,3 +4,4 @@
+ 2007-08-21 16:31:27	0 bytes		False	120 bytes
+ 2007-08-21 16:31:24	0 bytes		False	211 bytes
+ 2007-08-21 16:31:23	141 bytes		False	0 bytes
++3 backups, with 331 bytes in increments
+\ No newline at end of file
+
+Modified: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/history_template.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -4,3 +4,4 @@
+ <!--StartRepeat:history-->
+ ^date$	^size$	^errors$	^inProgress$	^incrementSize$
+ <!--EndRepeat:history-->
++^totalBackups$ backups, with ^totalIncrementSize$ in increments
+\ No newline at end of file
+
+Modified: trunk/tests/initial_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/initial_inprogress/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -2,3 +2,4 @@
+ 
+ Date	Size	Errors	In Progress?
+ 2007-08-23 10:05:06			True	
++1 backups, with 0 bytes in increments
+\ No newline at end of file
+
+Modified: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -3,3 +3,4 @@
+ Date	Size	Errors	In Progress?
+ 2007-09-29 17:13:22			True	
+ 2007-09-29 17:09:27	0 bytes		False	0 bytes
++2 backups, with 0 bytes in increments
+\ No newline at end of file
+
+Modified: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -3,3 +3,4 @@
+ Date	Size	Errors	In Progress?
+ 2007-08-23 11:30:33			True	
+ 2007-08-23 11:28:05	0 bytes		False	0 bytes
++2 backups, with 0 bytes in increments
+\ No newline at end of file
+
+Modified: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-10-02 03:24:04 UTC (rev 136)
++++ trunk/tests/simple/history_results.txt	2007-10-03 19:18:47 UTC (rev 137)
+@@ -4,3 +4,4 @@
+ 2007-08-21 14:01:42	0 bytes		False	110 bytes
+ 2007-08-21 14:01:32	0 bytes		False	200 bytes
+ 2007-08-21 14:01:21	141 bytes		False	0 bytes
++3 backups, with 310 bytes in increments
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Thu Oct  4 17:53:53 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 4 Oct 2007 17:53:53 +0200
+Subject: [Rdiffweb-commits] r138 - trunk/rdiffWeb/static
+Message-ID: <200710041553.l94FrrCS002067@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-04 17:53:48 +0200 (Thu, 04 Oct 2007)
+New Revision: 138
+
+Added:
+   trunk/rdiffWeb/static/admin.js
+Log:
+Add missing javascript file
+
+
+Added: trunk/rdiffWeb/static/admin.js
+===================================================================
+--- trunk/rdiffWeb/static/admin.js	2007-10-03 19:18:47 UTC (rev 137)
++++ trunk/rdiffWeb/static/admin.js	2007-10-04 15:53:48 UTC (rev 138)
+@@ -0,0 +1,36 @@
++
++function onEditUser(event)
++{
++   event = event || window.event;
++   var elem = event.target || event.srcElement;
++   
++   /* jump to the next row */
++   var clickRow = elem.parentNode.parentNode;
++   var row = clickRow;
++   do row = row.nextSibling;
++   while (row && (!row.tagName || row.tagName !== "TR"));
++   if (!row)
++      return;
++
++   if (row.className === "notEditingRow")
++   {
++      row.className = "editingRow"
++      clickRow.className = "userEditingRow";
++   }
++   else
++   {
++      row.className = "notEditingRow";
++      clickRow.className = "userNotEditingRow";
++   }
++}
++
++
++addOnLoadEvent(function()
++{
++   var aLinks = document.getElementsByTagName("A");
++   for (var i = 0; i < aLinks.length; i++)
++   {
++      if (aLinks[i].className === "editLink")
++         aLinks[i].onclick = onEditUser;
++   }
++});
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Thu Oct  4 17:55:49 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 4 Oct 2007 17:55:49 +0200
+Subject: [Rdiffweb-commits] r139 - in trunk/rdiffWeb: . static templates
+Message-ID: <200710041555.l94FtnuI002199@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-04 17:55:43 +0200 (Thu, 04 Oct 2007)
+New Revision: 139
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/status.html
+Log:
+Improve UI in status page, including adding links to repos listed
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/page_status.py	2007-10-04 15:55:43 UTC (rev 139)
+@@ -20,7 +20,7 @@
+          return self.writeErrorPage("Invalid date parameter.")
+ 
+       if not repo:
+-         userMessages = self._getUserMessagesForDay(date)
++         userMessages = self._getUserMessagesForDay(entryTime)
+       else:
+          # Validate repo parameter
+          if not repo: return self.writeErrorPage("Backup location not specified.")
+@@ -58,7 +58,14 @@
+          feedTitle = "Backup status for "+self.getUsername()
+       
+       page = self.startPage("Backup Status", rssUrl=feedLink, rssTitle = feedTitle)
+-      page = page + self.compileTemplate("status.html", messages=messages, feedLink=feedLink, statusLink=mainStatusLink, failuresOnlyLink=failuresStatusLink, failuresOnly=failuresOnly, title=title)
++      page = page + self.compileTemplate("status.html", 
++                                         messages=messages,
++                                         feedLink=feedLink,
++                                         statusLink=mainStatusLink,
++                                         failuresOnlyLink=failuresStatusLink,
++                                         failuresOnly=failuresOnly,
++                                         title=title,
++                                         isEntry=not isMainPage)
+       return page + self.endPage()
+ 
+    def _buildAbsolutePageUrl(self, failuresOnly):
+@@ -81,13 +88,13 @@
+ 
+       # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
+       startTime = rdw_helpers.rdwTime()
+-      startTime.timeInSeconds = entryTime.timeInSeconds
+-      startTime.tzOffset = entryTime.tzOffset
++      startTime.timeInSeconds = date.timeInSeconds
++      startTime.tzOffset = date.tzOffset
+       startTime.setTime(0, 0, 0)
+       
+       endTime = rdw_helpers.rdwTime() 	 
+-      endTime.timeInSeconds = entryTime.timeInSeconds 	 
+-      endTime.tzOffset = entryTime.tzOffset
++      endTime.timeInSeconds = date.timeInSeconds 	 
++      endTime.tzOffset = date.tzOffset
+       endTime.setTime(23, 59, 59)
+       
+       print startTime.getDisplayString(), endTime.getDisplayString()
+@@ -110,9 +117,10 @@
+          try:
+             backups = librdiff.getBackupHistoryForDateRange(rdw_helpers.joinPaths(userRoot, repo), earliestDate, latestDate);
+             allBackups += [{"repo": repo, "date": backup.date, "displayDate": backup.date.getDisplayString(),
+-               "size": rdw_helpers.formatFileSizeStr(backup.size), "errors": backup.errors} for backup in backups]
++               "size": rdw_helpers.formatFileSizeStr(backup.size), "errors": backup.errors,
++               "repoLink" : self.buildBrowseUrl(repo, "/", False)} for backup in backups]
+          except librdiff.FileError, error:
+-            repoErrors.append({"repo": repo, "error": error.getErrorString()})
++            repoErrors.append({"repo": repo, "error": error.getErrorString(), "repoLink" : self.buildBrowseUrl(repo, "/", False)})
+ 
+       allBackups.sort(lambda x, y: cmp(y["date"], x["date"]))
+       failedBackups = filter(lambda x: x["errors"], allBackups)
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/static/main.css	2007-10-04 15:55:43 UTC (rev 139)
+@@ -6,7 +6,12 @@
+ a
+ {
+    text-decoration: none;
++   color: blue;
+ }
++a:hover
++{
++   text-decoration: underline;
++}
+ 
+ #NavBar .roundedBorderBackground,
+ #NavBar .roundedBorderContents
+@@ -102,7 +107,7 @@
+ }
+ 
+ 
+-
++/* Status Page */
+ .backupStatus_success,
+ .backupStatus_success a:link,
+ .backupStatus_success a:visited
+@@ -117,6 +122,10 @@
+    color: red;
+    text-decoration: none;
+ }
++.statusRepoLink
++{
++   color: black;
++}
+ 
+ /* Prefs page */
+ p.warning,
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-10-04 15:53:48 UTC (rev 138)
++++ trunk/rdiffWeb/templates/status.html	2007-10-04 15:55:43 UTC (rev 139)
+@@ -15,28 +15,29 @@
+ <!--EndIncludeIf:statusLink-->
+ <!--EndDeleteIf:failuresOnly-->
+ 
++<!--StartDeleteIf:isEntry-->
+ <!--StartIncludeIf:failuresOnly-->
+ <a href="^statusLink$">Include successful backups</a>
+ <!--EndIncludeIf:failuresOnly-->
+ <!--StartDeleteIf:failuresOnly-->
+ <a href="^failuresOnlyLink$">Show only backups with errors</a>
+ <!--EndDeleteIf:failuresOnly-->
+-<!--StartDeleteIf:messages--><p>There are no recent backups to display.</p><!--EndDeleteIf:messages-->
++<!--EndDeleteIf:isEntry-->
++
++<!--StartDeleteIf:messages--><p>There are no recent backups<!--StartDeleteIf:failuresOnly--> to display<!--EndDeleteIf:failuresOnly--><!--StartIncludeIf:failuresOnly--> with errors<!--EndIncludeIf:failuresOnly-->.</p><!--EndDeleteIf:messages-->
++
+ <!--StartRepeat:messages-->
+-
+-<!-- BACKUP SUCCESS -->
+-<!--StartIncludeIf:isSuccess--><h3 class="backupStatus_success"><a href="^link$">Successful Backups for ^dateString$<a></h3>
++<!--StartIncludeIf:isSuccess--><h3 class="backupStatus_success"><a href="^link$">Successful Backups for ^dateString$</a></h3>
+ <div>
+ <p>The following backups have completed successfully:</p>
+ <ul>
+    <!--StartRepeat:backups-->
+-   <li>^displayDate$ - ^repo$ - ^size$</li>
++   <li><a class="statusRepoLink" href="^repoLink$">^displayDate$ - ^repo$ - ^size$</a></li>
+    <!--EndRepeat:backups-->
+ </ul>
+ </div>
+ <!--EndIncludeIf:isSuccess-->
+ 
+-<!-- BACKUP FAILURE -->
+ <!--StartDeleteIf:isSuccess--><h3 class="backupStatus_failure"><a href="^link$">Backup Completed with Errors: ^repo$</a></h3>
+ <div>
+    <p>The backup to <strong>^repo$</strong> on <strong>^displayDate$</strong>
+@@ -49,7 +50,7 @@
+    <p>There following repositories contain errors:</p>
+    <ul>
+       <!--StartRepeat:repoErrors-->
+-      <li>^repo$: ^multiline:error$</li>
++      <li><a class="statusRepoLink" href="^repoLink$">^repo$: ^multiline:error$</a></li>
+       <!--EndRepeat:repoErrors-->
+    </ul>
+    <!--EndIncludeIf:repoErrors-->
+
+
+
+From commits at rdiffweb.org  Thu Oct  4 19:01:46 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 4 Oct 2007 19:01:46 +0200
+Subject: [Rdiffweb-commits] r140 - in trunk/rdiffWeb: . templates
+Message-ID: <200710041701.l94H1kjT021454@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-04 19:01:42 +0200 (Thu, 04 Oct 2007)
+New Revision: 140
+
+Modified:
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/templates/history.html
+Log:
+Another take on increment sizes
+
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-10-04 15:55:43 UTC (rev 139)
++++ trunk/rdiffWeb/page_history.py	2007-10-04 17:01:42 UTC (rev 140)
+@@ -29,20 +29,22 @@
+       rdiffHistory = librdiff.getBackupHistory(repoPath)
+       rdiffHistory.reverse()
+       entries = []
+-      totalIncrementSize = 0
++      cumulativeSize = 0
++      if len(rdiffHistory) > 0: cumulativeSize = rdiffHistory[0].size
++      
+       for historyItem in rdiffHistory:
+          fileSize = ""
+          incrementSize = ""
+          if not historyItem.inProgress:
+             fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
+             incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
+-            totalIncrementSize += historyItem.incrementSize
++            cumulativeSize += historyItem.incrementSize
+          entries.append({ "date" : historyItem.date.getDisplayString(),
+                           "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+-                          "incrementSize" : incrementSize,
++                          "cumulativeSize" : rdw_helpers.formatFileSizeStr(cumulativeSize),
+                           "size" : fileSize })
+-      return {"title" : "Backup history for "+repoName, "history" : entries, "totalBackups" : len(rdiffHistory), "totalIncrementSize" : rdw_helpers.formatFileSizeStr(totalIncrementSize)}
++      return {"title" : "Backup history for "+repoName, "history" : entries, "totalBackups" : len(rdiffHistory)}
+       
+ 
+ class historyPageTest(page_main.pageTest, rdiffHistoryPage):
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-10-04 15:55:43 UTC (rev 139)
++++ trunk/rdiffWeb/templates/history.html	2007-10-04 17:01:42 UTC (rev 140)
+@@ -17,11 +17,10 @@
+       <td></td>
+       <td>Date</td>
+       <td>Size</td>
+-      <td>Increment Size<a class="PopupLink" href="javascript:void 0">?</a></td>
++      <td>Cumulative Size<a class="PopupLink" href="javascript:void 0">?</a></td>
+       <td class="FlyoutContainer">
+          <div id="incrementSizePopup">
+-            For each backup entry, the <b>increment size</b> is the amount of data that changed in the subsequent backup. Said another way, the increment size is the amount of disk space that could be freed if the ability to restore to that backup date would be removed.<br>
+-            <b>You would free ^totalIncrementSize$ if you removed the ability to restore from any prior backup.</b>
++            For each backup entry, the <b>cumulative size</b> is the size of the current backup, plus the amount of data that is required to restore to that point in time.
+          </div>
+       </td>
+       <td>Result</td>
+@@ -33,7 +32,7 @@
+       <td class="Icon" valign="middle"><img src="/static/images/history.png"></img></td>
+       <td>^date$</td>
+       <td>^size$</td>
+-      <td>^incrementSize$</td>
++      <td>^cumulativeSize$</td>
+       <td class="FlyoutContainer"></td>
+       <!--StartIncludeIf:errors-->
+       <td class="BackupResult">
+
+
+
+From commits at rdiffweb.org  Thu Oct  4 22:11:13 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 4 Oct 2007 22:11:13 +0200
+Subject: [Rdiffweb-commits] r141 - trunk
+Message-ID: <200710042011.l94KBDE1008927@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-04 22:11:11 +0200 (Thu, 04 Oct 2007)
+New Revision: 141
+
+Modified:
+   trunk/setup.py
+Log:
+Bump version info
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-10-04 17:01:42 UTC (rev 140)
++++ trunk/setup.py	2007-10-04 20:11:11 UTC (rev 141)
+@@ -8,7 +8,7 @@
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+ if pythonVersion > 2.3:
+    setup(name='rdiffWeb',
+-      version='0.4.0',
++      version='0.5.0',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+@@ -30,7 +30,7 @@
+    packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+ 
+    setup(name='rdiffWeb',
+-      version='0.4.0',
++      version='0.5.0',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Fri Oct  5 17:33:33 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 5 Oct 2007 17:33:33 +0200
+Subject: [Rdiffweb-commits] r142 - in trunk/tests: . deleted_dir
+	deleted_file initial_inprogress inprogress_timezone
+	normal_inprogress simple
+Message-ID: <200710051533.l95FXXjo000998@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-05 17:33:25 +0200 (Fri, 05 Oct 2007)
+New Revision: 142
+
+Modified:
+   trunk/tests/deleted_dir/history_results.txt
+   trunk/tests/deleted_file/history_results.txt
+   trunk/tests/history_template.txt
+   trunk/tests/initial_inprogress/history_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/normal_inprogress/history_results.txt
+   trunk/tests/simple/history_results.txt
+Log:
+Update tests for cumulative increment size
+
+Modified: trunk/tests/deleted_dir/history_results.txt
+===================================================================
+--- trunk/tests/deleted_dir/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/deleted_dir/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,7 +1,6 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ 2007-08-21 21:55:35	0 bytes		False	258 bytes
+-2007-08-21 21:55:24	0 bytes		False	0 bytes
+-2007-08-21 21:55:17	0 bytes		False	0 bytes
+-3 backups, with 258 bytes in increments
+\ No newline at end of file
++2007-08-21 21:55:24	0 bytes		False	258 bytes
++2007-08-21 21:55:17	0 bytes		False	258 bytes
+\ No newline at end of file
+
+Modified: trunk/tests/deleted_file/history_results.txt
+===================================================================
+--- trunk/tests/deleted_file/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/deleted_file/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,7 +1,6 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ 2007-08-21 16:31:27	0 bytes		False	120 bytes
+-2007-08-21 16:31:24	0 bytes		False	211 bytes
+-2007-08-21 16:31:23	141 bytes		False	0 bytes
+-3 backups, with 331 bytes in increments
+\ No newline at end of file
++2007-08-21 16:31:24	0 bytes		False	331 bytes
++2007-08-21 16:31:23	141 bytes		False	331 bytes
+\ No newline at end of file
+
+Modified: trunk/tests/history_template.txt
+===================================================================
+--- trunk/tests/history_template.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/history_template.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,7 +1,6 @@
+ Title: ^title$
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ <!--StartRepeat:history-->
+-^date$	^size$	^errors$	^inProgress$	^incrementSize$
+-<!--EndRepeat:history-->
+-^totalBackups$ backups, with ^totalIncrementSize$ in increments
+\ No newline at end of file
++^date$	^size$	^errors$	^inProgress$	^cumulativeSize$
++<!--EndRepeat:history-->
+\ No newline at end of file
+
+Modified: trunk/tests/initial_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/initial_inprogress/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/initial_inprogress/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,5 +1,4 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
+-2007-08-23 10:05:06			True	
+-1 backups, with 0 bytes in increments
+\ No newline at end of file
++Date	Size	Errors	In Progress?	Cumulative Size
++2007-08-23 10:05:06			True	
+\ No newline at end of file
+
+Modified: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,6 +1,5 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ 2007-09-29 17:13:22			True	
+-2007-09-29 17:09:27	0 bytes		False	0 bytes
+-2 backups, with 0 bytes in increments
+\ No newline at end of file
++2007-09-29 17:09:27	0 bytes		False	0 bytes
+\ No newline at end of file
+
+Modified: trunk/tests/normal_inprogress/history_results.txt
+===================================================================
+--- trunk/tests/normal_inprogress/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/normal_inprogress/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,6 +1,5 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ 2007-08-23 11:30:33			True	
+-2007-08-23 11:28:05	0 bytes		False	0 bytes
+-2 backups, with 0 bytes in increments
+\ No newline at end of file
++2007-08-23 11:28:05	0 bytes		False	0 bytes
+\ No newline at end of file
+
+Modified: trunk/tests/simple/history_results.txt
+===================================================================
+--- trunk/tests/simple/history_results.txt	2007-10-04 20:11:11 UTC (rev 141)
++++ trunk/tests/simple/history_results.txt	2007-10-05 15:33:25 UTC (rev 142)
+@@ -1,7 +1,6 @@
+ Title: Backup history for repo
+ 
+-Date	Size	Errors	In Progress?
++Date	Size	Errors	In Progress?	Cumulative Size
+ 2007-08-21 14:01:42	0 bytes		False	110 bytes
+-2007-08-21 14:01:32	0 bytes		False	200 bytes
+-2007-08-21 14:01:21	141 bytes		False	0 bytes
+-3 backups, with 310 bytes in increments
+\ No newline at end of file
++2007-08-21 14:01:32	0 bytes		False	310 bytes
++2007-08-21 14:01:21	141 bytes		False	310 bytes
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 03:23:20 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 03:23:20 +0200
+Subject: [Rdiffweb-commits] r143 - trunk/rdiffWeb
+Message-ID: <200710100123.l9A1NKeH029110@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 03:23:16 +0200 (Wed, 10 Oct 2007)
+New Revision: 143
+
+Modified:
+   trunk/rdiffWeb/page_browse.py
+Log:
+Fix traceback when attempting to view a non-existent backup location.
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-10-05 15:33:25 UTC (rev 142)
++++ trunk/rdiffWeb/page_browse.py	2007-10-10 01:23:16 UTC (rev 143)
+@@ -19,7 +19,10 @@
+       if not repo in self.userDB.getUserRepoPaths(self.getUsername()):
+          return self.writeErrorPage("Access is denied.")
+ 
+-      parms = self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), repo, path, restore)
++      try:
++         parms = self.getParmsForPage(self.userDB.getUserRoot(self.getUsername()), repo, path, restore)
++      except librdiff.FileError, error:
++         return self.writeErrorPage(str(error))
+       page = self.startPage(parms["title"])
+       page = page + self.compileTemplate("dir_listing.html", **parms)
+       page = page + self.endPage()
+@@ -61,11 +64,8 @@
+          restoreDates = []
+ 
+          # Get list of actual directory entries
+-         try:
+-            fullRepoPath = joinPaths(userRoot, repo)
+-            libEntries = librdiff.getDirEntries(fullRepoPath, path)
+-         except librdiff.FileError, error:
+-            return self.writeErrorPage(str(error))
++         fullRepoPath = joinPaths(userRoot, repo)
++         libEntries = librdiff.getDirEntries(fullRepoPath, path)
+ 
+          entries = []
+          for libEntry in libEntries:
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 03:24:11 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 03:24:11 +0200
+Subject: [Rdiffweb-commits] r144 - trunk/rdiffWeb
+Message-ID: <200710100124.l9A1OBHN029140@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 03:24:09 +0200 (Wed, 10 Oct 2007)
+New Revision: 144
+
+Modified:
+   trunk/rdiffWeb/page_history.py
+Log:
+Don't display cumulative backup size for in-progress backups.
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-10-10 01:23:16 UTC (rev 143)
++++ trunk/rdiffWeb/page_history.py	2007-10-10 01:24:09 UTC (rev 144)
+@@ -35,14 +35,16 @@
+       for historyItem in rdiffHistory:
+          fileSize = ""
+          incrementSize = ""
++         cumulativeSizeStr = ""
+          if not historyItem.inProgress:
+             fileSize = rdw_helpers.formatFileSizeStr(historyItem.size)
+             incrementSize = rdw_helpers.formatFileSizeStr(historyItem.incrementSize)
+             cumulativeSize += historyItem.incrementSize
++            cumulativeSizeStr = rdw_helpers.formatFileSizeStr(cumulativeSize)
+          entries.append({ "date" : historyItem.date.getDisplayString(),
+                           "inProgress" : historyItem.inProgress,
+                           "errors" : historyItem.errors,
+-                          "cumulativeSize" : rdw_helpers.formatFileSizeStr(cumulativeSize),
++                          "cumulativeSize" : cumulativeSizeStr,
+                           "size" : fileSize })
+       return {"title" : "Backup history for "+repoName, "history" : entries, "totalBackups" : len(rdiffHistory)}
+       
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 03:25:03 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 03:25:03 +0200
+Subject: [Rdiffweb-commits] r145 - trunk/rdiffWeb
+Message-ID: <200710100125.l9A1P3kU029273@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 03:25:00 +0200 (Wed, 10 Oct 2007)
+New Revision: 145
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Small change to make tests more helpful.
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-10-10 01:24:09 UTC (rev 144)
++++ trunk/rdiffWeb/page_main.py	2007-10-10 01:25:00 UTC (rev 145)
+@@ -110,7 +110,9 @@
+    # templates for each of the pages to test
+ 
+    def _getBackupTests(self):
+-      return filter(lambda x: not x.startswith(".") and os.path.isdir(rdw_helpers.joinPaths(self.destRoot, x)), os.listdir(self.destRoot))
++      tests = filter(lambda x: not x.startswith(".") and os.path.isdir(rdw_helpers.joinPaths(self.destRoot, x)), os.listdir(self.destRoot))
++      tests.sort()
++      return tests
+    
+    def _getFileText(self, testName, templateName):
+       return open(rdw_helpers.joinPaths(self.destRoot, testName, templateName)).read()
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 03:39:36 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 03:39:36 +0200
+Subject: [Rdiffweb-commits] r146 - trunk/rdiffWeb
+Message-ID: <200710100139.l9A1da8Z029833@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 03:39:34 +0200 (Wed, 10 Oct 2007)
+New Revision: 146
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Handle quoted repositories
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-10 01:25:00 UTC (rev 145)
++++ trunk/rdiffWeb/librdiff.py	2007-10-10 01:39:34 UTC (rev 146)
+@@ -38,8 +38,8 @@
+ ##### Interfaced objects #####
+ class dirEntry:
+    """Includes name, isDir, fileSize, exists, and dict (changeDates) of sorted local dates when backed up"""
+-   def __init__(self, name, isDir, fileSize, exists, changeDates):
+-      self.name = name
++   def __init__(self, name, quoter, isDir, fileSize, exists, changeDates):
++      self.name = quoter.getUnquotedPath(name)
+       self.isDir = isDir
+       self.fileSize = fileSize
+       self.exists = exists
+@@ -60,8 +60,8 @@
+    missingSuffix = ".missing"
+    suffixes = [".missing", ".snapshot.gz", ".snapshot", ".diff.gz", ".data.gz", ".data", ".dir", ".diff"];
+ 
+-   def __init__(self, incrementName):
+-      self.entryName = incrementName
++   def __init__(self, pathQuoter, incrementName):
++      self.entryName = pathQuoter.getUnquotedPath(incrementName)
+ 
+    def shouldShowIncrement(self):
+       return self.hasIncrementSuffix(self.entryName) and not self.isMissingIncrement()
+@@ -118,15 +118,44 @@
+             return filename[0:-len(suffix)]
+       return filename
+ 
+-
+ rdiffDataDirName = "rdiff-backup-data"
+ rdiffIncrementsDirName = joinPaths(rdiffDataDirName, "increments")
+ 
++class rdiffQuotedPath:
++   def __init__(self, repoRoot):
++      self.unquoteRegex = re.compile(";[0-9]{3}", re.S)
++      
++      charsToQuotePath = joinPaths(repoRoot, rdiffDataDirName, "chars_to_quote")
++      if os.path.exists(charsToQuotePath):
++         self.quoteRegex = re.compile("[^/%s]|;" % open(charsToQuotePath).read(), re.S)
++      
++   def getUnquotedPath(self, quotedPath):
++      return self.unquoteRegex.sub(self.getUnquotedChar, quotedPath)
++   
++   def getQuotedPath(self, unQuotedPath):
++      return self.quoteRegex.sub(self.getQuotedChar, unQuotedPath)
++   
++   # This function just gives back the original text if it can decode it
++   def getUnquotedChar(self, match):
++      if not len(match.group()) == 4:
++         return match.group
++      try:
++         return chr(int(match.group()[1:]))
++      except ValueError:
++         return match.group
++   
++   def getQuotedChar(self, match):
++      return ";%03d" % (ord(match.group()))
++
+ class rdiffDirEntries:
+    """This class is responsible for building a listing of directory entries.
+       All knowledge of how increments work is contained in this class."""
++      
++   # dirPath must be quoted!
+    def init(self, repo, dirPath):
+       # Var assignment and validation
++      self.pathQuoter = rdiffQuotedPath(repo)
++      
+       self.repo = repo
+       self.dirPath = dirPath
+       self.completePath = joinPaths(repo, dirPath)
+@@ -142,8 +171,8 @@
+       if os.access(incrementsDir, os.F_OK): # the increments may not exist if the folder has existed forever and never been changed
+          self.incrementEntries = os.listdir(incrementsDir)
+ 
+-      self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(x).getFilename())
+-      self.backupTimes = [ incrementEntry(x).getDate() for x in filter(lambda x: x.startswith("mirror_metadata"), self.dataDirEntries) ]
++      self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(self.pathQuoter, x).getFilename())
++      self.backupTimes = [ incrementEntry(self.pathQuoter, x).getDate() for x in filter(lambda x: x.startswith("mirror_metadata"), self.dataDirEntries) ]
+       self.backupTimes.sort()
+ 
+    def getDirEntries(self):
+@@ -154,13 +183,13 @@
+       for entryName in self.entries:
+          if entryName == rdiffDataDirName: continue
+          entryPath = joinPaths(self.repo, self.dirPath, entryName)
+-         newEntry = dirEntry(entryName, os.path.isdir(entryPath), os.lstat(entryPath)[6], True,
++         newEntry = dirEntry(entryName, self.pathQuoter, os.path.isdir(entryPath), os.lstat(entryPath)[6], True,
+                              [self._getLastChangedBackupTime(entryName)])
+-         entriesDict[entryName] = newEntry
++         entriesDict[newEntry.name] = newEntry
+ 
+       # Go through the increments dir.  If we find any files that didn't exist in dirPath (i.e. have been deleted), add them
+       for entryFile in self.incrementEntries:
+-         entry = incrementEntry(entryFile)
++         entry = incrementEntry(self.pathQuoter, entryFile)
+          entryName = entry.getFilename()
+          if entry.shouldShowIncrement() or entry.isMissingIncrement():
+             entryDate = entry.getDate()
+@@ -171,7 +200,7 @@
+                   entryDate = entry.getDate()
+             if not entryName in entriesDict.keys():
+                entryPath = joinPaths(self.repo, rdiffIncrementsDirName, self.dirPath, entryName)
+-               newEntry = dirEntry(entryName, os.path.isdir(entryPath), 0, False, [entryDate])
++               newEntry = dirEntry(entryName, self.pathQuoter, os.path.isdir(entryPath), 0, False, [entryDate])
+                entriesDict[entryName] = newEntry
+             else:
+                if not entryDate in entriesDict[entryName].changeDates:
+@@ -192,7 +221,7 @@
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+-      return self._getFirstBackupAfterDate(incrementEntry(files[-1]).getDate())
++      return self._getFirstBackupAfterDate(incrementEntry(self.pathQuoter, files[-1]).getDate())
+ 
+ 
+ def getSessionStatsFile(rdiffDataDir, entry):
+@@ -243,6 +272,7 @@
+ ##### Interfaced Functions #####
+ def getDirEntries(repoRoot, dirPath):
+    """Returns list of rdiffDirEntry objects.  dirPath is relative to repoPath."""
++   dirPath = rdiffQuotedPath(repoRoot).getQuotedPath(dirPath)
+    checkRepoPath(repoRoot, dirPath)
+ 
+    entryLister = rdiffDirEntries()
+@@ -260,7 +290,9 @@
+ import tempfile
+ def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate):
+    """ returns a file path to the file.  User is responsible for deleting file, as well as containing dir, after use. """
+-   checkRepoPath(repoRoot, joinPaths(dirPath, filename))
++   filePath = joinPaths(dirPath, filename)
++   filePath = rdiffQuotedPath(repoRoot).getQuotedPath(filePath)
++   checkRepoPath(repoRoot, filePath)
+ 
+    restoredFilename = filename
+    if restoredFilename == "/":
+@@ -292,7 +324,7 @@
+       return True
+    mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
+    for marker in mirrorMarkers:
+-      if incrementEntry(marker).getDate().getSeconds() == date.getSeconds():
++      if incrementEntry(rdiffQuotedPath(repo), marker).getDate().getSeconds() == date.getSeconds():
+          return True
+    return False
+ 
+@@ -318,6 +350,8 @@
+ def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+    """Returns a list of backupHistoryEntry's"""
+    checkRepoPath(repoRoot, "")
++   
++   pathQuoter = rdiffQuotedPath(repoRoot)
+ 
+    # Get a listing of error log files, and use that to build backup history
+    rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
+@@ -327,7 +361,7 @@
+ 
+    entries = []
+    for entryFile in curEntries:
+-      entry = incrementEntry(entryFile)
++      entry = incrementEntry(pathQuoter, entryFile)
+       # compare local times because of discrepency between client/server time zones
+       if earliestDate and entry.getDate().getLocalSeconds() < earliestDate.getLocalSeconds():
+          continue
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 03:42:04 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 03:42:04 +0200
+Subject: [Rdiffweb-commits] r147 - in trunk/tests: . quoting quoting/repo
+	quoting/repo/; 067ap; 067ase; 068ir quoting/repo/rdiff-backup-data
+	quoting/repo/rdiff-backup-data/increments
+	quoting/repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+Message-ID: <200710100142.l9A1g4sO029920@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 03:41:49 +0200 (Wed, 10 Oct 2007)
+New Revision: 147
+
+Added:
+   trunk/tests/quoting/
+   trunk/tests/quoting/browse_results.txt
+   trunk/tests/quoting/history_results.txt
+   trunk/tests/quoting/locations_results.txt
+   trunk/tests/quoting/repo/
+   trunk/tests/quoting/repo/;067ap;067ase;068ir/
+   trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile
+   trunk/tests/quoting/repo/rdiff-backup-data/
+   trunk/tests/quoting/repo/rdiff-backup-data/backup.log
+   trunk/tests/quoting/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data
+   trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-05;08409;05856;05829-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-07;08415;05855;05850-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-05;08409;05856;05829-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-07;08415;05855;05850-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-05;08409;05856;05829-05;05800.dir
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-05;08409;05856;05829-05;05800.missing
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-05;08409;05856;05829-05;05800.missing
+   trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/restore.log
+   trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-05;08409;05856;05829-05;05800.data
+   trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-07;08415;05855;05850-05;05800.data
+Log:
+Add tests for quoted repositories.
+
+Added: trunk/tests/quoting/browse_results.txt
+===================================================================
+--- trunk/tests/quoting/browse_results.txt	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/browse_results.txt	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,6 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++CapCaseDir	 	2007-10-07 15:55:50	0	True
+\ No newline at end of file
+
+Added: trunk/tests/quoting/history_results.txt
+===================================================================
+--- trunk/tests/quoting/history_results.txt	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/history_results.txt	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?	Cumulative Size
++2007-10-07 15:55:50	0 bytes		False	0 bytes
++2007-10-05 09:56:29	0 bytes		False	0 bytes
+\ No newline at end of file
+
+Added: trunk/tests/quoting/locations_results.txt
+===================================================================
+--- trunk/tests/quoting/locations_results.txt	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/locations_results.txt	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-10-07 15:55:50	0 bytes
+
+Added: trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile
+===================================================================
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/backup.log
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/backup.log
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/chars_to_quote	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/repo/rdiff-backup-data/chars_to_quote	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1 @@
++^a-z0-9_ -.
+\ No newline at end of file
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/chars_to_quote
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1 @@
++PID 23612
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-05;08409;05856;05829-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-05;08409;05856;05829-05;05800.data.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-07;08415;05855;05850-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-07;08415;05855;05850-05;05800.data.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-05;08409;05856;05829-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-05;08409;05856;05829-05;05800.data.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-07;08415;05855;05850-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-07;08415;05855;05850-05;05800.data.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-05;08409;05856;05829-05;05800.missing
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-05;08409;05856;05829-05;05800.missing
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-05;08409;05856;05829-05;05800.missing
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-05;08409;05856;05829-05;05800.missing
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-05;08409;05856;05829-05;05800.dir
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-05;08409;05856;05829-05;05800.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-05;08409;05856;05829-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-07;08415;05855;05850-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:executable
+   + *
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/restore.log
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/restore.log	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/repo/rdiff-backup-data/restore.log	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,2 @@
++Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpWDXPKl/CapCaseFile as it was as of Sun Oct  7 15:55:50 2007.
++Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpzQtVvx/CapCaseFile as it was as of Fri Oct  5 09:56:29 2007.
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-05;08409;05856;05829-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-05;08409;05856;05829-05;05800.data	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-05;08409;05856;05829-05;05800.data	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,18 @@
++StartTime 1191596189.00 (Fri Oct  5 09:56:29 2007)
++EndTime 1191596189.22 (Fri Oct  5 09:56:29 2007)
++ElapsedTime 0.22 (0.22 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-05;08409;05856;05829-05;05800.data
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-07;08415;05855;05850-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-07;08415;05855;05850-05;05800.data	2007-10-10 01:39:34 UTC (rev 146)
++++ trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-07;08415;05855;05850-05;05800.data	2007-10-10 01:41:49 UTC (rev 147)
+@@ -0,0 +1,18 @@
++StartTime 1191790550.00 (Sun Oct  7 15:55:50 2007)
++EndTime 1191790550.50 (Sun Oct  7 15:55:50 2007)
++ElapsedTime 0.50 (0.50 seconds)
++SourceFiles 3
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 2
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 3
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-07;08415;05855;05850-05;05800.data
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+
+
+From commits at rdiffweb.org  Wed Oct 10 18:11:39 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 10 Oct 2007 18:11:39 +0200
+Subject: [Rdiffweb-commits] r148 - trunk/rdiffWeb
+Message-ID: <200710101611.l9AGBdYR021577@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-10 18:11:36 +0200 (Wed, 10 Oct 2007)
+New Revision: 148
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix increment sizes in quoted repos
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-10 01:41:49 UTC (rev 147)
++++ trunk/rdiffWeb/librdiff.py	2007-10-10 16:11:36 UTC (rev 148)
+@@ -27,9 +27,6 @@
+       self.errorString = "An unknown error occurred."
+ 
+ ##### Helper Functions #####
+-def getSessionStatsFileName(dateString):
+-   return "session_statistics."+dateString+".data"
+-
+ def rsplit(string, sep, count=-1):
+     L = [part[::-1] for part in string[::-1].split(sep[::-1], count)]
+     L.reverse()
+@@ -127,12 +124,15 @@
+       
+       charsToQuotePath = joinPaths(repoRoot, rdiffDataDirName, "chars_to_quote")
+       if os.path.exists(charsToQuotePath):
+-         self.quoteRegex = re.compile("[^/%s]|;" % open(charsToQuotePath).read(), re.S)
++         charsToQuoteStr = open(charsToQuotePath).read()
++         if charsToQuoteStr:
++            self.quoteRegex = re.compile("[^/%s]|;" % charsToQuoteStr, re.S)
+       
+    def getUnquotedPath(self, quotedPath):
+       return self.unquoteRegex.sub(self.getUnquotedChar, quotedPath)
+    
+    def getQuotedPath(self, unQuotedPath):
++      if not hasattr(self, "quoteRegex"): return unQuotedPath
+       return self.quoteRegex.sub(self.getQuotedChar, unQuotedPath)
+    
+    # This function just gives back the original text if it can decode it
+@@ -224,11 +224,14 @@
+       return self._getFirstBackupAfterDate(incrementEntry(self.pathQuoter, files[-1]).getDate())
+ 
+ 
+-def getSessionStatsFile(rdiffDataDir, entry):
++def getSessionStatsFile(rdiffDataDir, entry, pathQuoter):
+    """Attempts to get the sessions statistics file for a given backup. Tries the following to find a match:
+       1. The date with no timezone information
+       2. The date, 1 hour in the past, with no timezone information
+       3. The date with timezone information"""
++   def getSessionStatsFileName(dateString):
++      return "session_statistics."+pathQuoter.getQuotedPath(dateString)+".data"
++
+    sessionStatsPath = joinPaths(rdiffDataDir, getSessionStatsFileName(entry.getDateStringNoTZ()))
+    if os.access(sessionStatsPath, os.F_OK):
+       return sessionStatsPath
+@@ -377,7 +380,7 @@
+       except IOError:
+          errors = "[Unable to read errors file.]"
+       try:
+-         sessionStatsPath = getSessionStatsFile(rdiffDir, entry)
++         sessionStatsPath = getSessionStatsFile(rdiffDir, entry, pathQuoter)
+          session_stats = open(sessionStatsPath, "r").read()
+          fileSize = re.compile("SourceFileSize ([0-9]+) ").findall(session_stats)[0]
+          incrementSize = re.compile("IncrementFileSize ([0-9]+) ").findall(session_stats)[0]
+
+
+
+From commits at rdiffweb.org  Fri Oct 12 17:31:25 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 12 Oct 2007 17:31:25 +0200
+Subject: [Rdiffweb-commits] r149 - in trunk/tests/quoting: . repo/; 067ap;
+	067ase;
+	068ir repo/rdiff-backup-data repo/rdiff-backup-data/increments
+	repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+Message-ID: <200710121531.l9CFVPj8028794@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-12 17:31:05 +0200 (Fri, 12 Oct 2007)
+New Revision: 149
+
+Added:
+   trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-10;08407;05843;05838-05;05800.data
+   trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-10;08407;05843;05838-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-10;08407;05843;05838-05;05800.data.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-07;08415;05855;05850-05;05800.dir
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-07;08415;05855;05850-05;05800.dir
+   trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-07;08415;05855;05850-05;05800.diff.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+   trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-10;08407;05843;05838-05;05800.data
+Removed:
+   trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data
+Modified:
+   trunk/tests/quoting/history_results.txt
+   trunk/tests/quoting/locations_results.txt
+   trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile
+   trunk/tests/quoting/repo/rdiff-backup-data/restore.log
+Log:
+More extensive quoting tests
+
+Modified: trunk/tests/quoting/history_results.txt
+===================================================================
+--- trunk/tests/quoting/history_results.txt	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/history_results.txt	2007-10-12 15:31:05 UTC (rev 149)
+@@ -1,5 +1,6 @@
+ Title: Backup history for repo
+ 
+ Date	Size	Errors	In Progress?	Cumulative Size
+-2007-10-07 15:55:50	0 bytes		False	0 bytes
+-2007-10-05 09:56:29	0 bytes		False	0 bytes
+\ No newline at end of file
++2007-10-10 07:43:38	21 bytes		False	217 bytes
++2007-10-07 15:55:50	0 bytes		False	217 bytes
++2007-10-05 09:56:29	0 bytes		False	217 bytes
+\ No newline at end of file
+
+Modified: trunk/tests/quoting/locations_results.txt
+===================================================================
+--- trunk/tests/quoting/locations_results.txt	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/locations_results.txt	2007-10-12 15:31:05 UTC (rev 149)
+@@ -1,3 +1,3 @@
+ Name	Last Backup	Last Backup Size
+ 
+-repo	2007-10-07 15:55:50	0 bytes
++repo	2007-10-10 07:43:38	21 bytes
+
+Modified: trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile
+===================================================================
+--- trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/repo/;067ap;067ase;068ir/;067ap;067ase;070ile	2007-10-12 15:31:05 UTC (rev 149)
+@@ -0,0 +1 @@
++This is only a test.
+
+Deleted: trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-07;08415;05855;05850-05;05800.data	2007-10-12 15:31:05 UTC (rev 149)
+@@ -1 +0,0 @@
+-PID 23612
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-10;08407;05843;05838-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-10;08407;05843;05838-05;05800.data	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/repo/rdiff-backup-data/current_mirror.2007-10-10;08407;05843;05838-05;05800.data	2007-10-12 15:31:05 UTC (rev 149)
+@@ -0,0 +1 @@
++PID 17491
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-10;08407;05843;05838-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/error_log.2007-10-10;08407;05843;05838-05;05800.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/extended_attributes.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-10;08407;05843;05838-05;05800.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/file_statistics.2007-10-10;08407;05843;05838-05;05800.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-07;08415;05855;05850-05;05800.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir/;067ap;067ase;070ile.2007-10-07;08415;05855;05850-05;05800.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-07;08415;05855;05850-05;05800.dir
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments/;067ap;067ase;068ir.2007-10-07;08415;05855;05850-05;05800.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-07;08415;05855;05850-05;05800.dir
+===================================================================
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/increments.2007-10-07;08415;05855;05850-05;05800.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/quoting/repo/rdiff-backup-data/mirror_metadata.2007-10-10;08407;05843;05838-05;05800.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Modified: trunk/tests/quoting/repo/rdiff-backup-data/restore.log
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/restore.log	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/repo/rdiff-backup-data/restore.log	2007-10-12 15:31:05 UTC (rev 149)
+@@ -1,2 +1,20 @@
+ Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpWDXPKl/CapCaseFile as it was as of Sun Oct  7 15:55:50 2007.
+ Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpzQtVvx/CapCaseFile as it was as of Fri Oct  5 09:56:29 2007.
++Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpwVogxu/CapCaseFile as it was as of Fri Oct  5 09:56:29 2007.
++Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpFof4UX/CapCaseFile as it was as of Sun Oct  7 15:55:50 2007.
++Tue Oct  9 20:51:30 2007  Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpyrdH_C/CapCaseFile as it was as of Sun Oct  7 15:55:50 2007.
++Tue Oct  9 20:51:30 2007  Processing changed file .
++Tue Oct  9 20:51:30 2007  Regular copying () to /tmp/tmpyrdH_C/rdiff-backup.tmp.1
++Tue Oct  9 20:51:30 2007  Writing file object to /tmp/tmpyrdH_C/rdiff-backup.tmp.1
++Tue Oct  9 20:51:30 2007  Copying attributes from () to /tmp/tmpyrdH_C/rdiff-backup.tmp.1
++Tue Oct  9 20:51:30 2007  Setting time of /tmp/tmpyrdH_C/rdiff-backup.tmp.1 to 1191790450
++Tue Oct  9 20:51:30 2007  Removing directory /tmp/tmpyrdH_C/CapCaseFile
++Tue Oct  9 20:51:30 2007  Renaming /tmp/tmpyrdH_C/rdiff-backup.tmp.1 to /tmp/tmpyrdH_C/CapCaseFile
++Tue Oct  9 20:51:30 2007  Restore finished
++Tue Oct  9 20:51:30 2007  Cleaning up
++Tue Oct  9 20:51:33 2007  Starting restore of /home/joshn/projects/rdiffweb_official/tests/quoting/repo/CapCaseDir/CapCaseFile to /tmp/tmpMZZeUT/CapCaseFile as it was as of Fri Oct  5 09:56:29 2007.
++Tue Oct  9 20:51:33 2007  Processing changed file .
++Tue Oct  9 20:51:33 2007  Regular copying () to /tmp/tmpMZZeUT/rdiff-backup.tmp.1
++Tue Oct  9 20:51:33 2007  Removing directory /tmp/tmpMZZeUT/CapCaseFile
++Tue Oct  9 20:51:33 2007  Restore finished
++Tue Oct  9 20:51:33 2007  Cleaning up
+
+Added: trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-10;08407;05843;05838-05;05800.data
+===================================================================
+--- trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-10;08407;05843;05838-05;05800.data	2007-10-10 16:11:36 UTC (rev 148)
++++ trunk/tests/quoting/repo/rdiff-backup-data/session_statistics.2007-10-10;08407;05843;05838-05;05800.data	2007-10-12 15:31:05 UTC (rev 149)
+@@ -0,0 +1,18 @@
++StartTime 1192020218.00 (Wed Oct 10 07:43:38 2007)
++EndTime 1192020218.88 (Wed Oct 10 07:43:38 2007)
++ElapsedTime 0.88 (0.88 seconds)
++SourceFiles 3
++SourceFileSize 21 (21 bytes)
++MirrorFiles 3
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 3
++ChangedSourceSize 21 (21 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 3
++IncrementFileSize 196 (196 bytes)
++TotalDestinationSizeChange 217 (217 bytes)
++Errors 0
+
+
+
+From commits at rdiffweb.org  Sun Oct 14 06:42:44 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 14 Oct 2007 06:42:44 +0200
+Subject: [Rdiffweb-commits] r150 - trunk
+Message-ID: <200710140442.l9E4giMZ020112@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-14 06:42:41 +0200 (Sun, 14 Oct 2007)
+New Revision: 150
+
+Modified:
+   trunk/rdiff-web
+Log:
+Misc cleanup
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-12 15:31:05 UTC (rev 149)
++++ trunk/rdiff-web	2007-10-14 04:42:41 UTC (rev 150)
+@@ -6,19 +6,13 @@
+ import rdiffWeb.rdw_config
+ import sys
+ 
+-def isValidSessionDir(sessionDir):
+-   return os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK)
+-
+ if __name__ == "__main__":
+-
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+    if not rdiffWeb.rdw_config.getConfigFile():
+-      import os
+       if os.getuid() != 0:
+          print "Error: rdiffWeb must be run as root."
+       else:
+          print """Error: rdiffWeb has been installed, but no configuration file exists. \nPlease run 'rdiff-web-config' to configure rdiffWeb."""
+-      import sys
+       sys.exit(2)
+ 
+ 
+@@ -45,7 +39,7 @@
+    if pidFile:
+       # Write our process id to specified file, so we can be killed later
+       open(pidFile, 'a').write(str(os.getpid())+"\n")
+-
++      
+    # We import the rdiffWeb modules now instead of at the top of the file because it needs to access
+    # the config file, and the config file may not exist
+    import rdiffWeb.page_admin
+@@ -89,7 +83,7 @@
+ 
+    if rdiffWeb.rdw_config.getConfigSetting("SessionStorage").lower() == "disk":
+       sessionDir = rdiffWeb.rdw_config.getConfigSetting("SessionDir")
+-      if isValidSessionDir(sessionDir):
++      if os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK):
+          cherrypy.log("Setting session mode to disk in directory %s" % sessionDir)
+          settings['sessionFilter'] = True
+          settings['sessionFilter.storageType'] = 'File'
+@@ -103,5 +97,5 @@
+    cherrypy.root.status = rdiffWeb.page_status.rdiffStatusPage()
+    cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
+    cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
++   
+    cherrypy.server.start()
+-
+
+
+
+From commits at rdiffweb.org  Sun Oct 14 06:43:18 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 14 Oct 2007 06:43:18 +0200
+Subject: [Rdiffweb-commits] r151 - trunk
+Message-ID: <200710140443.l9E4hIpm020725@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-14 06:43:11 +0200 (Sun, 14 Oct 2007)
+New Revision: 151
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn on gzip compression
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-14 04:42:41 UTC (rev 150)
++++ trunk/rdiff-web	2007-10-14 04:43:11 UTC (rev 151)
+@@ -58,6 +58,7 @@
+       serverPort = int(rdiffWeb.rdw_config.getConfigSetting("ServerPort"))
+    settings = {
+       'sessionFilter.on' : True,
++      'gzipFilter.on': True,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting("ServerName"),
+       'server.socketPort' : serverPort,
+       'server.logFile' : logFile,
+
+
+
+From commits at rdiffweb.org  Sun Oct 14 06:43:58 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 14 Oct 2007 06:43:58 +0200
+Subject: [Rdiffweb-commits] r152 - trunk
+Message-ID: <200710140443.l9E4hwZU021593@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-14 06:43:54 +0200 (Sun, 14 Oct 2007)
+New Revision: 152
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn on encoding filter. Hopefully this will result in correct output for non-English pages.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-14 04:43:11 UTC (rev 151)
++++ trunk/rdiff-web	2007-10-14 04:43:54 UTC (rev 152)
+@@ -59,6 +59,7 @@
+    settings = {
+       'sessionFilter.on' : True,
+       'gzipFilter.on': True,
++      'encodingFilter.on' : True,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting("ServerName"),
+       'server.socketPort' : serverPort,
+       'server.logFile' : logFile,
+
+
+
+From commits at rdiffweb.org  Sun Oct 14 06:48:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 14 Oct 2007 06:48:24 +0200
+Subject: [Rdiffweb-commits] r153 - trunk/rdiffWeb
+Message-ID: <200710140448.l9E4mOZ0025704@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-14 06:48:21 +0200 (Sun, 14 Oct 2007)
+New Revision: 153
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Really turn on encoding filter.
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-10-14 04:43:54 UTC (rev 152)
++++ trunk/rdiffWeb/page_main.py	2007-10-14 04:48:21 UTC (rev 153)
+@@ -7,13 +7,14 @@
+ import rdw_templating
+ import rdw_helpers
+ import rdw_config
+-from filter_https import rdwHttpsFilter
+-from filter_authentication import rdwAuthenticationFilter
++import filter_https
++import filter_authentication
++import cherrypy.filters.encodingfilter
+ 
+ def getFilters():
+-   filters = [rdwAuthenticationFilter()]
++   filters = [filter_authentication.rdwAuthenticationFilter(), cherrypy.filters.encodingfilter.EncodingFilter()]
+    if rdw_config.getConfigSetting("UseHttps").upper() == "TRUE":
+-      filters.append(rdwHttpsFilter())
++      filters.append(filter_https.rdwHttpsFilter())
+    return filters
+ 
+ 
+@@ -130,7 +131,7 @@
+ 
+    def setUp(self):
+       self.destRoot = rdw_helpers.joinPaths(os.path.realpath(tempfile.gettempdir()), "rdiffWeb")
+-      self.masterDirPath = os.path.realpath("tests") # TODO: do this right, including tying tests into "python setup.py test"
++      self.masterDirPath = os.path.realpath("tests")
+       self.tearDown()
+       
+       # Copy and set up each test
+
+
+
+From commits at rdiffweb.org  Sun Oct 14 06:50:47 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 14 Oct 2007 06:50:47 +0200
+Subject: [Rdiffweb-commits] r154 - in trunk: . rdiffWeb
+Message-ID: <200710140450.l9E4oljP027793@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-14 06:50:40 +0200 (Sun, 14 Oct 2007)
+New Revision: 154
+
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/rdw_spider_repos.py
+   trunk/rdw.conf.sample
+Log:
+Add an optional background thread to update repos.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-14 04:48:21 UTC (rev 153)
++++ trunk/rdiff-web	2007-10-14 04:50:40 UTC (rev 154)
+@@ -5,6 +5,8 @@
+ import os
+ import rdiffWeb.rdw_config
+ import sys
++import rdiffWeb.rdw_spider_repos
++import threading
+ 
+ if __name__ == "__main__":
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+@@ -100,4 +102,10 @@
+    cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
+    cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
+    
++   # Start repo spider thread
++   killEvent = threading.Event()
++
++   rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
++   cherrypy.server.on_stop_server_list.append(lambda: killEvent.set())
++   
+    cherrypy.server.start()
+
+Modified: trunk/rdiffWeb/rdw_spider_repos.py
+===================================================================
+--- trunk/rdiffWeb/rdw_spider_repos.py	2007-10-14 04:48:21 UTC (rev 153)
++++ trunk/rdiffWeb/rdw_spider_repos.py	2007-10-14 04:50:40 UTC (rev 154)
+@@ -1,12 +1,37 @@
+ #!/usr/bin/python
+ 
+ import os
+-import db_mysql, rdw_helpers, librdiff
++import db
++import rdw_helpers
++import librdiff
++import rdw_config
++import time
++import threading
+ 
++# Returns pid of started process, or 0 if no process was started
++def startRepoSpiderThread(killEvent):
++   newThread = spiderReposThread(killEvent)
++   newThread.start()
++
++class spiderReposThread(threading.Thread):
++   def __init__(self, killEvent):
++      self.killEvent = killEvent
++      threading.Thread.__init__(self)
++      
++   def run(self):
++      spiderInterval = rdw_config.getConfigSetting("autoUpdateRepos")
++      if spiderInterval:
++         spiderInterval = int(spiderInterval)         
++         while True:
++            findReposForAllUsers()
++            self.killEvent.wait(60*spiderInterval)
++            if self.killEvent.isSet():
++               return
++      
++
+ def _findRdiffRepos(dirToSearch, outRepoPaths):
+    dirEntries = os.listdir(dirToSearch)
+    if librdiff.rdiffDataDirName in dirEntries:
+-      print "   Found repo at " + dirToSearch
+       outRepoPaths.append(dirToSearch)
+       return
+ 
+@@ -30,12 +55,10 @@
+ 
+ 
+ def findReposForAllUsers():
+-   userDBModule = db_mysql.mysqlUserDB()
++   userDBModule = db.userDB().getUserDBModule()
++   if not userDBModule.modificationsSupported(): return
++   
+    users = userDBModule.getUserList()
+    for user in users:
+-      print "Adding repos for user %s..." % user
+       findReposForUser(user, userDBModule)
+ 
+-
+-if __name__ == "__main__":
+-   findReposForAllUsers()
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2007-10-14 04:48:21 UTC (rev 153)
++++ trunk/rdw.conf.sample	2007-10-14 04:50:40 UTC (rev 154)
+@@ -30,3 +30,7 @@
+ # emailSender=john at doe.com
+ # emailUsername=email_user # May be blank, if the smtp server does not require authentication
+ # emailPassword=email_password # May be blank, if the smtp server does not require authentication
++
++# rdiffWeb can automatically update all user repositories. Automatic updates can be be
++# enabled by setting the interval in minutes between updates.
++# autoUpdateRepos=15 # Update user repositories every 15 minutes
+
+
+
+From commits at rdiffweb.org  Tue Oct 16 03:57:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 16 Oct 2007 03:57:24 +0200
+Subject: [Rdiffweb-commits] r155 - in trunk: . rdiffWeb rdiffWeb/templates
+Message-ID: <200710160157.l9G1vORg023800@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-16 03:57:19 +0200 (Tue, 16 Oct 2007)
+New Revision: 155
+
+Added:
+   trunk/rdiffWeb/page_error.py
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/templates/page_start.html
+Log:
+Change server to display basic error page instead of crashing if it can't find a config file. This should reduce installation confusion and make it easier for scripts to start on installation.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-14 04:50:40 UTC (rev 154)
++++ trunk/rdiff-web	2007-10-16 01:57:19 UTC (rev 155)
+@@ -7,14 +7,28 @@
+ import sys
+ import rdiffWeb.rdw_spider_repos
+ import threading
++import rdiffWeb.page_error
+ 
+ if __name__ == "__main__":
++   
++   # Initialize config options for static files, so that if we error out, then we can at least display a basic web page.
++   cherrypy.config.update({
++      '/static' : {
++         'staticFilter.on' : True,
++         'staticFilter.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
++         'staticFilter.dir': "static",
++         'rdwAuthenticateFilter.on' : False
++      }
++   })
++   
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+    if not rdiffWeb.rdw_config.getConfigFile():
+       if os.getuid() != 0:
+-         print "Error: rdiffWeb must be run as root."
++         error = "Error: rdiffWeb must be run as root."
+       else:
+-         print """Error: rdiffWeb has been installed, but no configuration file exists. \nPlease run 'rdiff-web-config' to configure rdiffWeb."""
++         error =  "<h2>Error: rdiffWeb has been installed, but no configuration file exists.<br/>Please run 'rdiff-web-config' to configure settings, then restart rdiffWeb.</h2>"
++      cherrypy.root = rdiffWeb.page_error.rdiffErrorPage(error)
++      cherrypy.server.start()
+       sys.exit(2)
+ 
+ 
+@@ -65,12 +79,6 @@
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting("ServerName"),
+       'server.socketPort' : serverPort,
+       'server.logFile' : logFile,
+-      '/static' : {
+-         'staticFilter.on' : True,
+-         'staticFilter.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+-         'staticFilter.dir': "static",
+-         'rdwAuthenticateFilter.on' : False
+-      },
+       '/': {
+          'rdwAuthenticateFilter.on' : True,
+          'rdwAuthenticateFilter.checkLoginAndPassword' : server.checkAuthentication
+
+Added: trunk/rdiffWeb/page_error.py
+===================================================================
+--- trunk/rdiffWeb/page_error.py	2007-10-14 04:50:40 UTC (rev 154)
++++ trunk/rdiffWeb/page_error.py	2007-10-16 01:57:19 UTC (rev 155)
+@@ -0,0 +1,18 @@
++
++import rdw_helpers
++
++class rdiffErrorPage:
++   ''' Shows a very simple error message. Divorced 
++       as much as possible from the rest of the system.'''
++   def __init__(self, error):
++      self.error = error
++      
++   def index(self):
++      page = rdw_helpers.compileTemplate("page_start.html", 
++                                         title="rdiffWeb - Error", 
++                                         rssLink="", 
++                                         rssTitle="")
++      page = page + self.error
++      page = page + rdw_helpers.compileTemplate("page_end.html")
++      return page
++   index.exposed = True
+
+Modified: trunk/rdiffWeb/templates/page_start.html
+===================================================================
+--- trunk/rdiffWeb/templates/page_start.html	2007-10-14 04:50:40 UTC (rev 154)
++++ trunk/rdiffWeb/templates/page_start.html	2007-10-16 01:57:19 UTC (rev 155)
+@@ -2,9 +2,9 @@
+ <head>
+    <title>^title$</title>
+    <link rel="stylesheet" href="/static/main.css" type="text/css" />
+-   <link rel="stylesheet" href="../static/borders.css" type="text/css" />
++   <link rel="stylesheet" href="/static/borders.css" type="text/css" />
+    <!--StartIncludeIf:rssLink--><link rel="alternate" type="application/rss+xml" href="^rssLink$" title="^rssTitle$"><!--EndIncludeIf:rssLink-->
+ </head>
+ <body>
+-<script src="../static/globals.js" type="text/javascript"></script>
+-<script src="../static/borders.js" type="text/javascript"></script>
++<script src="/static/globals.js" type="text/javascript"></script>
++<script src="/static/borders.js" type="text/javascript"></script>
+
+
+
+From commits at rdiffweb.org  Tue Oct 16 05:28:48 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 16 Oct 2007 05:28:48 +0200
+Subject: [Rdiffweb-commits] r156 - trunk/rdiffWeb
+Message-ID: <200710160328.l9G3SmIx028280@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-16 05:28:45 +0200 (Tue, 16 Oct 2007)
+New Revision: 156
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Reduce homepage load time by 50%
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-16 01:57:19 UTC (rev 155)
++++ trunk/rdiffWeb/librdiff.py	2007-10-16 03:28:45 UTC (rev 156)
+@@ -112,7 +112,7 @@
+       """ returns None if there was no suffix to remove. """
+       for suffix in self.suffixes:
+          if filename.endswith(suffix):
+-            return filename[0:-len(suffix)]
++            return filename[:-len(suffix)]
+       return filename
+ 
+ rdiffDataDirName = "rdiff-backup-data"
+@@ -224,25 +224,6 @@
+       return self._getFirstBackupAfterDate(incrementEntry(self.pathQuoter, files[-1]).getDate())
+ 
+ 
+-def getSessionStatsFile(rdiffDataDir, entry, pathQuoter):
+-   """Attempts to get the sessions statistics file for a given backup. Tries the following to find a match:
+-      1. The date with no timezone information
+-      2. The date, 1 hour in the past, with no timezone information
+-      3. The date with timezone information"""
+-   def getSessionStatsFileName(dateString):
+-      return "session_statistics."+pathQuoter.getQuotedPath(dateString)+".data"
+-
+-   sessionStatsPath = joinPaths(rdiffDataDir, getSessionStatsFileName(entry.getDateStringNoTZ()))
+-   if os.access(sessionStatsPath, os.F_OK):
+-      return sessionStatsPath
+-   sessionStatsPath = joinPaths(rdiffDataDir, getSessionStatsFileName(entry.getDateStringNoTZ(-60*60)))
+-   if os.access(sessionStatsPath, os.F_OK):
+-      return sessionStatsPath
+-   sessionStatsPath = joinPaths(rdiffDataDir, getSessionStatsFileName(entry.getDateString()))
+-   if os.access(sessionStatsPath, os.F_OK):
+-      return sessionStatsPath
+-   return ""
+-
+ def checkRepoPath(repoRoot, filePath):
+    # Make sure repoRoot is a valid rdiff-backup repository
+    dataPath = joinPaths(repoRoot, rdiffDataDirName)
+@@ -320,91 +301,116 @@
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+    return not mirrorMarkers or len(mirrorMarkers) > 1
+ 
+-def backupIsInProgress(repo, date, rdiffDirListing):
+-   mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), rdiffDirListing)
+-   mirrorMarkers.sort()
+-   if not mirrorMarkers:
+-      return True
+-   mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
+-   for marker in mirrorMarkers:
+-      if incrementEntry(rdiffQuotedPath(repo), marker).getDate().getSeconds() == date.getSeconds():
+-         return True
+-   return False
+-
+ def getBackupHistory(repoRoot):
+-   return _getBackupHistory(repoRoot)
++   historyEntries = backupHistoryEntries(repoRoot)
++   return historyEntries.getBackupHistory()
+ 
+ def getLastBackupHistoryEntry(repoRoot, includeInProgress=True):
+-   history = _getBackupHistory(repoRoot, 1, None, None, includeInProgress)
++   historyEntries = backupHistoryEntries(repoRoot)
++   history = historyEntries.getBackupHistory(1, None, None, includeInProgress)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+ def getBackupHistoryForDay(repoRoot, date):
+-   return _getBackupHistory(repoRoot, -1, date)
++   historyEntries = backupHistoryEntries(repoRoot)
++   return historyEntries.getBackupHistory(-1, date)
+ 
+ def getBackupHistorySinceDate(repoRoot, date):
+-   return _getBackupHistory(repoRoot, -1, date)
++   historyEntries = backupHistoryEntries(repoRoot)
++   return historyEntries.getBackupHistory(-1, date)
+ 
+ def getBackupHistoryForDateRange(repoRoot, earliestDate, latestDate):
+-   return _getBackupHistory(repoRoot, -1, earliestDate, latestDate, False)
++   historyEntries = backupHistoryEntries(repoRoot)
++   return historyEntries.getBackupHistory(-1, earliestDate, latestDate, False)
+ 
+-# earliestDate and latestDate are inclusive
+-# if limiting by numLatestEntries, will any in-progress backups will be ignored
+-def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+-   """Returns a list of backupHistoryEntry's"""
+-   checkRepoPath(repoRoot, "")
++class backupHistoryEntries:
++   def __init__(self, repoRoot):
++      checkRepoPath(repoRoot, "")
++      self.repoRoot = repoRoot
++      self.pathQuoter = rdiffQuotedPath(repoRoot)
++      self.rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
++      self.dirEntries = os.listdir(self.rdiffDir)
++      self.dirEntries.sort()
++      self.mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), self.dirEntries)
++
++   def getBackupHistory(self, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
++      """Returns a list of backupHistoryEntry's
++         earliestDate and latestDate are inclusive."""
+    
+-   pathQuoter = rdiffQuotedPath(repoRoot)
++      # Get a listing of error log files, and use that to build backup history
++      curEntries = filter(lambda x: x.startswith("error_log."), self.dirEntries)
++      curEntries.reverse()
++   
++      entries = []
++      for entryFile in curEntries:
++         entry = incrementEntry(self.pathQuoter, entryFile)
++         # compare local times because of discrepency between client/server time zones
++         if earliestDate and entry.getDate().getLocalSeconds() < earliestDate.getLocalSeconds():
++            continue
++   
++         if latestDate and entry.getDate().getLocalSeconds() > latestDate.getLocalSeconds():
++            continue
++   
++         try:
++            if entry.isCompressed():
++               errors = gzip.open(joinPaths(self.rdiffDir, entryFile), "r").read()
++            else:
++               errors = open(joinPaths(self.rdiffDir, entryFile), "r").read()
++         except IOError:
++            errors = "[Unable to read errors file.]"
++         try:
++            sessionStatsFile = self._getSessionStatsFile(entry)
++            session_stats = open(joinPaths(self.rdiffDir, sessionStatsFile), "r").read()
++            fileSize = re.compile("SourceFileSize ([0-9]+) ").findall(session_stats)[0]
++            incrementSize = re.compile("IncrementFileSize ([0-9]+) ").findall(session_stats)[0]
++         except IOError:
++            fileSize = 0
++            incrementSize = 0
++         newEntry = backupHistoryEntry()
++         newEntry.date = entry.getDate()
++         newEntry.inProgress = self._backupIsInProgress(entry.getDate())
++         if not includeInProgress and newEntry.inProgress:
++            continue
++   
++         if newEntry.inProgress:
++            newEntry.errors = ""
++         else:
++            newEntry.errors = errors
++         newEntry.size = int(fileSize)
++         newEntry.incrementSize = int(incrementSize)
++         entries.insert(0, newEntry)
++         
++         if numLatestEntries != -1 and len(entries) == numLatestEntries:
++            return entries
++   
++      return entries
+ 
+-   # Get a listing of error log files, and use that to build backup history
+-   rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
+-   rdiffDirEntries = os.listdir(rdiffDir)
+-   curEntries = filter(lambda x: x.startswith("error_log."), rdiffDirEntries)
+-   curEntries.sort()
++   def _getSessionStatsFile(self, entry):
++      """Attempts to get the sessions statistics file for a given backup. Tries the following to find a match:
++         1. The date with no timezone information
++         2. The date, 1 hour in the past, with no timezone information
++         3. The date with timezone information"""
++      def getSessionStatsFileName(dateString):
++         return "session_statistics."+self.pathQuoter.getQuotedPath(dateString)+".data"
++   
++      possibleStatsPaths = [getSessionStatsFileName(entry.getDateString()),
++                            getSessionStatsFileName(entry.getDateStringNoTZ()),
++                            getSessionStatsFileName(entry.getDateStringNoTZ(-60*60))]
++      
++      for statsPath in possibleStatsPaths:
++         if statsPath in self.dirEntries:
++            return statsPath
++      return ""
+ 
+-   entries = []
+-   for entryFile in curEntries:
+-      entry = incrementEntry(pathQuoter, entryFile)
+-      # compare local times because of discrepency between client/server time zones
+-      if earliestDate and entry.getDate().getLocalSeconds() < earliestDate.getLocalSeconds():
+-         continue
++   def _backupIsInProgress(self, date):
++      if not self.mirrorMarkers:
++         return True
++      for marker in self.mirrorMarkers[1:]:
++         if incrementEntry(self.pathQuoter, marker).getDate().getSeconds() == date.getSeconds():
++            return True
++      return False
+ 
+-      if latestDate and entry.getDate().getLocalSeconds() > latestDate.getLocalSeconds():
+-         continue
+ 
+-      try:
+-         if entry.isCompressed():
+-            errors = gzip.open(joinPaths(rdiffDir, entryFile), "r").read()
+-         else:
+-            errors = open(joinPaths(rdiffDir, entryFile), "r").read()
+-      except IOError:
+-         errors = "[Unable to read errors file.]"
+-      try:
+-         sessionStatsPath = getSessionStatsFile(rdiffDir, entry, pathQuoter)
+-         session_stats = open(sessionStatsPath, "r").read()
+-         fileSize = re.compile("SourceFileSize ([0-9]+) ").findall(session_stats)[0]
+-         incrementSize = re.compile("IncrementFileSize ([0-9]+) ").findall(session_stats)[0]
+-      except IOError:
+-         fileSize = 0
+-         incrementSize = 0
+-      newEntry = backupHistoryEntry()
+-      newEntry.date = entry.getDate()
+-      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate(), rdiffDirEntries)
+-      if newEntry.inProgress:
+-         newEntry.errors = ""
+-      else:
+-         newEntry.errors = errors
+-      newEntry.size = int(fileSize)
+-      newEntry.incrementSize = int(incrementSize)
+-      entries.append(newEntry)
+-
+-   if len(entries) > 0 and not includeInProgress and backupIsInProgressForRepo(repoRoot):
+-      entries.pop()
+-   
+-   if numLatestEntries != -1:
+-      entries = entries[-numLatestEntries:]
+-   return entries
+-
+ def getDirRestoreDates(repo, path):
+    backupHistory = [ x.date for x in getBackupHistory(repo) ]
+ 
+
+
+
+From commits at rdiffweb.org  Tue Oct 16 05:29:59 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 16 Oct 2007 05:29:59 +0200
+Subject: [Rdiffweb-commits] r157 - trunk
+Message-ID: <200710160329.l9G3TxJO028316@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-16 05:29:58 +0200 (Tue, 16 Oct 2007)
+New Revision: 157
+
+Modified:
+   trunk/rdiff-web
+Log:
+Minor tweak to startup error message
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-16 03:28:45 UTC (rev 156)
++++ trunk/rdiff-web	2007-10-16 03:29:58 UTC (rev 157)
+@@ -24,7 +24,7 @@
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+    if not rdiffWeb.rdw_config.getConfigFile():
+       if os.getuid() != 0:
+-         error = "Error: rdiffWeb must be run as root."
++         error = "<h2>Error: rdiffWeb must be run as root.</h2>"
+       else:
+          error =  "<h2>Error: rdiffWeb has been installed, but no configuration file exists.<br/>Please run 'rdiff-web-config' to configure settings, then restart rdiffWeb.</h2>"
+       cherrypy.root = rdiffWeb.page_error.rdiffErrorPage(error)
+
+
+
+From commits at rdiffweb.org  Sat Oct 20 07:10:08 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 20 Oct 2007 07:10:08 +0200
+Subject: [Rdiffweb-commits] r158 - trunk/rdiffWeb
+Message-ID: <200710200510.l9K5A8X6030481@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-20 07:10:03 +0200 (Sat, 20 Oct 2007)
+New Revision: 158
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Make unit test results ignore newlines. This makes defining tests easier.
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-10-16 03:29:58 UTC (rev 157)
++++ trunk/rdiffWeb/page_main.py	2007-10-20 05:10:03 UTC (rev 158)
+@@ -149,6 +149,9 @@
+          encounteredText = rdw_templating.templateParser().parseTemplate(self._getFileText("", self.getTemplateName()), **parms)
+          expectedText = self._getFileText(test, self.getExpectedResultsName())
+          
++         encounteredText = encounteredText.replace('\n', '')
++         expectedText = expectedText.replace('\n', '')
++         
+          self.assertEquals(encounteredText, expectedText)
+          assert encounteredText == expectedText, "Got:\n" + encounteredText + "\nExpected:\n" + expectedText + "\nEnd"
+       
+
+
+
+From commits at rdiffweb.org  Sat Oct 20 07:12:20 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 20 Oct 2007 07:12:20 +0200
+Subject: [Rdiffweb-commits] r159 - trunk/rdiffWeb
+Message-ID: <200710200512.l9K5CKoB002240@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-20 07:12:17 +0200 (Sat, 20 Oct 2007)
+New Revision: 159
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix handling of directories with a '.data' extension
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-20 05:10:03 UTC (rev 158)
++++ trunk/rdiffWeb/librdiff.py	2007-10-20 05:12:17 UTC (rev 159)
+@@ -169,7 +169,7 @@
+       incrementsDir = joinPaths(repo, rdiffIncrementsDirName, dirPath)
+       self.incrementEntries = []
+       if os.access(incrementsDir, os.F_OK): # the increments may not exist if the folder has existed forever and never been changed
+-         self.incrementEntries = os.listdir(incrementsDir)
++         self.incrementEntries = filter(lambda x: not os.path.isdir(joinPaths(incrementsDir, x)), os.listdir(incrementsDir)) # ignore directories
+ 
+       self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(self.pathQuoter, x).getFilename())
+       self.backupTimes = [ incrementEntry(self.pathQuoter, x).getDate() for x in filter(lambda x: x.startswith("mirror_metadata"), self.dataDirEntries) ]
+
+
+
+From commits at rdiffweb.org  Mon Oct 22 13:48:34 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 22 Oct 2007 13:48:34 +0200
+Subject: [Rdiffweb-commits] r160 - trunk
+Message-ID: <200710221148.l9MBmYJL029213@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-22 13:48:32 +0200 (Mon, 22 Oct 2007)
+New Revision: 160
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Make configuration work on cygwin.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2007-10-20 05:12:17 UTC (rev 159)
++++ trunk/rdiff-web-config	2007-10-22 11:48:32 UTC (rev 160)
+@@ -31,8 +31,6 @@
+    return option
+ 
+ def addConfigFileLine(lineText):
+-   if not os.access("/etc/rdiffweb", os.F_OK):
+-      os.mkdir("/etc/rdiffweb", stat.S_IRWXU)
+    configFilePath = "/etc/rdiffweb/rdw.conf"
+    open(configFilePath, "a").write(lineText+"\n")
+    os.chmod(configFilePath, stat.S_IRWXU)
+@@ -206,27 +204,42 @@
+       mysqlSetup()
+    print "Configuration complete!"
+ 
+-def doSpiderRepos():
+-   rdiffWeb.rdw_spider_repos.findReposForAllUsers()
+-
+ def doAddUser():
+    if len(sys.argv) != 5:
+       print "Usage: rdiff-web-config adduser <username> <password> </path/to/usr/root>"
+       sys.exit(2)
+ 
+    addUser(sys.argv[2], sys.argv[3], sys.argv[4], False)
++   
++def createNeededFolders():
++   # We can't just check for root privileges, since cygwin doesn't support the "root" user.
++   # So we poke around at folders/files, to make sure that we have the required permissions.
++   
++   # The configuration directory is supposed to be readable only by root.
++   configDir = "/etc/rdiffweb"
++   if not os.path.exists(configDir):
++      os.mkdir("/etc/rdiffweb", stat.S_IRWXU)
++   # If the configuration path exists, make sure that we can look inside
++   files = os.listdir(configDir)
++   
++   # See if the config file already exists, and if it does, if we can write to it.
++   configFile = os.path.join(configDir, "rdw.conf")
++   open(configFile, "a")
++   os.chmod(configFile, stat.S_IRWXU)
+ 
+ if __name__ == "__main__":
+-   # Because this script manipulates files in the /etc directory, it must be run as root.  Validate
+-   # that we're being run as root, before the user has spent a lot of time entering data.
+-   if os.getuid() != 0:
+-      print "Error: this script must be run as root."
++   # Because this script manipulates files in the /etc directory, it must be run with root privileges.
++   # Validate this before the user has spent a lot of time entering data.
++   try:
++      createNeededFolders()
++   except OSError, error:
++      if error.errno != 13: # Only catch "permission denied" errors
++         raise
++      print "Error: this script must be run with root privileges."
+       sys.exit(2)
+-
++      
+    if len(sys.argv) > 1:
+       if sys.argv[1] == "adduser":
+          doAddUser()
+-      elif sys.argv[1] == "spiderrepos":
+-         doSpiderRepos()
+    else:
+       doMainSetup()
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:37:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:37:24 +0200
+Subject: [Rdiffweb-commits] r161 - in trunk: . rdiffWeb
+Message-ID: <200710272237.l9RMbOeT018538@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:37:19 +0200 (Sun, 28 Oct 2007)
+New Revision: 161
+
+Removed:
+   trunk/rdiff-web-notify
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdw.conf.sample
+Log:
+Add background thread to send email notification of failed backups.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-10-22 11:48:32 UTC (rev 160)
++++ trunk/rdiff-web	2007-10-27 22:37:19 UTC (rev 161)
+@@ -6,6 +6,7 @@
+ import rdiffWeb.rdw_config
+ import sys
+ import rdiffWeb.rdw_spider_repos
++import rdiffWeb.email_notification
+ import threading
+ import rdiffWeb.page_error
+ 
+@@ -35,13 +36,16 @@
+    # Parse command line options
+    verbose = True
+    debug = False
++   autoReload = False
+    pidFile = ""
+    logFile = ""
+ 
+-   opts, extraparams = getopt.getopt(sys.argv[1:], 'vd', ['debug', 'log-file=', 'pid-file=', 'background'])
++   opts, extraparams = getopt.getopt(sys.argv[1:], 'vdr', ['debug', 'log-file=', 'pid-file=', 'background', 'autoreload'])
+    for option,value in opts:
+       if option in ['-d','--debug']:
+          debug = True
++      if option in ['-r','--autoreload']:
++         autoReload = True
+       elif option in ['--log-file']:
+          logFile = value
+       elif option in ['--pid-file']:
+@@ -76,6 +80,7 @@
+       'sessionFilter.on' : True,
+       'gzipFilter.on': True,
+       'encodingFilter.on' : True,
++      'autoreload.on' : autoReload,
+       'server.socketHost' : rdiffWeb.rdw_config.getConfigSetting("ServerName"),
+       'server.socketPort' : serverPort,
+       'server.logFile' : logFile,
+@@ -114,6 +119,7 @@
+    killEvent = threading.Event()
+ 
+    rdiffWeb.rdw_spider_repos.startRepoSpiderThread(killEvent)
++   rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
+    cherrypy.server.on_stop_server_list.append(lambda: killEvent.set())
+    
+    cherrypy.server.start()
+
+Deleted: trunk/rdiff-web-notify
+===================================================================
+--- trunk/rdiff-web-notify	2007-10-22 11:48:32 UTC (rev 160)
++++ trunk/rdiff-web-notify	2007-10-27 22:37:19 UTC (rev 161)
+@@ -1,18 +0,0 @@
+-#!/usr/bin/python
+-
+-import os
+-import sys
+-
+-import rdiffWeb.email_notification
+-
+-if __name__ == "__main__":
+-   # Because this script manipulates files in the /etc directory, it must be run as root.
+-   if os.getuid() != 0:
+-      print "Error: this script must be run as root."
+-      sys.exit(2)
+-      
+-   if not rdiffWeb.email_notification.emailNotificationIsEnabled():
+-      print "Email notifications do not seem to be configured. Exiting."
+-      sys.exit(1)
+-   
+-   rdiffWeb.email_notification.emailNotifications()
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-10-22 11:48:32 UTC (rev 160)
++++ trunk/rdiffWeb/email_notification.py	2007-10-27 22:37:19 UTC (rev 161)
+@@ -6,63 +6,87 @@
+ import db
+ import librdiff
+ import rdw_helpers
++import datetime
++import threading
++import time
+ 
+-def emailNotificationIsEnabled():
+-   return getEmailHost() != "" and getEmailSender() != "" and db.userDB().getUserDBModule().modificationsSupported()
++def startEmailNotificationThread(killEvent):
++   newThread = emailNotifyThread(killEvent)
++   newThread.start()
+ 
+-def getEmailHost():
+-   return rdw_config.getConfigSetting("emailHost")
++class emailNotifyThread(threading.Thread):
++   def __init__(self, killEvent):
++      self.killEvent = killEvent
++      threading.Thread.__init__(self)
++      self.notifier = emailNotifier()
++      
++   def run(self):
++      if not self.notifier.notificationsEnabled():
++         return;
++      emailTimeStr = rdw_config.getConfigSetting("emailNotificationTime")
++      while True:
++         emailTime = time.strptime(emailTimeStr, "%H:%M")
++         now = datetime.datetime.now()
++         nextEmailTime = now.replace(hour=emailTime.tm_hour, minute=emailTime.tm_min, second=0, microsecond=0)
++         if nextEmailTime < now:
++            nextEmailTime = nextEmailTime.replace(day=nextEmailTime.day+1)
++         delta = (nextEmailTime - now).seconds
++         self.killEvent.wait(delta)
++         if self.killEvent.isSet():
++            return
+ 
+-def getEmailSender():
+-   return rdw_config.getConfigSetting("emailSender")
++         self.notifier.sendEmails()
+ 
+-def getEmailUsername():
+-   return rdw_config.getConfigSetting("emailUsername")
+-
+-def getEmailPassword():
+-   return rdw_config.getConfigSetting("emailPassword")
+-
+-def emailNotifications():
+-   emailHost = getEmailHost()
+-   emailSender = getEmailSender()
+-   emailUsername = getEmailUsername()
+-   emailPassword = getEmailPassword()
++class emailNotifier:
++   def __init__(self):
++      self.userDB = db.userDB().getUserDBModule()
+       
+-   dbBackend = db.userDB().getUserDBModule()
+-   for user in dbBackend.getUserList():
+-      userRepos = dbBackend.getUserRepoPaths(user)
+-      oldRepos = []
+-      for repo in userRepos:
+-         maxDaysOld = dbBackend.getRepoMaxAge(user, repo)
+-         if maxDaysOld != 0:
+-            # get the last backup date
+-            try:
+-               lastBackup = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(dbBackend.getUserRoot(user), repo), False)
+-            except librdiff.FileError:
+-               pass # Skip repos that have never been successfully backed up
+-            else:
+-               if lastBackup:
+-                  oldestGoodBackupTime = rdw_helpers.rdwTime()
+-                  oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
+-                  if lastBackup.date < oldestGoodBackupTime:
+-                     oldRepos.append({"repo" : repo, "lastBackupDate" : lastBackup.date.getDisplayString(), "maxAge" : maxDaysOld })
+-               
+-      if oldRepos:
+-         userEmailAddress = dbBackend.getUserEmail(user)
+-         emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=emailSender, user=user)
++   def notificationsEnabled(self):
++      return self._getEmailHost() != "" and\
++             self._getEmailSender() != "" and\
++             self._getNotificationTimeStr() != "" and\
++             self.userDB.modificationsSupported()
+ 
+-         session = smtplib.SMTP(emailHost)
+-         session.login(emailUsername, emailPassword)
+-         smtpresult = session.sendmail(emailSender, userEmailAddress.split(";"), emailText)
+-         if smtpresult:
+-            error = ""
+-            for recipient in smtpresult.keys():
+-               error = """Could not delivery mail to: %s
++   def sendEmails(self):
++      for user in self.userDB.getUserList():
++         userRepos = self.userDB.getUserRepoPaths(user)
++         oldRepos = []
++         for repo in userRepos:
++            maxDaysOld = self.userDB.getRepoMaxAge(user, repo)
++            if maxDaysOld != 0:
++               # get the last backup date
++               try:
++                  lastBackup = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(self.userDB.getUserRoot(user), repo), False)
++               except librdiff.FileError:
++                  pass # Skip repos that have never been successfully backed up
++               else:
++                  if lastBackup:
++                     oldestGoodBackupTime = rdw_helpers.rdwTime()
++                     oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
++                     if lastBackup.date < oldestGoodBackupTime:
++                        oldRepos.append({"repo" : repo, "lastBackupDate" : lastBackup.date.getDisplayString(), "maxAge" : maxDaysOld })
++                  
++         if oldRepos:
++            userEmailAddress = self.userDB.getUserEmail(user)
++            emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=self._getEmailSender(), user=user)
++   
++            session = smtplib.SMTP(self._getEmailHost())
++            session.login(self._getEmailUsername(), self._getEmailPassword())
++            smtpresult = session.sendmail(self._getEmailSender(), userEmailAddress.split(";"), emailText)
++            session.quit()
++             
++   def _getEmailHost(self):
++      return rdw_config.getConfigSetting("emailHost")
+ 
+-Server said: %s
+-%s
++   def _getEmailSender(self):
++      return rdw_config.getConfigSetting("emailSender")
++   
++   def _getEmailUsername(self):
++      return rdw_config.getConfigSetting("emailUsername")
++   
++   def _getEmailPassword(self):
++      return rdw_config.getConfigSetting("emailPassword")
++   
++   def _getNotificationTimeStr(self):
++      return rdw_config.getConfigSetting("emailNotificationTime")
+ 
+-%s""" % (recipient, smtpresult[recipient][0], smtpresult[recipient][1], error)
+-            raise smtplib.SMTPException, error
+-         session.quit()
+-
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2007-10-22 11:48:32 UTC (rev 160)
++++ trunk/rdw.conf.sample	2007-10-27 22:37:19 UTC (rev 161)
+@@ -26,6 +26,7 @@
+ # been backed up for a user-specified period of time. To enable this feature,
+ # set below settings to correct values.
+ # 
++# emailNotificationTime=23:00 # The time of day when notification emails are sent out
+ # emailHost=smtp.server.com
+ # emailSender=john at doe.com
+ # emailUsername=email_user # May be blank, if the smtp server does not require authentication
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:42:53 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:42:53 +0200
+Subject: [Rdiffweb-commits] r162 - in trunk/rdiffWeb: . templates
+Message-ID: <200710272242.l9RMgrF2029440@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:42:48 +0200 (Sun, 28 Oct 2007)
+New Revision: 162
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Cleaner/better approach to showing a sample email address
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-10-27 22:37:19 UTC (rev 161)
++++ trunk/rdiffWeb/page_prefs.py	2007-10-27 22:42:48 UTC (rev 162)
+@@ -10,6 +10,8 @@
+ 
+ class rdiffPreferencesPage(page_main.rdiffPage):
+    
++   sampleEmail = 'joe at example.com'
++   
+    def index(self):
+       return self.getPrefsPage("", "")
+    index.exposed = True
+@@ -42,6 +44,8 @@
+       
+       for parmName in parms.keys():
+          if parmName == "userEmail":
++            if parms[parmName] == self.sampleEmail:
++               parms[parmName] = ''
+             self.userDB.setUserEmail(self.getUsername(), parms[parmName])
+          if parmName.endswith("numDays"):
+             backupName = parmName[:-7]
+@@ -67,9 +71,10 @@
+          "message" : statusMessage,
+          "userEmail" : email,
+          "notificationsEnabled" : False,
+-         "backups" : []
++         "backups" : [],
++         "sampleEmail": self.sampleEmail
+       }
+-      if email_notification.emailNotificationIsEnabled():
++      if email_notification.emailNotifier().notificationsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+          backups = []
+          for repo in repos:
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-10-27 22:37:19 UTC (rev 161)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-10-27 22:42:48 UTC (rev 162)
+@@ -53,12 +53,7 @@
+    <table class="emailTable">
+       <tr>
+          <td>Notify me at</td>
+-<!--StartIncludeIf:userEmail-->
+-         <td><input class="textInput" name="userEmail" value="^userEmail$"></td>
+-<!--EndIncludeIf:userEmail-->
+-<!--StartDeleteIf:userEmail-->
+-         <td><input class="textInput" name="userEmail" style="color: #aaa" value="joe at example.com" onfocus="javascript: if(this.value='joe at example.com') { this.value=''; this.style.color = '#000'; };"></td>
+-<!--EndDeleteIf:userEmail-->
++         <td><input id="userEmail" class="textInput" name="userEmail" value="^userEmail$"></td>
+          <td align="left">
+             when my backups do not get backed up for:
+          </td>
+@@ -85,4 +80,26 @@
+ </div>
+ </div>
+ </form>
++<script type="text/javascript">
++   var sExampleEmail = '^sampleEmail$';
++   var oUserEmailElem = document.getElementById('userEmail');
++   fnOnBlur = function()
++   {
++      if (oUserEmailElem.value === '')
++      {
++         oUserEmailElem.style.color = '#AAA';
++         oUserEmailElem.value = sExampleEmail;
++      }
++   }
++   oUserEmailElem.onfocus = function()
++   {
++      if (oUserEmailElem.value === sExampleEmail)
++      {
++         oUserEmailElem.value = '';
++         oUserEmailElem.style.color = '#000';
++      }
++   }
++   oUserEmailElem.onblur = fnOnBlur;
++   fnOnBlur();
++</script>
+ <!--EndIncludeIf:notificationsEnabled-->
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:45:33 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:45:33 +0200
+Subject: [Rdiffweb-commits] r163 - trunk/rdiffWeb
+Message-ID: <200710272245.l9RMjX1Q032312@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:45:30 +0200 (Sun, 28 Oct 2007)
+New Revision: 163
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Add additional syntax for conditional inclusions to templating engine to allow easier control of html attributes.
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2007-10-27 22:42:48 UTC (rev 162)
++++ trunk/rdiffWeb/rdw_templating.py	2007-10-27 22:45:30 UTC (rev 163)
+@@ -15,8 +15,10 @@
+ 
+ class templateParser:
+    def __init__(self):
+-      self.deleteIfRegex = re.compile(r"<!--StartDeleteIf:(.*?)-->(.*?)<!--EndDeleteIf:\1-->", re.S)
+-      self.includeIfRegex = re.compile(r"<!--StartIncludeIf:(.*?)-->(.*?)<!--EndIncludeIf:\1-->", re.S)
++      self.deleteIfRegexes = [re.compile(r"<!--StartDeleteIf:(.*?)-->(.*?)<!--EndDeleteIf:\1-->", re.S),
++                              re.compile(r"StartDeleteIf:(.*?)-(.*?)EndDeleteIf:\1-", re.S)]
++      self.includeIfRegexes = [re.compile(r"<!--StartIncludeIf:(.*?)-->(.*?)<!--EndIncludeIf:\1-->", re.S),
++                               re.compile(r"StartIncludeIf:(.*?)-(.*?)EndIncludeIf:\1-", re.S)]
+       self.replacements = []
+ 
+    def parseTemplate(self, templateString, **kwargs):
+@@ -38,13 +40,24 @@
+ 
+    def parseSingleTemplate(self, templateString):
+       # Handle conditional includes/deletes
+-      templateString = self.deleteIfRegex.sub(self._handleDeleteIf, templateString)
+-      templateString = self.includeIfRegex.sub(self._handleIncludeIf, templateString)
++      for regex in self.deleteIfRegexes:
++         templateString = regex.sub(self._handleDeleteIf, templateString)
++      for regex in self.includeIfRegexes:
++         templateString = regex.sub(self._handleIncludeIf, templateString)
+ 
+       # Process any individual keywords
+       result = re.compile("\^(.*?)\$").sub(self._replaceTemplateKeyword, templateString)
+       return result
+ 
++   def hasConditionalDirectives(self, templateString):
++      for regex in self.deleteIfRegexes:
++         if regex.search(templateString):
++            return True
++      for regex in self.includeIfRegexes:
++         if regex.search(templateString):
++            return True
++      return False
++
+    def _handleListMatch(self, match):
+       replacements = self.replacements[-1]
+       listName = match.group(1)
+@@ -85,7 +98,7 @@
+       textToInclude = match.group(2).rstrip("\n")
+       if (replacements[conditional] and includeIfTrue) or (not replacements[conditional] and not includeIfTrue):
+          # The included text may contain additional include/delete statements. Check for those, and if they exist, recurse.
+-         if self.deleteIfRegex.search(textToInclude) != None or self.includeIfRegex.search(textToInclude) != None:
++         if self.hasConditionalDirectives(textToInclude):
+             return self.parseSingleTemplate(textToInclude)
+          return textToInclude
+       return ""
+@@ -122,6 +135,15 @@
+       template = """<!--StartDeleteIf:include-->text<!--EndDeleteIf:include-->"""
+       self.assertEquals(templateParser().parseTemplate(template, include=False), "text")
+       assert(templateParser().parseTemplate(template, include=True) == "")
++
++   def testAttributeStyleDirectives(self):
++      template = """StartIncludeIf:include- text EndIncludeIf:include-"""
++      assert(templateParser().parseTemplate(template, include=True) == " text ")
++      assert(templateParser().parseTemplate(template, include=False) == "")
++
++      template = """StartDeleteIf:include- text EndDeleteIf:include-"""
++      self.assertEquals(templateParser().parseTemplate(template, include=False), " text ")
++      assert(templateParser().parseTemplate(template, include=True) == "")
+       
+    def testNestedIncludes(self):
+       template = """<!--StartIncludeIf:include--><!--StartDeleteIf:delete-->should be deleted<!--EndDeleteIf:delete-->text<!--EndIncludeIf:include-->"""
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:46:25 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:46:25 +0200
+Subject: [Rdiffweb-commits] r164 - trunk/rdiffWeb/static
+Message-ID: <200710272246.l9RMkPYo000188@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:46:23 +0200 (Sun, 28 Oct 2007)
+New Revision: 164
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+Log:
+Remove obsolete css for rounded borders
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-10-27 22:45:30 UTC (rev 163)
++++ trunk/rdiffWeb/static/borders.css	2007-10-27 22:46:23 UTC (rev 164)
+@@ -1,38 +1,4 @@
+ 
+-
+-.roundedOuter h1,
+-.roundedOuter h2,
+-.roundedOuter p
+-{
+-   margin:0 10px;
+-   letter-spacing:1px;
+-}
+-
+-.roundedOuter h1
+-{
+-   font-size:2.5em;
+-   color:#fff;
+-}
+-.roundedOuter h2
+-{
+-   font-size:2em;
+-   color:#06a;
+-   border:0;
+-}
+-.roundedOuter p
+-{
+-   padding-bottom: 0.5em;
+-}
+-.roundedOuter h2
+-{
+-   padding-top: 0.5em;
+-}
+-.roundedOuter
+-{
+-   background: transparent;
+-   margin: 1em;
+-}
+-
+ .xtop,
+ .xbottom
+ {
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:50:24 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:50:24 +0200
+Subject: [Rdiffweb-commits] r165 - in trunk/rdiffWeb: . static static/images
+	templates
+Message-ID: <200710272250.l9RMoOLr004173@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:50:17 +0200 (Sun, 28 Oct 2007)
+New Revision: 165
+
+Added:
+   trunk/rdiffWeb/static/images/login_button.gif
+Modified:
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/dir_listing.html
+   trunk/rdiffWeb/templates/login.html
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Bunch of UI tweaks:
+* Add alternating colors in listing pages
+* Change login button to use a gradient
+* Shrink table row heights in listing pages
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/page_browse.py	2007-10-27 22:50:17 UTC (rev 165)
+@@ -69,6 +69,7 @@
+ 
+          entries = []
+          for libEntry in libEntries:
++            altEntry = (len(entries) % 2 != 0)
+             entryLink = ""
+             if libEntry.isDir:
+                entryLink = self.buildBrowseUrl(repo, joinPaths(path, libEntry.name), False)
+@@ -95,7 +96,8 @@
+                            "numPrevRevisions" : str(len(changeDates)), 
+                            "hasMultipleRevisions" : len(changeDates) > 1,
+                            "showRevisionsText" : showRevisionsText,
+-                           "changeDates" : changeDates })
++                           "changeDates" : changeDates,
++                           "altRow": altEntry })
+ 
+       return { "title" : title, "files" : entries, "parentDirs" : parentDirs, "restoreUrl" : restoreUrl, "viewUrl" : viewUrl, "restoreDates" : restoreDates, "warning" : backupWarning }
+ 
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/page_locations.py	2007-10-27 22:50:17 UTC (rev 165)
+@@ -17,6 +17,7 @@
+       repoList = []
+       repoErrors = []
+       for userRepo in repos:
++         altEntry = (len(repoList) % 2 != 0)
+          try:
+             repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(root, userRepo))
+          except librdiff.FileError:
+@@ -26,7 +27,8 @@
+                            "repoSize" : repoSize,
+                            "repoDate" : repoDate,
+                            "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+-                           "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
++                           "repoHistoryUrl" : self.buildHistoryUrl(userRepo),
++                           "altRow": altEntry })
+          else:
+             repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
+             if repoHistory.inProgress:
+@@ -36,7 +38,8 @@
+                               "repoSize" : repoSize,
+                               "repoDate" : repoDate,
+                               "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+-                              "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
++                              "repoHistoryUrl" : self.buildHistoryUrl(userRepo),
++                              "altRow": altEntry })
+       return { "title" : "browse", "repos" : repoList, "badrepos" : repoErrors }
+       
+ 
+
+Added: trunk/rdiffWeb/static/images/login_button.gif
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/login_button.gif
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/static/main.css	2007-10-27 22:50:17 UTC (rev 165)
+@@ -46,16 +46,21 @@
+ /* all tables have padding by default */
+ table thead
+ {
+-   text-align: center;
++   text-align: left;
++   font-size: 14pt;
+    font-weight: bold;
++   background-color: #DCE4F9;
++   border-bottom: 2px solid #F5F5F5;
+ }
+ 
+ table td
+ {
+-   padding-right: 2em;
++   padding: 0.25em 2em 0.25em 0em;
++   vertical-align: bottom;
++   font-size: 12pt;
+ }
+ 
+-/* Browse page */
++/* Listing pages */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+ {
+@@ -63,6 +68,16 @@
+    text-align: right;
+ }
+ 
++.altRow td
++{
++   background-color: #EFEFEF;
++}
++
++table
++{
++   border-collapse: collapse;
++}
++
+ /* disable padding on icons and flyouts */
+ td.Icon,
+ td.FlyoutContainer,
+@@ -71,6 +86,18 @@
+    padding-right: 0em;
+ }
+ 
++td.Icon
++{
++   padding-top: 0em;
++   padding-bottom: 0em;
++}
++
++td.Icon img
++{
++   height: 24px;
++   width: 24px;
++}
++
+ td.FlyoutContainer div
+ {
+    display:none;
+@@ -79,6 +106,7 @@
+    color: black;
+    background-color: silver;
+    border: 1px solid gray;
++   padding: .25em;
+ }
+ 
+ div#incrementSizePopup
+@@ -106,7 +134,17 @@
+    border: 10px double white;
+ }
+ 
++#Login input.submit
++{
++   background-image: url("/static/images/login_button.gif");
++   border: 0em;
++   width: 100px;
++   height: 30px;
++   color: #FFF;
++   font-weight: bold;
++}
+ 
++
+ /* Status Page */
+ .backupStatus_success,
+ .backupStatus_success a:link,
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/dir_listing.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -30,11 +30,12 @@
+       <td>Name</td>
+       <td>Size</td>
+       <td>Last Revision</td>
++      <td>Previous Revisions</td>
+    </tr>
+ </thead>
+ <tbody>
+    <!--StartRepeat:files-->
+-   <!--StartIncludeIf:exists--><tr><!--EndIncludeIf:exists--><!--StartDeleteIf:exists--><tr style="color: #999" ><!--EndDeleteIf:exists-->
++   <tr StartDeleteIf:exists- style="color: #999" EndDeleteIf:exists- StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+       <td class="Icon"><img src="/static/images/^filetype$.png" valign=middle alt="^filetype$" ></td>
+       <td><a href="^fileRestoreUrl$">^filename$</a></td>
+       <td>^size$</td>
+@@ -55,12 +56,12 @@
+          </div>
+       </td>
+       <!--EndIncludeIf:hasPrevRevisions-->
+-      <!--StartDeleteIf:showRevisionsText-->
++      <!--StartDeleteIf:hasPrevRevisions-->
+    <!-- ENTRIES WITH NO REVISIONS -->
+-      <td class="FlyoutContainer">
++      <td class="PopupLinkCell">
+          No Previous Revisions
+       </td>
+-      <!--EndDeleteIf:showRevisionsText-->
++      <!--EndDeleteIf:hasPrevRevisions-->
+       </tr>
+    <!--EndRepeat:files-->
+ </tbody>
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/login.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -26,7 +26,7 @@
+             </tr>
+             <tr>
+                <td></td>
+-               <td><input type="submit" value="Log In" /></td>
++               <td><input class="submit" type="submit" value="Log In"/></td>
+             </tr>
+          </table>
+          </form>
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:46:23 UTC (rev 164)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:50:17 UTC (rev 165)
+@@ -12,7 +12,7 @@
+    </thead>
+    <tbody>
+       <!--StartRepeat:repos-->
+-      <tr>
++      <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+          <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
+          <td><a href="^repoBrowseUrl$">^repoName$</a></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:51:30 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:51:30 +0200
+Subject: [Rdiffweb-commits] r166 - in trunk/tests: . extensions
+	extensions/repo extensions/repo/rdiff-backup-data
+	extensions/repo/rdiff-backup-data/increments
+	extensions/repo/rdiff-backup-data/increments/testdir.data
+	extensions/repo/testdir.data
+Message-ID: <200710272251.l9RMpU2v005002@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:51:13 +0200 (Sun, 28 Oct 2007)
+New Revision: 166
+
+Added:
+   trunk/tests/extensions/
+   trunk/tests/extensions/browse_results.txt
+   trunk/tests/extensions/history_results.txt
+   trunk/tests/extensions/locations_results.txt
+   trunk/tests/extensions/repo/
+   trunk/tests/extensions/repo/rdiff-backup-data/
+   trunk/tests/extensions/repo/rdiff-backup-data/backup.log
+   trunk/tests/extensions/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data
+   trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/subfile.2007-10-19T18:12:44-05:00.missing
+   trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+   trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data
+   trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data
+   trunk/tests/extensions/repo/testdir.data/
+   trunk/tests/extensions/repo/testdir.data/subfile
+   trunk/tests/extensions/repo/testfile.data
+Log:
+Add test case for r159
+
+Added: trunk/tests/extensions/browse_results.txt
+===================================================================
+--- trunk/tests/extensions/browse_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/browse_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,8 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++testdir.data	 	2007-10-19 18:13:10	0	True
++testfile.data	13 bytes	2007-10-19 18:13:10	1	True
++PrevRevision	2007-10-19 18:12:44
+\ No newline at end of file
+
+Added: trunk/tests/extensions/history_results.txt
+===================================================================
+--- trunk/tests/extensions/history_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/history_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?	Cumulative Size
++2007-10-19 18:13:10	13 bytes		False	125 bytes
++2007-10-19 18:12:44	0 bytes		False	125 bytes
+\ No newline at end of file
+
+Added: trunk/tests/extensions/locations_results.txt
+===================================================================
+--- trunk/tests/extensions/locations_results.txt	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/locations_results.txt	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-10-19 18:13:10	13 bytes
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/backup.log
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/current_mirror.2007-10-19T18:13:10-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1 @@
++PID 6806
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:12:44-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/error_log.2007-10-19T18:13:10-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:12:44-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/file_statistics.2007-10-19T18:13:10-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data/subfile.2007-10-19T18:12:44-05:00.missing
+===================================================================
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments/testdir.data.2007-10-19T18:12:44-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments/testfile.data.2007-10-19T18:12:44-05:00.diff.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/increments.2007-10-19T18:12:44-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:12:44-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/extensions/repo/rdiff-backup-data/mirror_metadata.2007-10-19T18:13:10-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:12:44-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,18 @@
++StartTime 1192835564.00 (Fri Oct 19 18:12:44 2007)
++EndTime 1192835564.75 (Fri Oct 19 18:12:44 2007)
++ElapsedTime 0.75 (0.75 seconds)
++SourceFiles 3
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 2
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+Added: trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data
+===================================================================
+--- trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/rdiff-backup-data/session_statistics.2007-10-19T18:13:10-05:00.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1,18 @@
++StartTime 1192835590.00 (Fri Oct 19 18:13:10 2007)
++EndTime 1192835590.18 (Fri Oct 19 18:13:10 2007)
++ElapsedTime 0.18 (0.18 seconds)
++SourceFiles 4
++SourceFileSize 13 (13 bytes)
++MirrorFiles 3
++MirrorFileSize 0 (0 bytes)
++NewFiles 1
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 3
++ChangedSourceSize 13 (13 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 4
++IncrementFileSize 112 (112 bytes)
++TotalDestinationSizeChange 125 (125 bytes)
++Errors 0
+
+Added: trunk/tests/extensions/repo/testdir.data/subfile
+===================================================================
+
+Added: trunk/tests/extensions/repo/testfile.data
+===================================================================
+--- trunk/tests/extensions/repo/testfile.data	2007-10-27 22:50:17 UTC (rev 165)
++++ trunk/tests/extensions/repo/testfile.data	2007-10-27 22:51:13 UTC (rev 166)
+@@ -0,0 +1 @@
++New contents
+
+
+
+From commits at rdiffweb.org  Sun Oct 28 00:56:43 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 28 Oct 2007 00:56:43 +0200
+Subject: [Rdiffweb-commits] r167 - trunk
+Message-ID: <200710272256.l9RMuhM2008709@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-28 00:56:36 +0200 (Sun, 28 Oct 2007)
+New Revision: 167
+
+Modified:
+   trunk/setup.py
+Log:
+rdiff-web-notify is now gone
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-10-27 22:51:13 UTC (rev 166)
++++ trunk/setup.py	2007-10-27 22:56:36 UTC (rev 167)
+@@ -18,7 +18,7 @@
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+-      scripts=['rdiff-web', 'rdiff-web-config', 'rdiff-web-notify']
++      scripts=['rdiff-web', 'rdiff-web-config']
+      )
+ else:
+    from distutils.dist import Distribution
+@@ -46,5 +46,5 @@
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+                   (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+                   ],
+-      scripts=['rdiff-web', 'rdiff-web-config', 'rdiff-web-notify']
++      scripts=['rdiff-web', 'rdiff-web-config']
+      )
+
+
+
+From commits at rdiffweb.org  Tue Oct 30 21:22:29 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 30 Oct 2007 21:22:29 +0100
+Subject: [Rdiffweb-commits] r168 - trunk/rdiffWeb/templates
+Message-ID: <200710302022.l9UKMTVJ030497@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-10-30 21:22:25 +0100 (Tue, 30 Oct 2007)
+New Revision: 168
+
+Modified:
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Add alt rows to repos with errors
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-10-27 22:56:36 UTC (rev 167)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-10-30 20:22:25 UTC (rev 168)
+@@ -20,13 +20,12 @@
+       </tr>
+       <!--EndRepeat:repos-->
+       <!--StartRepeat:badrepos-->
+-      <tr>
++      <tr StartIncludeIf:altRow- class="altRow" EndIncludeIf:altRow- >
+          <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
+          <td>^repoName$</a></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+       </tr>
+       <!--EndRepeat:badrepos-->
+-      
+    </tbody>
+ </table>
+
+
+

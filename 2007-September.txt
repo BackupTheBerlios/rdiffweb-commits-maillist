@@ -1,0 +1,3392 @@
+From commits at rdiffweb.org  Mon Sep  3 23:07:41 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 3 Sep 2007 23:07:41 +0200
+Subject: [Rdiffweb-commits] r104 - in trunk: . rdiffWeb rdiffWeb/templates
+Message-ID: <200709032107.l83L7fEs008457@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-03 23:07:11 +0200 (Mon, 03 Sep 2007)
+New Revision: 104
+
+Added:
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_history.py
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/page_main.py
+Log:
+Allow users to change their own passwords. (Administrators can still modify arbitrary passwords.)
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiff-web	2007-09-03 21:07:11 UTC (rev 104)
+@@ -54,6 +54,7 @@
+    import rdiffWeb.page_locations
+    import rdiffWeb.page_restore
+    import rdiffWeb.page_status
++   import rdiffWeb.page_prefs
+ 
+    # OK, we're good to go.  Start the server.
+    server = rdiffWeb.page_locations.rdiffLocationsPage()
+@@ -101,5 +102,6 @@
+    cherrypy.root.history = rdiffWeb.page_history.rdiffHistoryPage()
+    cherrypy.root.status = rdiffWeb.page_status.rdiffStatusPage()
+    cherrypy.root.admin = rdiffWeb.page_admin.rdiffAdminPage()
++   cherrypy.root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
+    cherrypy.server.start()
+ 
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/db.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -1,6 +1,9 @@
+ #!/usr/bin/python
+ 
+ class userDB:
++   def modificationsSupported(self):
++      return False
++
+    def areUserCredentialsValid(self, username, password):
+       raise NotImplementedError
+ 
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/db_mysql.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -12,6 +12,9 @@
+       self.userRootCache = {}
+       self._connect()
+ 
++   def modificationsSupported(self):
++      return True
++
+    def userExists(self, username):
+       results = self._executeQuery("SELECT Username FROM users WHERE Username = %(user)s", user=username)
+       return len(results) == 1
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/librdiff.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -3,6 +3,7 @@
+ """All functions throw on error."""
+ 
+ import os, bisect
++import gzip, re
+ from rdw_helpers import joinPaths, removeDir
+ import rdw_helpers
+ 
+@@ -289,7 +290,6 @@
+    mirrorMarkers = mirrorMarkers[1:]
+    return len(filter(lambda x: x.startswith("current_mirror."+date.getUrlString()), mirrorMarkers)) > 0
+ 
+-import gzip, re
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_browse.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -108,12 +108,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(repoParentPath, repoName)
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(browsePageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+-
+
+Modified: trunk/rdiffWeb/page_history.py
+===================================================================
+--- trunk/rdiffWeb/page_history.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_history.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -49,11 +49,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(rdw_helpers.joinPaths(repoParentPath, repoName), repoName)
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(historyPageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_locations.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -49,11 +49,3 @@
+       
+    def getParmsForTemplate(self, repoParentPath, repoName):
+       return self.getParmsForPage(repoParentPath, [repoName])
+-
+-if __name__ == "__main__":
+-   print "Called as standalone program; running unit tests..."
+-
+-   import unittest
+-   testSuite = unittest.makeSuite(locationsPageTest, 'test')
+-   testRunner = unittest.TextTestRunner()
+-   testRunner.run(testSuite)
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_main.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -75,9 +75,12 @@
+       return self.compileTemplate("page_end.html")
+ 
+    def writeTopLinks(self):
+-      pages = [("/status/", "Backup Status"), ("/doLogout", "Log out")]
++      pages = [("/status/", "Backup Status")]
++      if self.userDB.modificationsSupported():
++         pages.append(("/prefs", "Preferences"))
+       if self.userDB.userIsAdmin(self.getUsername()):
+          pages.append(("/admin", "Admin"))
++      pages.append(("/doLogout", "Log out"))
+       links = []
+       for page in pages:
+          (url, title) = page
+
+Added: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-03 21:07:11 UTC (rev 104)
+@@ -0,0 +1,33 @@
++#!/usr/bin/python
++
++from rdw_helpers import joinPaths
++import rdw_helpers, page_main, librdiff
++import os
++import urllib
++
++
++class rdiffPreferencesPage(page_main.rdiffPage):
++   
++   def index(self):
++      return self.getPrefsPage("", "")
++   index.exposed = True
++   
++   def changePassword(self, currentPassword, newPassword, confirmPassword):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage("Password changing is not supported with the active user database.", "")
++      
++      if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
++         return self.getPrefsPage("The 'Current Password' is invalid.", "")
++      
++      if newPassword != confirmPassword:
++         return self.getPrefsPage("The passwords do not match.", "")
++
++      self.userDB.setUserPassword(self.getUsername(), newPassword)
++      
++      return self.getPrefsPage("", "Password updated successfully.")
++   changePassword.exposed = True
++   
++   def getPrefsPage(self, errorMessage, statusMessage):
++      title = "User Preferences"
++      return self.startPage(title) + self.compileTemplate("user_prefs.html", title=title, error=errorMessage, message=statusMessage) + self.endPage()
++      
+
+Added: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-08-27 22:29:32 UTC (rev 103)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-03 21:07:11 UTC (rev 104)
+@@ -0,0 +1,24 @@
++<h2>User Preferences</h2>
++<p>
++<h3>Change Password</h3>
++<!--StartIncludeIf:error--><p style="color:red">^error$</p><!--EndIncludeIf:error-->
++<!--StartIncludeIf:message--><p style="color:blue">^message$</p><!--EndIncludeIf:message-->
++<form action="changePassword" method="post">
++<table>
++<tr>
++   <td>Current Password:</td>
++   <td><input type="password" name="currentPassword"/></td>
++</tr>
++<tr>
++   <td>New Password:</td>
++   <td><input type="password" name="newPassword"/></td>
++</tr>
++<tr>
++   <td>Confirm New Password:</td>
++   <td><input type="password" name="confirmPassword"/></td>
++</tr>
++</table>
++<br>
++
++<input type="submit" value="Change Password" />
++</form>
+
+
+
+From commits at rdiffweb.org  Thu Sep  6 17:42:51 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 6 Sep 2007 17:42:51 +0200
+Subject: [Rdiffweb-commits] r105 - in trunk/rdiffWeb: . templates
+Message-ID: <200709061542.l86FgpYV025282@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-06 17:42:47 +0200 (Thu, 06 Sep 2007)
+New Revision: 105
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+   trunk/rdiffWeb/templates/history.html
+Log:
+Fix history page when displaying successful backups
+
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2007-09-03 21:07:11 UTC (rev 104)
++++ trunk/rdiffWeb/rdw_templating.py	2007-09-06 15:42:47 UTC (rev 105)
+@@ -15,6 +15,8 @@
+ 
+ class templateParser:
+    def __init__(self):
++      self.deleteIfRegex = re.compile(r"<!--StartDeleteIf:(.*?)-->(.*?)<!--EndDeleteIf:\1-->", re.S)
++      self.includeIfRegex = re.compile(r"<!--StartIncludeIf:(.*?)-->(.*?)<!--EndIncludeIf:\1-->", re.S)
+       self.replacements = []
+ 
+    def parseTemplate(self, templateString, **kwargs):
+@@ -36,8 +38,8 @@
+ 
+    def parseSingleTemplate(self, templateString):
+       # Handle conditional includes/deletes
+-      templateString = re.compile(r"<!--StartDeleteIf:(.*?)-->(.*?)<!--EndDeleteIf:\1-->", re.S).sub(self._handleDeleteIf, templateString)
+-      templateString = re.compile(r"<!--StartIncludeIf:(.*?)-->(.*?)<!--EndIncludeIf:\1-->", re.S).sub(self._handleIncludeIf, templateString)
++      templateString = self.deleteIfRegex.sub(self._handleDeleteIf, templateString)
++      templateString = self.includeIfRegex.sub(self._handleIncludeIf, templateString)
+ 
+       # Process any individual keywords
+       result = re.compile("\^(.*?)\$").sub(self._replaceTemplateKeyword, templateString)
+@@ -82,6 +84,9 @@
+       conditional = match.group(1)
+       textToInclude = match.group(2).rstrip("\n")
+       if (replacements[conditional] and includeIfTrue) or (not replacements[conditional] and not includeIfTrue):
++         # The included text may contain additional include/delete statements. Check for those, and if they exist, recurse.
++         if self.deleteIfRegex.search(textToInclude) != None or self.includeIfRegex.search(textToInclude) != None:
++            return self.parseSingleTemplate(textToInclude)
+          return textToInclude
+       return ""
+ 
+@@ -111,14 +116,17 @@
+ 
+    def testConditionalInclude(self):
+       template = """<!--StartIncludeIf:include-->text<!--EndIncludeIf:include-->"""
+-      parmsDict = {"linkUrl":"http://www.google.com", "linkText":"Google"}
+       assert(templateParser().parseTemplate(template, include=True) == "text")
+       assert(templateParser().parseTemplate(template, include=False) == "")
+ 
+       template = """<!--StartDeleteIf:include-->text<!--EndDeleteIf:include-->"""
+-      parmsDict = {"linkUrl":"http://www.google.com", "linkText":"Google"}
+-      assert(templateParser().parseTemplate(template, include=False) == "text")
++      self.assertEquals(templateParser().parseTemplate(template, include=False), "text")
+       assert(templateParser().parseTemplate(template, include=True) == "")
++      
++   def testNestedIncludes(self):
++      template = """<!--StartIncludeIf:include--><!--StartDeleteIf:delete-->should be deleted<!--EndDeleteIf:delete-->text<!--EndIncludeIf:include-->"""
++      self.assertEquals(templateParser().parseTemplate(template, include=True, delete=True), "text")
++      self.assertEquals(templateParser().parseTemplate(template, include=False, delete=True), "")
+ 
+    def testGoodListReplace(self):
+       template = """<!--StartRepeat:links-->
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2007-09-03 21:07:11 UTC (rev 104)
++++ trunk/rdiffWeb/templates/history.html	2007-09-06 15:42:47 UTC (rev 105)
+@@ -38,15 +38,12 @@
+       <!--EndIncludeIf:errors-->
+       <!--StartDeleteIf:errors-->
+       <td class="BackupResult">
+-      <!--EndDeleteIf:errors-->
+       <!--StartIncludeIf:inProgress-->
+          In Progress
+       <!--EndIncludeIf:inProgress-->
+       <!--StartDeleteIf:inProgress-->
+          Success
+       <!--EndDeleteIf:inProgress-->
+-      
+-      <!--StartDeleteIf:errors-->
+       </td>
+       <!--EndDeleteIf:errors-->
+ 
+
+
+
+From commits at rdiffweb.org  Thu Sep 13 16:04:51 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 13 Sep 2007 16:04:51 +0200
+Subject: [Rdiffweb-commits] r106 - trunk/rdiffWeb
+Message-ID: <200709131404.l8DE4p3h016081@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-13 16:04:47 +0200 (Thu, 13 Sep 2007)
+New Revision: 106
+
+Modified:
+   trunk/rdiffWeb/db.py
+   trunk/rdiffWeb/db_mysql.py
+Log:
+Add database support for upcoming email notifications.
+
+
+Modified: trunk/rdiffWeb/db.py
+===================================================================
+--- trunk/rdiffWeb/db.py	2007-09-06 15:42:47 UTC (rev 105)
++++ trunk/rdiffWeb/db.py	2007-09-13 14:04:47 UTC (rev 106)
+@@ -1,6 +1,18 @@
+ #!/usr/bin/python
+ 
++import rdw_config
++
+ class userDB:
++   def getUserDBModule(self):
++      authModuleSetting = rdw_config.getConfigSetting("UserDB");
++      if authModuleSetting.lower() == "file":
++         import db_file
++         return db_file.fileUserDB()
++      if authModuleSetting.lower() == "mysql":
++         import db_mysql
++         return db_mysql.mysqlUserDB()
++      assert(False)
++      
+    def modificationsSupported(self):
+       return False
+ 
+@@ -13,6 +25,9 @@
+    def getUserRepoPaths(self, username):
+       raise NotImplementedError
+ 
++   def getUserEmail(self, username):
++      raise NotImplementedError
++   
+    def getUserList(self):
+       raise NotImplementedError
+ 
+@@ -24,6 +39,9 @@
+ 
+    def setUserInfo(self, username, userRoot, isAdmin):
+       raise NotImplementedError
++   
++   def setUserEmail(self, userEmail):
++      raise NotImplementedError
+ 
+    def setUserRepos(self, username, repos):
+       raise NotImplementedError
+@@ -37,4 +55,3 @@
+    def userIsAdmin(self, username):
+       raise NotImplementedError
+ 
+-
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-09-06 15:42:47 UTC (rev 105)
++++ trunk/rdiffWeb/db_mysql.py	2007-09-13 14:04:47 UTC (rev 106)
+@@ -11,6 +11,7 @@
+       MySQLdb.paramstyle = "pyformat"
+       self.userRootCache = {}
+       self._connect()
++      self._updateToLatestFormat()
+ 
+    def modificationsSupported(self):
+       return True
+@@ -34,6 +35,10 @@
+       repos = [ row[0] for row in self._executeQuery(query)]
+       repos.sort(lambda x, y: cmp(x.upper(), y.upper()))
+       return repos
++      
++   def getUserEmail(self, username):
++      if not self.userExists(username): return None
++      return self._getUserField(username, "userEmail")
+ 
+    def getUserList(self):
+       query = "SELECT UserName FROM users"
+@@ -61,12 +66,29 @@
+       self._executeQuery(query, userRoot=userRoot, user=username)
+       self.userRootCache[username] = userRoot # update cache
+ 
++   def setUserEmail(self, username, userEmail):
++      if not self.userExists(username): raise ValueError
++      query = "UPDATE users SET UserEmail=%(userEmail)s WHERE Username = %(user)s"
++      self._executeQuery(query, userEmail=userEmail, user=username)
++      
+    def setUserRepos(self, username, repoPaths):
+       if not self.userExists(username): raise ValueError
+       userID = self._getUserID(username)
+-      self._deleteUserRepos(username)
++      
++      # We don't want to just delete and recreate the repos, since that
++      # would lose notification information.      
++      existingRepos = self.getUserRepoPaths(username)      
++      reposToDelete = filter(lambda x: not x in repoPaths, existingRepos)
++      reposToAdd = filter(lambda x: not x in existingRepos, repoPaths)
++      
++      # delete any obsolete repos
++      for repo in reposToDelete:
++         query = "DELETE FROM repos WHERE UserID=%(userID)s AND RepoPath=%(repo)s"
++         self._executeQuery(query, repo=repo, userID=str(userID))
++      
++      # add in new repos
+       query = "INSERT INTO repos (UserID, RepoPath) values (%s, %s)"
+-      repoPaths = [ (str(userID), repo) for repo in repoPaths ]
++      repoPaths = [ (str(userID), repo) for repo in reposToAdd ]
+       cursor = self.sqlConnection.cursor()
+       cursor.executemany(query, repoPaths)
+ 
+@@ -74,11 +96,22 @@
+       if not self.userExists(username): raise ValueError
+       query = "UPDATE users SET Password=%(password)s WHERE Username=%(user)s"
+       self._executeQuery(query, password=self._hashPassword(password), user=username)
+-
++      
++   def setRepoMaxAge(self, username, repoPath, maxAge):
++      if not repoPath in self.getUserRepoPaths(username): raise ValueError
++      query = "UPDATE repos SET MaxAge=%(maxAge)s WHERE RepoPath = %(repoPath)s AND UserID = " + str(self._getUserID(username))
++      self._executeQuery(query, maxAge=maxAge, repoPath=repoPath)
++      
++   def getRepoMaxAge(self, username, repoPath):
++      query = "SELECT MaxAge FROM repos WHERE RepoPath = %(repoPath)s AND UserID = " + str(self._getUserID(username))
++      results = self._executeQuery(query, repoPath=repoPath)
++      assert len(results) == 1
++      return int(results[0][0])
++      
+    def userIsAdmin(self, username):
+       return bool(self._getUserField(username, "IsAdmin"))
+ 
+-   ########## Helper functions ###########
++   ########## Helper functions ###########   
+    def _deleteUserRepos(self, username):
+       if not self.userExists(username): raise ValueError
+       self._executeQuery("DELETE FROM repos WHERE UserID=%d" % self._getUserID(username))
+@@ -126,16 +159,36 @@
+       return hasher.hexdigest()
+ 
+    def _getCreateStatements(self):
+-      return ["""create table users ( UserID int(11) NOT NULL auto_increment,
+-               Username varchar (50) binary unique NOT NULL,
+-               Password varchar (40) NOT NULL DEFAULT "",
+-               UserRoot varchar (255) NOT NULL DEFAULT "",
+-               IsAdmin tinyint NOT NULL DEFAULT FALSE,
+-               primary key (UserID) )""",
+-               """create table repos ( RepoID int(11) NOT NULL auto_increment,
+-               UserID int(11) NOT NULL, 
+-               RepoPath varchar (255) NOT NULL,
+-               primary key (RepoID))"""]
++      return [
++"""create table users (
++UserID int(11) NOT NULL auto_increment,
++Username varchar (50) binary unique NOT NULL,
++Password varchar (40) NOT NULL DEFAULT "",
++UserRoot varchar (255) NOT NULL DEFAULT "",
++IsAdmin tinyint NOT NULL DEFAULT FALSE,
++UserEmail varchar (255) NOT NULL DEFAULT "",
++primary key (UserID) )""",
++"""create table repos (
++RepoID int(11) NOT NULL auto_increment,
++UserID int(11) NOT NULL, 
++RepoPath varchar (255) NOT NULL,
++primary key (RepoID))"""
++ ]
++               
++   def _updateToLatestFormat(self):
++      # Make sure that we have tables. If we don't, just quit.
++      tableNames = [table[0].lower() for table in self._executeQuery("show tables")]
++      if not tableNames: return
++      
++      # Make sure that the users table has a "email" column
++      columnNames = [column[0].lower() for column in self._executeQuery("describe users")]
++      if not "useremail" in columnNames:
++         self._executeQuery('alter table users add column UserEmail varchar (255) NOT NULL DEFAULT ""')
++         
++      # Make sure that the repos table has a "MaxAge" column
++      columnNames = [column[0].lower() for column in self._executeQuery("describe repos")]
++      if not "maxage" in columnNames:
++         self._executeQuery('alter table repos add column MaxAge tinyint NOT NULL DEFAULT 0')
+ 
+ 
+ ##################### Unit Tests #########################
+@@ -219,6 +272,20 @@
+       userDataModule = mysqlUserDB(self.configFilePath)
+       assert(not userDataModule.getUserRepoPaths("test2")) # should return None if user doesn't exist
+       assert(not userDataModule.getUserRoot("")) # should return None if user doesn't exist
++      
++   def testUserRepos(self):
++      userDataModule = mysqlUserDB(self.configFilePath)
++      userDataModule.setUserRepos("test", [])
++      userDataModule.setUserRepos("test", ["a", "b", "c"])
++      self.assertEquals(userDataModule.getUserRepoPaths("test"), ["a", "b", "c"])
++      # Make sure that repo max ages are initialized to 0
++      maxAges = [ userDataModule.getRepoMaxAge("test", x) for x in userDataModule.getUserRepoPaths("test") ]
++      self.assertEquals(maxAges, [0, 0, 0])
++      userDataModule.setRepoMaxAge("test", "b", 1)
++      self.assertEquals(userDataModule.getRepoMaxAge("test", "b"), 1)
++      userDataModule.setUserRepos("test", ["b", "c", "d"])
++      self.assertEquals(userDataModule.getRepoMaxAge("test", "b"), 1)
++      self.assertEquals(userDataModule.getUserRepoPaths("test"), ["b", "c", "d"])
+ 
+ if __name__ == "__main__":
+    print "Called as standalone program; running unit tests..."
+
+
+
+From commits at rdiffweb.org  Thu Sep 13 16:16:01 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 13 Sep 2007 16:16:01 +0200
+Subject: [Rdiffweb-commits] r107 - in trunk/rdiffWeb: . static templates
+Message-ID: <200709131416.l8DEG1QP016563@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-13 16:15:53 +0200 (Thu, 13 Sep 2007)
+New Revision: 107
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/rdw_helpers.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Adding email notification options to the preferences page.
+
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/page_main.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -3,8 +3,7 @@
+ import urllib
+ import os.path
+ 
+-import db_file
+-import db_mysql
++import db
+ import rdw_templating
+ import rdw_helpers
+ import rdw_config
+@@ -21,7 +20,7 @@
+ class rdiffPage:
+    _cpFilterList = getFilters()
+    def __init__(self):
+-      self.userDB = self._getUserDBModule()
++      self.userDB = db.userDB().getUserDBModule()
+ 
+    ############################## HELPER FUNCTIONS ###################################
+    def buildBrowseUrl(self, repo, path, isRestoreView):
+@@ -40,9 +39,7 @@
+       return "/"
+ 
+    def compileTemplate(self, templatePath, **kwargs):
+-      (packageDir, ignored) = os.path.split(__file__)
+-      templateText = open(rdw_helpers.joinPaths(packageDir, "templates", templatePath), "r").read()
+-      return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++      return rdw_helpers.compileTemplate(templatePath, **kwargs)
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
+@@ -58,15 +55,7 @@
+       if realDestPath.find(self.userDB.getUserRoot(self.getUsername())) != 0:      
+          raise rdw_helpers.accessDeniedError
+ 
+-   def _getUserDBModule(self):
+-      authModuleSetting = rdw_config.getConfigSetting("UserDB");
+-      if authModuleSetting.lower() == "file":
+-         return db_file.fileUserDB()
+-      if authModuleSetting.lower() == "mysql":
+-         return db_mysql.mysqlUserDB()
+-      assert(False)
+ 
+-
+    ########################## PAGE HELPER FUNCTIONS ##################################
+    def startPage(self, title, rssUrl = "", rssTitle = ""):
+       return self.compileTemplate("page_start.html", title=title, rssLink=rssUrl, rssTitle=rssTitle) + self.writeTopLinks()
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -4,6 +4,8 @@
+ import rdw_helpers, page_main, librdiff
+ import os
+ import urllib
++import rdw_spider_repos
++import email_notification
+ 
+ 
+ class rdiffPreferencesPage(page_main.rdiffPage):
+@@ -14,20 +16,61 @@
+    
+    def changePassword(self, currentPassword, newPassword, confirmPassword):
+       if not self.userDB.modificationsSupported():
+-         return self.getPrefsPage("Password changing is not supported with the active user database.", "")
++         return self.getPrefsPage(errorMessage="Password changing is not supported with the active user database.")
+       
+       if not self.userDB.areUserCredentialsValid(self.getUsername(), currentPassword):
+-         return self.getPrefsPage("The 'Current Password' is invalid.", "")
++         return self.getPrefsPage(errorMessage="The 'Current Password' is invalid.")
+       
+       if newPassword != confirmPassword:
+-         return self.getPrefsPage("The passwords do not match.", "")
++         return self.getPrefsPage(errorMessage="The passwords do not match.")
+ 
+       self.userDB.setUserPassword(self.getUsername(), newPassword)
+       
+-      return self.getPrefsPage("", "Password updated successfully.")
++      return self.getPrefsPage(statusMessage="Password updated successfully.")
+    changePassword.exposed = True
+    
+-   def getPrefsPage(self, errorMessage, statusMessage):
++   def updateRepos(self):
++      rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
++      return self.getPrefsPage(statusMessage="Successfully updated repositories.")
++   updateRepos.exposed = True
++   
++   def setNotifications(self, **parms):
++      if not self.userDB.modificationsSupported():
++         return self.getPrefsPage(errorMessage="Email notification is not supported with the active user database.")
++      
++      repos = self.userDB.getUserRepoPaths(self.getUsername())
++      
++      for parmName in parms.keys():
++         if parmName == "userEmail":
++            self.userDB.setUserEmail(self.getUsername(), parms[parmName])
++         if parmName.endswith("numDays"):
++            backupName = parmName[:-7]
++            print "setting backup", backupName
++            if backupName in repos:
++               if parms[parmName] == "Don't notify":
++                  maxDays = 0
++               else:
++                  maxDays = int(parms[parmName][0])
++               self.userDB.setRepoMaxAge(self.getUsername(), backupName, maxDays)
++               
++      return self.getPrefsPage(statusMessage="Successfully changed notification settings.")
++   
++   setNotifications.exposed = True
++   
++      
++   
++   def getPrefsPage(self, errorMessage="", statusMessage=""):
+       title = "User Preferences"
+-      return self.startPage(title) + self.compileTemplate("user_prefs.html", title=title, error=errorMessage, message=statusMessage) + self.endPage()
++      email = self.userDB.getUserEmail(self.getUsername());
++      if not email:
++         email = "joe at example.com"
++      parms = { "title" : title, "error" : errorMessage, "message" : statusMessage, "userEmail" : email, "notificationsEnabled" : False }
++      if email_notification.emailNotificationIsEnabled():
++         repos = self.userDB.getUserRepoPaths(self.getUsername())
++         backups = [{ "backupName" : repo, "maxDays" : self.userDB.getRepoMaxAge(self.getUsername(), repo) } for repo in repos]
++         
++         parms.update({ "notificationsEnabled" : True, "backups" : backups })
++         
++      return self.startPage(title) + self.compileTemplate("user_prefs.html", **parms) + self.endPage()
+       
++
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/rdw_helpers.py	2007-09-13 14:15:53 UTC (rev 107)
+@@ -8,6 +8,8 @@
+ import urllib
+ import zipfile
+ 
++import rdw_templating
++
+ def joinPaths(parentPath, *args):
+    args = [x.lstrip("/") for x in args]
+    return os.path.join(parentPath, *args)
+@@ -70,6 +72,11 @@
+    (filesize, name) = sizeNames[-1]
+    return formatNumStr(1.0*filesize / size, 2) + " " + name
+ 
++def compileTemplate(templatePath, **kwargs):
++   (packageDir, ignored) = os.path.split(__file__)
++   templateText = open(joinPaths(packageDir, "templates", templatePath), "r").read()
++   return rdw_templating.templateParser().parseTemplate(templateText, **kwargs)
++
+ class rdwTime:
+    """Time information has two components: the local time, stored in GMT as seconds since Epoch,
+    and the timezone, stored as a seconds offset.  Since the server may not be in the same timezone
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/static/main.css	2007-09-13 14:15:53 UTC (rev 107)
+@@ -94,8 +94,20 @@
+    text-decoration: none;
+ }
+ 
+-.warning
++.warning,
++.error
+ {
+    color: red
+ }
+ 
++.message
++{
++   color: blue
++}
++
++table.notificationsTable td
++{
++   vertical-align: top;
++   padding-right: 0.5em;
++   text-align: right;
++}
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:04:47 UTC (rev 106)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:15:53 UTC (rev 107)
+@@ -1,8 +1,38 @@
++<!--StartDelete-->
++<html>
++<head>
++   <link rel="stylesheet" href="../static/main.css" type="text/css" />
++</head>
++<body>
++<script type="text/javascript" language="javascript" src="../static/prefs.js"></script>
++<!--EndDelete-->
++<script type="text/javascript" language="javascript" src="/static/prefs.js"></script>
++
++<!--StartIncludeIf:notificationsEnabled-->
++<script type="text/javascript" language="javascript">
++
++var backupData = {
++<!--StartRepeat:backups-->
++"^backupName$" : ^maxDays$,
++<!--EndRepeat:backups-->
++}
++
++window.onload = function()
++{
++   for (i in backupData)
++   {
++      droplist = document.getElementById(i+"Select");
++      droplist.selectedIndex = backupData[i]
++   }
++}
++</script>
++<!--EndIncludeIf:notificationsEnabled-->
++
+ <h2>User Preferences</h2>
+ <p>
++<!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
++<!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+ <h3>Change Password</h3>
+-<!--StartIncludeIf:error--><p style="color:red">^error$</p><!--EndIncludeIf:error-->
+-<!--StartIncludeIf:message--><p style="color:blue">^message$</p><!--EndIncludeIf:message-->
+ <form action="changePassword" method="post">
+ <table>
+ <tr>
+@@ -22,3 +52,48 @@
+ 
+ <input type="submit" value="Change Password" />
+ </form>
++
++<h3>Update Backup Locations</h3>
++<a href="updateRepos">Find and update backup locations</a>
++
++<!--StartIncludeIf:notificationsEnabled-->
++<h3>Backup Notifications</h3>
++<form action="setNotifications" method="post">
++
++<table class="notificationsTable">
++<tr>
++   <td>Notify me at</td>
++<!--StartIncludeIf:userEmail-->
++   <td><input name="userEmail" value="^userEmail$"></td>
++<!--EndIncludeIf:userEmail-->
++<!--StartDeleteIf:userEmail-->
++   <td><input name="userEmail" value="joe at example.com"></td>
++<!--EndDeleteIf:userEmail-->
++   <td align="left">
++      when my backups do not get backed up for:
++   </td>
++</tr>
++</table>
++<table class="notificationsTable">
++<!--StartRepeat:backups-->
++<tr>
++   <td>^backupName$ : </td>
++   <td>
++      <select name="^backupName$numDays" id="^backupName$Select">
++         <option selected>Don't notify
++         <option>1 day
++         <option>2 days
++         <option>3 days
++         <option>4 days
++         <option>5 days
++         <option>6 days
++         <option>7 days
++      </select>
++   </td>
++</tr>
++<!--EndRepeat:backups-->
++</table>
++</table>
++<input type="submit" value="Change Notifications" />
++</form>
++<!--EndIncludeIf:notificationsEnabled-->
+
+
+
+From commits at rdiffweb.org  Thu Sep 13 16:16:44 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 13 Sep 2007 16:16:44 +0200
+Subject: [Rdiffweb-commits] r108 - trunk/rdiffWeb
+Message-ID: <200709131416.l8DEGio9016605@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-13 16:16:41 +0200 (Thu, 13 Sep 2007)
+New Revision: 108
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+Log:
+Remove logic that was moved to the template
+
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-13 14:15:53 UTC (rev 107)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-13 14:16:41 UTC (rev 108)
+@@ -62,8 +62,6 @@
+    def getPrefsPage(self, errorMessage="", statusMessage=""):
+       title = "User Preferences"
+       email = self.userDB.getUserEmail(self.getUsername());
+-      if not email:
+-         email = "joe at example.com"
+       parms = { "title" : title, "error" : errorMessage, "message" : statusMessage, "userEmail" : email, "notificationsEnabled" : False }
+       if email_notification.emailNotificationIsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 03:43:10 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 03:43:10 +0200
+Subject: [Rdiffweb-commits] r109 - in trunk: . rdiffWeb rdiffWeb/static
+	rdiffWeb/templates
+Message-ID: <200709140143.l8E1hAd6021949@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 03:43:03 +0200 (Fri, 14 Sep 2007)
+New Revision: 109
+
+Added:
+   trunk/rdiff-web-notify
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/templates/email_notification.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Add basic support for email notifications. A lot of polishing remains.
+
+
+Added: trunk/rdiff-web-notify
+===================================================================
+--- trunk/rdiff-web-notify	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiff-web-notify	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,18 @@
++#!/usr/bin/python
++
++import os
++import sys
++
++import rdiffWeb.email_notification
++
++if __name__ == "__main__":
++   # Because this script manipulates files in the /etc directory, it must be run as root.
++#   if os.getuid() != 0:
++#      print "Error: this script must be run as root."
++#      sys.exit(2)
++      
++   if not rdiffWeb.email_notification.emailNotificationIsEnabled():
++      print "Email notifications do not seem to be configured. Exiting."
++      sys.exit(1)
++   
++   rdiffWeb.email_notification.emailNotifications()
+
+
+Property changes on: trunk/rdiff-web-notify
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/email_notification.py	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,70 @@
++#!/usr/bin/python
++
++import smtplib
++
++import rdw_config
++import db
++import librdiff
++import rdw_helpers
++
++def emailNotificationIsEnabled():
++   return getEmailHost() != "" and getEmailSender() != "" and db.userDB().getUserDBModule().modificationsSupported()
++
++def getEmailHost():
++   return rdw_config.getConfigSetting("emailHost")
++
++def getEmailSender():
++   return rdw_config.getConfigSetting("emailSender")
++
++def getEmailUsername():
++   return rdw_config.getConfigSetting("emailUsername")
++
++def getEmailPassword():
++   return rdw_config.getConfigSetting("emailPassword")
++
++def emailNotifications():
++   emailHost = getEmailHost()
++   emailSender = getEmailSender()
++   emailUsername = getEmailUsername()
++   emailPassword = getEmailPassword()
++      
++   dbBackend = db.userDB().getUserDBModule()
++   for user in dbBackend.getUserList():
++      userRepos = dbBackend.getUserRepoPaths(user)
++      oldRepos = []
++      for repo in userRepos:
++         maxDaysOld = dbBackend.getRepoMaxAge(user, repo)
++         if maxDaysOld != 0:
++            # get the last backup date
++            try:
++               lastBackup = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(dbBackend.getUserRoot(user), repo), False)
++            except librdiff.FileError:
++               pass # Skip repos that have never been successfully backed up
++            else:
++               if lastBackup:
++                  oldestGoodBackupTime = rdw_helpers.rdwTime()
++                  oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
++                  if lastBackup.date < oldestGoodBackupTime:
++                     oldRepos.append({"repo" : repo, "lastBackupDate" : lastBackup.date.getDisplayString()})
++               
++      if oldRepos:
++         userEmailAddress = dbBackend.getUserEmail(user)
++         emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=emailSender, subject="Backup Failures")
++         #print emailText
++         #emailText = html_email.createhtmlmail("", textEmailPart, emailTitle)
++
++         session = smtplib.SMTP(emailHost)
++         session.login(emailUsername, emailPassword)
++         smtpresult = session.sendmail(emailSender, [userEmailAddress], emailText)
++         if smtpresult:
++            error = ""
++            for recipient in smtpresult.keys():
++               error = """Could not delivery mail to: %s
++
++Server said: %s
++%s
++
++%s""" % (recipient, smtpresult[recipient][0], smtpresult[recipient][1], error)
++            raise smtplib.SMTPException, error
++         session.quit()
++
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/librdiff.py	2007-09-14 01:43:03 UTC (rev 109)
+@@ -293,8 +293,8 @@
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+ 
+-def getLastBackupHistoryEntry(repoRoot):
+-   history = _getBackupHistory(repoRoot, 1, None, None, True)
++def getLastBackupHistoryEntry(repoRoot, includeInProgress=True):
++   history = _getBackupHistory(repoRoot, 1, None, None, includeInProgress)
+    if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
+    return history[0]
+ 
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/static/main.css	2007-09-14 01:43:03 UTC (rev 109)
+@@ -94,13 +94,13 @@
+    text-decoration: none;
+ }
+ 
+-.warning,
+-.error
++p.warning,
++p.error
+ {
+    color: red
+ }
+ 
+-.message
++p.message
+ {
+    color: blue
+ }
+
+Added: trunk/rdiffWeb/templates/email_notification.txt
+===================================================================
+--- trunk/rdiffWeb/templates/email_notification.txt	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/templates/email_notification.txt	2007-09-14 01:43:03 UTC (rev 109)
+@@ -0,0 +1,9 @@
++From: ^sender$
++Subject: ^subject$
++
++The following backup locations have not been backed up recently:
++
++Backup Location      Last Backup Date
++<!--StartRepeat:repos-->
++^repo$		^lastBackupDate$
++<!--EndRepeat:repos-->
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-13 14:16:41 UTC (rev 108)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-14 01:43:03 UTC (rev 109)
+@@ -4,9 +4,7 @@
+    <link rel="stylesheet" href="../static/main.css" type="text/css" />
+ </head>
+ <body>
+-<script type="text/javascript" language="javascript" src="../static/prefs.js"></script>
+ <!--EndDelete-->
+-<script type="text/javascript" language="javascript" src="/static/prefs.js"></script>
+ 
+ <!--StartIncludeIf:notificationsEnabled-->
+ <script type="text/javascript" language="javascript">
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 03:50:57 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 03:50:57 +0200
+Subject: [Rdiffweb-commits] r110 - trunk
+Message-ID: <200709140150.l8E1ovPC022226@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 03:50:55 +0200 (Fri, 14 Sep 2007)
+New Revision: 110
+
+Modified:
+   trunk/rdiff-web-notify
+Log:
+Require the email notification script to be run as root.
+
+
+Modified: trunk/rdiff-web-notify
+===================================================================
+--- trunk/rdiff-web-notify	2007-09-14 01:43:03 UTC (rev 109)
++++ trunk/rdiff-web-notify	2007-09-14 01:50:55 UTC (rev 110)
+@@ -7,9 +7,9 @@
+ 
+ if __name__ == "__main__":
+    # Because this script manipulates files in the /etc directory, it must be run as root.
+-#   if os.getuid() != 0:
+-#      print "Error: this script must be run as root."
+-#      sys.exit(2)
++   if os.getuid() != 0:
++      print "Error: this script must be run as root."
++      sys.exit(2)
+       
+    if not rdiffWeb.email_notification.emailNotificationIsEnabled():
+       print "Email notifications do not seem to be configured. Exiting."
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 03:59:23 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 03:59:23 +0200
+Subject: [Rdiffweb-commits] r112 - trunk
+Message-ID: <200709140159.l8E1xNin022424@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 03:59:20 +0200 (Fri, 14 Sep 2007)
+New Revision: 112
+
+Modified:
+   trunk/setup.py
+Log:
+Add email notification to the setup script
+
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-09-14 01:51:50 UTC (rev 111)
++++ trunk/setup.py	2007-09-14 01:59:20 UTC (rev 112)
+@@ -18,7 +18,7 @@
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+-      scripts=['rdiff-web', 'rdiff-web-config']
++      scripts=['rdiff-web', 'rdiff-web-config', 'rdiff-web-notify']
+      )
+ else:
+    from distutils.dist import Distribution
+@@ -45,5 +45,5 @@
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+                   (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+                   ],
+-      scripts=['rdiff-web', 'rdiff-web-config']
++      scripts=['rdiff-web', 'rdiff-web-config', 'rdiff-web-notify']
+      )
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 03:51:52 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 03:51:52 +0200
+Subject: [Rdiffweb-commits] r111 - trunk
+Message-ID: <200709140151.l8E1pqjn022250@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 03:51:50 +0200 (Fri, 14 Sep 2007)
+New Revision: 111
+
+Modified:
+   trunk/rdw.conf.sample
+Log:
+Improving documentation for sample configuration file
+
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2007-09-14 01:50:55 UTC (rev 110)
++++ trunk/rdw.conf.sample	2007-09-14 01:51:50 UTC (rev 111)
+@@ -1,7 +1,32 @@
+-ServerName=localhost
+-ServerPort=8080
+-UserDB=file
+-Username=user
+-Password=pass
+-UserRoot=/var/repos
+-UserRepoPaths=/home_backup
++
++# This is the name of the host that the server should bind to.
++# ServerName=localhost
++
++# This is the port that the server should listen on
++# ServerPort=8080
++
++# There are two options for user databases: file and MySQL.
++# The main limitation of the file-based user database is that it only supports
++# one user, while the MySQL-based user database has no limit. Automatic updating
++# of user repositories and email notifications are also not supported for
++# file-based databases.
++# UserDB=mysql
++
++
++# The following variables for only for file-based backends (they are stored
++# in the database when using MySQL.)
++#
++# Username=user
++# Password=pass
++# UserRoot=/var/backups
++# UserRepoPaths=/home_backup|/work_backup # A pipe-delimited list of repositories, relative to UserRoot
++
++
++# The server can be configured to email user when their repositories have not
++# been backed up for a user-specified period of time. To enable this feature,
++# set below settings to correct values.
++# 
++# emailHost=smtp.server.com
++# emailSender=john at doe.com
++# emailUsername=email_user # May be blank, if the smtp server does not require authentication
++# emailPassword=email_password # May be blank, if the smtp server does not require authentication
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 21:38:25 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 21:38:25 +0200
+Subject: [Rdiffweb-commits] r113 - in trunk: . rdiffWeb
+Message-ID: <200709141938.l8EJcP5K031685@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 21:38:18 +0200 (Fri, 14 Sep 2007)
+New Revision: 113
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/setup.py
+Log:
+* Include email template in setup package
+* Fix mysql handling of case sensitive repo paths
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/db_mysql.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -83,7 +83,7 @@
+       
+       # delete any obsolete repos
+       for repo in reposToDelete:
+-         query = "DELETE FROM repos WHERE UserID=%(userID)s AND RepoPath=%(repo)s"
++         query = "DELETE FROM repos WHERE UserID=%(userID)s AND RepoPath= BINARY %(repo)s"
+          self._executeQuery(query, repo=repo, userID=str(userID))
+       
+       # add in new repos
+@@ -99,11 +99,11 @@
+       
+    def setRepoMaxAge(self, username, repoPath, maxAge):
+       if not repoPath in self.getUserRepoPaths(username): raise ValueError
+-      query = "UPDATE repos SET MaxAge=%(maxAge)s WHERE RepoPath = %(repoPath)s AND UserID = " + str(self._getUserID(username))
++      query = "UPDATE repos SET MaxAge=%(maxAge)s WHERE RepoPath = BINARY %(repoPath)s AND UserID = " + str(self._getUserID(username))
+       self._executeQuery(query, maxAge=maxAge, repoPath=repoPath)
+       
+    def getRepoMaxAge(self, username, repoPath):
+-      query = "SELECT MaxAge FROM repos WHERE RepoPath = %(repoPath)s AND UserID = " + str(self._getUserID(username))
++      query = "SELECT MaxAge FROM repos WHERE RepoPath = BINARY %(repoPath)s AND UserID = " + str(self._getUserID(username))
+       results = self._executeQuery(query, repoPath=repoPath)
+       assert len(results) == 1
+       return int(results[0][0])
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/email_notification.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -50,8 +50,6 @@
+       if oldRepos:
+          userEmailAddress = dbBackend.getUserEmail(user)
+          emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=emailSender, subject="Backup Failures")
+-         #print emailText
+-         #emailText = html_email.createhtmlmail("", textEmailPart, emailTitle)
+ 
+          session = smtplib.SMTP(emailHost)
+          session.login(emailUsername, emailPassword)
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/page_admin.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -71,7 +71,8 @@
+       page = self.startPage("Administration")
+       userNames = self.userDB.getUserList()
+       users = [ { "username" : user } for user in userNames ]
+-      page = page + self.compileTemplate("admin_main.html", users=users, addUserUrl="/admin/addUser")
++      parms = { "users" : users, "addUserUrl" : "/admin/addUser" } ]
++      page = page + self.compileTemplate("admin_main.html", **parms)
+       return page + self.endPage()
+    index.exposed = True
+ 
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -62,7 +62,14 @@
+    def getPrefsPage(self, errorMessage="", statusMessage=""):
+       title = "User Preferences"
+       email = self.userDB.getUserEmail(self.getUsername());
+-      parms = { "title" : title, "error" : errorMessage, "message" : statusMessage, "userEmail" : email, "notificationsEnabled" : False }
++      parms = {
++         "title" : title,
++         "error" : errorMessage,
++         "message" : statusMessage,
++         "userEmail" : email,
++         "notificationsEnabled" : False,
++         "backups" : []
++      }
+       if email_notification.emailNotificationIsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+          backups = [{ "backupName" : repo, "maxDays" : self.userDB.getRepoMaxAge(self.getUsername(), repo) } for repo in repos]
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-09-14 01:59:20 UTC (rev 112)
++++ trunk/setup.py	2007-09-14 19:38:18 UTC (rev 113)
+@@ -14,7 +14,7 @@
+       author_email='rdiffweb at rdiffweb.org',
+       url='http://www.rdiffweb.org',
+       packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
++      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+@@ -40,6 +40,7 @@
+                   ('/etc/init.d', ['init/rdiff-web']),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
++                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.txt')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
+                   (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+
+
+
+From commits at rdiffweb.org  Fri Sep 14 21:39:27 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 14 Sep 2007 21:39:27 +0200
+Subject: [Rdiffweb-commits] r114 - trunk/rdiffWeb
+Message-ID: <200709141939.l8EJdRWq031787@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-14 21:39:23 +0200 (Fri, 14 Sep 2007)
+New Revision: 114
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+Log:
+Oops. Fix syntax error.
+
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2007-09-14 19:38:18 UTC (rev 113)
++++ trunk/rdiffWeb/page_admin.py	2007-09-14 19:39:23 UTC (rev 114)
+@@ -71,7 +71,7 @@
+       page = self.startPage("Administration")
+       userNames = self.userDB.getUserList()
+       users = [ { "username" : user } for user in userNames ]
+-      parms = { "users" : users, "addUserUrl" : "/admin/addUser" } ]
++      parms = { "users" : users, "addUserUrl" : "/admin/addUser" }
+       page = page + self.compileTemplate("admin_main.html", **parms)
+       return page + self.endPage()
+    index.exposed = True
+
+
+
+From commits at rdiffweb.org  Sat Sep 15 16:29:10 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 15 Sep 2007 16:29:10 +0200
+Subject: [Rdiffweb-commits] r115 - trunk/rdiffWeb
+Message-ID: <200709151429.l8FETALO005934@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-15 16:29:08 +0200 (Sat, 15 Sep 2007)
+New Revision: 115
+
+Modified:
+   trunk/rdiffWeb/email_notification.py
+Log:
+Add ability to notify multiple recipients
+
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-14 19:39:23 UTC (rev 114)
++++ trunk/rdiffWeb/email_notification.py	2007-09-15 14:29:08 UTC (rev 115)
+@@ -53,7 +53,7 @@
+ 
+          session = smtplib.SMTP(emailHost)
+          session.login(emailUsername, emailPassword)
+-         smtpresult = session.sendmail(emailSender, [userEmailAddress], emailText)
++         smtpresult = session.sendmail(emailSender, userEmailAddress.split(";"), emailText)
+          if smtpresult:
+             error = ""
+             for recipient in smtpresult.keys():
+
+
+
+From commits at rdiffweb.org  Mon Sep 17 17:21:42 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 17 Sep 2007 17:21:42 +0200
+Subject: [Rdiffweb-commits] r116 - in trunk/rdiffWeb: . static templates
+Message-ID: <200709171521.l8HFLgcc031949@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-17 17:21:34 +0200 (Mon, 17 Sep 2007)
+New Revision: 116
+
+Modified:
+   trunk/rdiffWeb/email_notification.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/email_notification.txt
+   trunk/rdiffWeb/templates/repo_listing.html
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+* Lots of visual tweaks, particularly to preferences page
+* Slight improvements to notification email template
+* Started work on email notification settings on admin page
+
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/email_notification.py	2007-09-17 15:21:34 UTC (rev 116)
+@@ -45,11 +45,11 @@
+                   oldestGoodBackupTime = rdw_helpers.rdwTime()
+                   oldestGoodBackupTime.initFromMidnightUTC(-maxDaysOld)
+                   if lastBackup.date < oldestGoodBackupTime:
+-                     oldRepos.append({"repo" : repo, "lastBackupDate" : lastBackup.date.getDisplayString()})
++                     oldRepos.append({"repo" : repo, "lastBackupDate" : lastBackup.date.getDisplayString(), "maxAge" : maxDaysOld })
+                
+       if oldRepos:
+          userEmailAddress = dbBackend.getUserEmail(user)
+-         emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=emailSender, subject="Backup Failures")
++         emailText = rdw_helpers.compileTemplate("email_notification.txt", repos=oldRepos, sender=emailSender, user=user)
+ 
+          session = smtplib.SMTP(emailHost)
+          session.login(emailUsername, emailPassword)
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/static/main.css	2007-09-17 15:21:34 UTC (rev 116)
+@@ -2,6 +2,12 @@
+ {
+    font-family: sans-serif;
+ }
++
++a
++{
++   text-decoration: none;
++}
++
+ #NavBar
+ {
+       float: right;
+@@ -40,6 +46,7 @@
+    padding-right: 2em;
+ }
+ 
++/* Browse page */
+ td.PopupLinkCell,
+ td.PopupLinkCell td
+ {
+@@ -55,6 +62,17 @@
+    padding-right: 0em;
+ }
+ 
++td.FlyoutContainer div
++{
++   display:none;
++   position: absolute;
++   float:right;
++   color: black;
++   background-color: silver;
++   border: 1px solid gray;
++}
++
++/* Login page */
+ table.Login td
+ {
+    padding-right: .5em;
+@@ -69,16 +87,8 @@
+    border: 10px double white;
+ }
+ 
+-td.FlyoutContainer div
+-{
+-   display:none;
+-   position: absolute;
+-   float:right;
+-   color: black;
+-   background-color: silver;
+-   border: 1px solid gray;
+-}
+ 
++
+ .backupStatus_success,
+ .backupStatus_success a:link,
+ .backupStatus_success a:visited
+@@ -94,6 +104,7 @@
+    text-decoration: none;
+ }
+ 
++/* Prefs page */
+ p.warning,
+ p.error
+ {
+@@ -102,12 +113,39 @@
+ 
+ p.message
+ {
+-   color: blue
++   color: green
+ }
+ 
+-table.notificationsTable td
++table.emailTable td
+ {
+    vertical-align: top;
+    padding-right: 0.5em;
+    text-align: right;
+ }
++
++tr.notificationsRow td
++{
++   border-top:1px solid #ccc;
++   padding-bottom: 5px;
++   padding-top: 5px;
++   padding-right: 1em;
++}
++
++.groupboxDiv
++{
++   border: 1px solid black;
++   display: table-cell;
++   padding: 0.5em;
++}
++
++h2,
++h3,
++table thead
++{
++   color: #3162a6;
++}
++
++input.textInput
++{
++   width: 17em;
++}
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/templates/admin_main.html	2007-09-17 15:21:34 UTC (rev 116)
+@@ -1,7 +1,12 @@
++<!--StartDelete-->
++<html>
++<head>
++   <link rel="stylesheet" href="../static/main.css" type="text/css" />
++</head>
++<body>
++<!--EndDelete-->
++
+ <h2>Admin Panel</h2>
+-<p>
+-   <a href="/">Backup Locations</a>
+-</p>
+ <h3>Users</h3>
+ <table>
+ <!--StartRepeat:users-->
+@@ -16,3 +21,40 @@
+ </table>
+ <br>
+ <a href="^addUserUrl$">Add User</a>
++
++<!--StartDelete-->
++<!--StartIncludeIf:emailsEnabled-->
++<form>
++<h3>Email Notifications</h3>
++<p>
++rdiffWeb can be configured to notify user when their backups have not been run.<br>
++To enable email notification, the following settings must be set:
++<table>
++   <tr>
++      <td>Email Server:</td>
++      <td><input class="textInput" name="emailHost" value="^emailHost$"></td>
++   </tr>
++   <!--<tr>
++      <td>Email Port:</td>
++      <td><input name="emailPort" value="25"></td>
++   </tr>-->
++   <tr>
++      <td>From Email Address:</td>
++      <td><input class="textInput" name="emailSender" value="^emailSender$"></td>
++   </tr>
++   <tr>
++      <td colspan="2">The following must be set if the smtp server requires authentication:</td>
++   </tr>
++   <tr>
++      <td>Email Username</td>
++      <td><input class="textInput" name="emailUsername" value="^emailUsername$"></td>
++   </tr>
++   <tr>
++      <td>Email Password</td>
++      <td><input class="textInput" name="emailPassword" value="^emailPassword$"></td>
++   </tr>
++</table>
++<input type="submit" value="Configure email settings"/>
++</form>
++<!--EndIncludeIf:emailsEnabled-->
++<!--EndDelete-->
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/templates/email_notification.txt
+===================================================================
+--- trunk/rdiffWeb/templates/email_notification.txt	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/templates/email_notification.txt	2007-09-17 15:21:34 UTC (rev 116)
+@@ -1,9 +1,9 @@
+ From: ^sender$
+-Subject: ^subject$
++Subject: Backup Failures for ^user$
+ 
+ The following backup locations have not been backed up recently:
+ 
+-Backup Location      Last Backup Date
++Backup Location         Last Backup Date     Max Days Between Backups
+ <!--StartRepeat:repos-->
+-^repo$		^lastBackupDate$
++^repo$		^lastBackupDate$      ^maxAge$
+ <!--EndRepeat:repos-->
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-09-17 15:21:34 UTC (rev 116)
+@@ -7,6 +7,7 @@
+          <td>Name</td>
+          <td>Last Backup</td>
+          <td>Last Backup Size</td>
++         <td>History</td>
+       </tr>
+    </thead>
+    <tbody>
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-15 14:29:08 UTC (rev 115)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-17 15:21:34 UTC (rev 116)
+@@ -32,66 +32,72 @@
+ <!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+ <h3>Change Password</h3>
+ <form action="changePassword" method="post">
++<div class="groupboxDiv">
+ <table>
+ <tr>
+    <td>Current Password:</td>
+-   <td><input type="password" name="currentPassword"/></td>
++   <td><input class="textInput" type="password" name="currentPassword"/></td>
+ </tr>
+ <tr>
+    <td>New Password:</td>
+-   <td><input type="password" name="newPassword"/></td>
++   <td><input class="textInput" type="password" name="newPassword"/></td>
+ </tr>
+ <tr>
+    <td>Confirm New Password:</td>
+-   <td><input type="password" name="confirmPassword"/></td>
++   <td><input class="textInput" type="password" name="confirmPassword"/></td>
+ </tr>
++<tr>
++   <td style="height: 2em"> <input type="submit" value="Change Password" /></td>
++</tr>
+ </table>
+-<br>
+-
+-<input type="submit" value="Change Password" />
++</div>
+ </form>
+ 
++
+ <h3>Update Backup Locations</h3>
+-<a href="updateRepos">Find and update backup locations</a>
++<form action="updateRepos" method="post">
++<input type="submit" value="Find and Update Backup Locations" />
++</form>
+ 
+ <!--StartIncludeIf:notificationsEnabled-->
+ <h3>Backup Notifications</h3>
+ <form action="setNotifications" method="post">
++<div class="groupboxDiv">
+ 
+-<table class="notificationsTable">
+-<tr>
+-   <td>Notify me at</td>
+-<!--StartIncludeIf:userEmail-->
+-   <td><input name="userEmail" value="^userEmail$"></td>
+-<!--EndIncludeIf:userEmail-->
+-<!--StartDeleteIf:userEmail-->
+-   <td><input name="userEmail" value="joe at example.com"></td>
+-<!--EndDeleteIf:userEmail-->
+-   <td align="left">
+-      when my backups do not get backed up for:
+-   </td>
+-</tr>
+-</table>
+-<table class="notificationsTable">
+-<!--StartRepeat:backups-->
+-<tr>
+-   <td>^backupName$ : </td>
+-   <td>
+-      <select name="^backupName$numDays" id="^backupName$Select">
+-         <option selected>Don't notify
+-         <option>1 day
+-         <option>2 days
+-         <option>3 days
+-         <option>4 days
+-         <option>5 days
+-         <option>6 days
+-         <option>7 days
+-      </select>
+-   </td>
+-</tr>
+-<!--EndRepeat:backups-->
+-</table>
+-</table>
+-<input type="submit" value="Change Notifications" />
++   <table class="emailTable">
++      <tr>
++         <td>Notify me at</td>
++      <!--StartIncludeIf:userEmail-->
++         <td><input class="textInput" name="userEmail" value="^userEmail$"></td>
++      <!--EndIncludeIf:userEmail-->
++         <td align="left">
++            when my backups do not get backed up for:
++         </td>
++      </tr>
++   </table>
++   <table class="notificationsTable">
++      <tr></tr>
++      <!--StartRepeat:backups-->
++      <tr class="notificationsRow">
++         <td>^backupName$ : </td>
++         <td>
++            <select name="^backupName$numDays" id="^backupName$Select">
++               <option selected>Don't notify
++               <option>1 day
++               <option>2 days
++               <option>3 days
++               <option>4 days
++               <option>5 days
++               <option>6 days
++               <option>7 days
++            </select>
++         </td>
++      </tr>
++      <!--EndRepeat:backups-->
++      <tr style="height: 2em">
++         <td><input type="submit" value="Change Notifications" /></td>
++      </tr>
++   </table>
++</div>
+ </form>
+ <!--EndIncludeIf:notificationsEnabled-->
+
+
+
+From commits at rdiffweb.org  Fri Sep 21 14:33:18 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 21 Sep 2007 14:33:18 +0200
+Subject: [Rdiffweb-commits] r117 - in trunk/rdiffWeb: static templates
+Message-ID: <200709211233.l8LCXId1010076@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-21 14:33:11 +0200 (Fri, 21 Sep 2007)
+New Revision: 117
+
+Modified:
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+More tweaks to the preferences page.
+
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-17 15:21:34 UTC (rev 116)
++++ trunk/rdiffWeb/static/main.css	2007-09-21 12:33:11 UTC (rev 117)
+@@ -136,6 +136,8 @@
+    border: 1px solid black;
+    display: table-cell;
+    padding: 0.5em;
++   color: silver;
++   margin: 10em;
+ }
+ 
+ h2,
+@@ -149,3 +151,12 @@
+ {
+    width: 17em;
+ }
++
++.groupboxHeader
++{
++   margin-top: 0px;
++}
++
++.groupboxButton
++{
++}
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-17 15:21:34 UTC (rev 116)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-21 12:33:11 UTC (rev 117)
+@@ -30,9 +30,9 @@
+ <p>
+ <!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
+ <!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+-<h3>Change Password</h3>
+ <form action="changePassword" method="post">
+ <div class="groupboxDiv">
++<h3 class="groupboxHeader">Change Password</h3>
+ <table>
+ <tr>
+    <td>Current Password:</td>
+@@ -47,7 +47,7 @@
+    <td><input class="textInput" type="password" name="confirmPassword"/></td>
+ </tr>
+ <tr>
+-   <td style="height: 2em"> <input type="submit" value="Change Password" /></td>
++   <td style="height: 2em"> <input class="groupboxButton" type="submit" value="Change Password" /></td>
+ </tr>
+ </table>
+ </div>
+@@ -56,20 +56,17 @@
+ 
+ <h3>Update Backup Locations</h3>
+ <form action="updateRepos" method="post">
+-<input type="submit" value="Find and Update Backup Locations" />
++<input type="submit" class="groupboxButton" value="Find and Update Backup Locations" />
+ </form>
+ 
+ <!--StartIncludeIf:notificationsEnabled-->
+-<h3>Backup Notifications</h3>
+ <form action="setNotifications" method="post">
+ <div class="groupboxDiv">
+-
++<h3 class="groupboxHeader">Backup Notifications</h3>
+    <table class="emailTable">
+       <tr>
+          <td>Notify me at</td>
+-      <!--StartIncludeIf:userEmail-->
+          <td><input class="textInput" name="userEmail" value="^userEmail$"></td>
+-      <!--EndIncludeIf:userEmail-->
+          <td align="left">
+             when my backups do not get backed up for:
+          </td>
+@@ -95,7 +92,7 @@
+       </tr>
+       <!--EndRepeat:backups-->
+       <tr style="height: 2em">
+-         <td><input type="submit" value="Change Notifications" /></td>
++         <td><input type="submit" class="groupboxButton" value="Change Notifications" /></td>
+       </tr>
+    </table>
+ </div>
+
+
+
+From commits at rdiffweb.org  Sat Sep 22 05:45:47 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 22 Sep 2007 05:45:47 +0200
+Subject: [Rdiffweb-commits] r118 - in trunk/rdiffWeb: . static templates
+Message-ID: <200709220345.l8M3jlUw001444@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-22 05:45:38 +0200 (Sat, 22 Sep 2007)
+New Revision: 118
+
+Added:
+   trunk/rdiffWeb/static/borders.css
+   trunk/rdiffWeb/static/borders.js
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/login.html
+   trunk/rdiffWeb/templates/nav_bar.html
+   trunk/rdiffWeb/templates/page_start.html
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Yet more visual tweaks:
+* Adding rounded corners to divs
+* Better approach to selecting options in preferences page
+* Removing obsolete logging
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/filter_authentication.py	2007-09-22 03:45:38 UTC (rev 118)
+@@ -73,7 +73,7 @@
+ 
+       # write login page
+       loginPage = page_main.rdiffPage()
+-      cherrypy.response.body = loginPage.compileTemplate("login.html", **loginParms)
++      cherrypy.response.body = loginPage.compileTemplate("page_start.html", title="Login required - rdiffWeb", rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate("login.html", **loginParms)
+       cherrypy.request.execute_main = False      
+ 
+    def _getHTTPAuthorizationCredentials(self, authHeader):
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/page_main.py	2007-09-22 03:45:38 UTC (rev 118)
+@@ -69,7 +69,7 @@
+          pages.append(("/prefs", "Preferences"))
+       if self.userDB.userIsAdmin(self.getUsername()):
+          pages.append(("/admin", "Admin"))
+-      pages.append(("/doLogout", "Log out"))
++      pages.append(("/doLogout", "Log Out"))
+       links = []
+       for page in pages:
+          (url, title) = page
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/page_prefs.py	2007-09-22 03:45:38 UTC (rev 118)
+@@ -45,7 +45,6 @@
+             self.userDB.setUserEmail(self.getUsername(), parms[parmName])
+          if parmName.endswith("numDays"):
+             backupName = parmName[:-7]
+-            print "setting backup", backupName
+             if backupName in repos:
+                if parms[parmName] == "Don't notify":
+                   maxDays = 0
+@@ -72,7 +71,24 @@
+       }
+       if email_notification.emailNotificationIsEnabled():
+          repos = self.userDB.getUserRepoPaths(self.getUsername())
+-         backups = [{ "backupName" : repo, "maxDays" : self.userDB.getRepoMaxAge(self.getUsername(), repo) } for repo in repos]
++         backups = []
++         for repo in repos:
++            maxAge = self.userDB.getRepoMaxAge(self.getUsername(), repo)
++            notifyOptions = []
++            for i in range(0, 8):
++               notifyStr = "Don't notify"
++               if i == 1:
++                  notifyStr = "1 day"
++               elif i > 1:
++                  notifyStr = str(i) + " days"
++                  
++               selectedStr = ""
++               if i == maxAge:
++                  selectedStr = "selected"
++               
++               notifyOptions.append({ "optionStr": notifyStr, "selectedStr": selectedStr })
++               
++            backups.append({ "backupName" : repo, "notifyOptions" : notifyOptions })
+          
+          parms.update({ "notificationsEnabled" : True, "backups" : backups })
+          
+
+Added: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/static/borders.css	2007-09-22 03:45:38 UTC (rev 118)
+@@ -0,0 +1,94 @@
++
++
++.roundedOuter h1,
++.roundedOuter h2,
++.roundedOuter p
++{
++   margin:0 10px;
++   letter-spacing:1px;
++}
++
++.roundedOuter h1
++{
++   font-size:2.5em;
++   color:#fff;
++}
++.roundedOuter h2
++{
++   font-size:2em;
++   color:#06a;
++   border:0;
++}
++.roundedOuter p
++{
++   padding-bottom: 0.5em;
++}
++.roundedOuter h2
++{
++   padding-top: 0.5em;
++}
++.roundedOuter
++{
++   background: transparent;
++   margin: 1em;
++}
++
++.xtop,
++.xbottom
++{
++   display:block;
++   background:transparent;
++   font-size:1px;
++}
++.xb1,
++.xb2,
++.xb3,
++.xb4
++{
++   display:block;
++   overflow:hidden;
++}
++.xb1,
++.xb2,
++.xb3
++{
++   height:1px;
++}
++.xb2,
++.xb3,
++.xb4
++{
++   border-left:1px solid #000;
++   border-right:1px solid #000;
++}
++.xb1
++{
++   margin:0 5px;
++   background:#000;
++}
++.xb2
++{
++   margin:0 3px;
++   border-width:0 2px;
++}
++.xb3
++{
++   margin:0 2px;
++}
++.xb4
++{
++   height:2px;
++   margin:0 1px;
++}
++
++.roundedBorderInner
++{
++   display:block;
++   border:0 solid #000;
++   border-width:0 1px;
++}
++
++.roundedBorderContents
++{
++   padding: .3em .5em .3em .5em;
++}
+
+Added: trunk/rdiffWeb/static/borders.js
+===================================================================
+--- trunk/rdiffWeb/static/borders.js	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/static/borders.js	2007-09-22 03:45:38 UTC (rev 118)
+@@ -0,0 +1,53 @@
++
++function addCornerElem(oParentElem, iNum)
++{
++   var oElem = document.createElement('b');
++   oElem.className = 'xb' + iNum + (iNum > 1 ? " roundedBorderBackground" : "");
++   oParentElem.appendChild(oElem);
++}
++
++function makeDivRounded(oDiv)
++{
++   var oDivParent = oDiv.parentNode;
++   
++   // Stick the outer border in where the div was, and yank
++   // out the div temporarily (we'll reattach it later.)
++   var oOuterBorder = document.createElement('div');
++   oOuterBorder.className = 'roundedBorderOuter';
++   oDivParent.insertBefore(oOuterBorder, oDiv);
++   oDiv.parentNode.removeChild(oDiv);
++   
++   var oTop = document.createElement('b');
++   oTop.className = 'xtop'
++   oOuterBorder.appendChild(oTop);
++   for (var i = 1; i < 5; i++)
++      addCornerElem(oTop, i);
++   var oInnerElem = document.createElement('div');
++   oInnerElem.className = 'roundedBorderInner roundedBorderBackground';
++   oOuterBorder.appendChild(oInnerElem);
++   oInnerElem.appendChild(oDiv);
++   
++   var oBottom = document.createElement('b');
++   oBottom.className = 'xbottom';
++   oOuterBorder.appendChild(oBottom);
++   for (var i = 4; i > 0; i--)
++      addCornerElem(oBottom, i);
++}
++
++function roundDivBorders()
++{
++   var reBorderDivName = /roundedBorderContents/;
++   var aDivs = document.getElementsByTagName('DIV');
++   for (var i = aDivs.length-1; i >= 0; i--)
++   {
++      if (reBorderDivName.test(aDivs[i].className))
++      {
++         makeDivRounded(aDivs[i]);
++      }
++   }
++}
++
++window.onload = function()
++{
++   roundDivBorders();
++}
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/static/main.css	2007-09-22 03:45:38 UTC (rev 118)
+@@ -8,12 +8,15 @@
+    text-decoration: none;
+ }
+ 
+-#NavBar
++#NavBar .roundedBorderBackground
+ {
++   background-color: #ccc;
++}
++
++#NavBar 
++{
+       float: right;
+-      background-color: silver;
+       padding: 0.25em;
+-      border: 1px solid gray;
+ }
+ #logo
+ {
+@@ -133,12 +136,12 @@
+ 
+ .groupboxDiv
+ {
+-   border: 1px solid black;
+    display: table-cell;
+-   padding: 0.5em;
+-   color: silver;
+-   margin: 10em;
+ }
++.groupboxDiv .roundedBorderBackground
++{
++   background-color: #FFF;
++}
+ 
+ h2,
+ h3,
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/templates/admin_main.html	2007-09-22 03:45:38 UTC (rev 118)
+@@ -25,8 +25,8 @@
+ <!--StartDelete-->
+ <!--StartIncludeIf:emailsEnabled-->
+ <form>
+-<h3>Email Notifications</h3>
+-<p>
++<div class="groupboxDiv">
++<h3 class="groupboxHeader">Email Notifications</h3>
+ rdiffWeb can be configured to notify user when their backups have not been run.<br>
+ To enable email notification, the following settings must be set:
+ <table>
+@@ -55,6 +55,7 @@
+    </tr>
+ </table>
+ <input type="submit" value="Configure email settings"/>
++</div>
+ </form>
+ <!--EndIncludeIf:emailsEnabled-->
+-<!--EndDelete-->
+\ No newline at end of file
++<!--EndDelete-->
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/templates/login.html	2007-09-22 03:45:38 UTC (rev 118)
+@@ -1,17 +1,8 @@
+-<html>
+-<head>
+-   <title>Login Required - rdiffWeb</title>
+-   <link rel="stylesheet" href="../static/main.css" type="text/css" />
+-   <script type="text/javascript">
+-      window.onload = function()
+-      {
+-         document.getElementById('username').focus();
+-      };
+-   </script>
+-</head>
+-<body>
++
+ <div id="NavBar">
++   <div class="roundedBorderContents">
+    <div id="logo">rdiffWeb</div>
++   </div>
+ </div>
+ <br/>
+ 
+@@ -37,10 +28,13 @@
+                <td></td>
+                <td><input type="submit" value="Log In" /></td>
+             </tr>
+-        </table>
+-        </form>
++         </table>
++         </form>
+       </div>
+    </div>
+    <div style="clear: both;"></div>
++<script type="text/javascript">
++document.getElementById("username").focus();
++</script>
+ </body></html>
+ 
+
+Modified: trunk/rdiffWeb/templates/nav_bar.html
+===================================================================
+--- trunk/rdiffWeb/templates/nav_bar.html	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/templates/nav_bar.html	2007-09-22 03:45:38 UTC (rev 118)
+@@ -6,6 +6,8 @@
+ <body>
+ <!--EndDelete-->
+ <div id="NavBar">
+-   <div id="logo"><a href="/">rdiffWeb</a></div>
+-   <!--StartRepeat:topLinks--><a href="^linkUrl$">^linkText$</a><!--StartDeleteIf:lastItem--> | <!--EndDeleteIf:lastItem--> <!--EndRepeat:topLinks-->
++   <div class="roundedBorderContents">
++      <div id="logo"><a href="/">rdiffWeb</a></div>
++      <!--StartRepeat:topLinks--><a href="^linkUrl$">^linkText$</a><!--StartDeleteIf:lastItem--> | <!--EndDeleteIf:lastItem--> <!--EndRepeat:topLinks-->
++   </div>
+ </div>
+
+Modified: trunk/rdiffWeb/templates/page_start.html
+===================================================================
+--- trunk/rdiffWeb/templates/page_start.html	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/templates/page_start.html	2007-09-22 03:45:38 UTC (rev 118)
+@@ -2,6 +2,8 @@
+ <head>
+    <title>^title$</title>
+    <link rel="stylesheet" href="/static/main.css" type="text/css" />
++   <link rel="stylesheet" href="../static/borders.css" type="text/css" />
+    <!--StartIncludeIf:rssLink--><link rel="alternate" type="application/rss+xml" href="^rssLink$" title="^rssTitle$"><!--EndIncludeIf:rssLink-->
+ </head>
+ <body>
++<script src="../static/borders.js" type="text/javascript"></script>
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2007-09-21 12:33:11 UTC (rev 117)
++++ trunk/rdiffWeb/templates/user_prefs.html	2007-09-22 03:45:38 UTC (rev 118)
+@@ -6,32 +6,13 @@
+ <body>
+ <!--EndDelete-->
+ 
+-<!--StartIncludeIf:notificationsEnabled-->
+-<script type="text/javascript" language="javascript">
+-
+-var backupData = {
+-<!--StartRepeat:backups-->
+-"^backupName$" : ^maxDays$,
+-<!--EndRepeat:backups-->
+-}
+-
+-window.onload = function()
+-{
+-   for (i in backupData)
+-   {
+-      droplist = document.getElementById(i+"Select");
+-      droplist.selectedIndex = backupData[i]
+-   }
+-}
+-</script>
+-<!--EndIncludeIf:notificationsEnabled-->
+-
+ <h2>User Preferences</h2>
+ <p>
+ <!--StartIncludeIf:error--><p class="error">^error$</p><!--EndIncludeIf:error-->
+ <!--StartIncludeIf:message--><p class="message">^message$</p><!--EndIncludeIf:message-->
+ <form action="changePassword" method="post">
+ <div class="groupboxDiv">
++<div class="roundedBorderContents">
+ <h3 class="groupboxHeader">Change Password</h3>
+ <table>
+ <tr>
+@@ -51,22 +32,33 @@
+ </tr>
+ </table>
+ </div>
++</div>
+ </form>
+ 
+ 
+-<h3>Update Backup Locations</h3>
+ <form action="updateRepos" method="post">
++<div class="groupboxDiv">
++<div class="roundedBorderContents">
++<h3 class="groupboxHeader">Update Backup Locations</h3>
+ <input type="submit" class="groupboxButton" value="Find and Update Backup Locations" />
++</div>
++</div>
+ </form>
+ 
+ <!--StartIncludeIf:notificationsEnabled-->
+ <form action="setNotifications" method="post">
+ <div class="groupboxDiv">
++<div class="roundedBorderContents">
+ <h3 class="groupboxHeader">Backup Notifications</h3>
+    <table class="emailTable">
+       <tr>
+          <td>Notify me at</td>
++<!--StartIncludeIf:userEmail-->
+          <td><input class="textInput" name="userEmail" value="^userEmail$"></td>
++<!--EndIncludeIf:userEmail-->
++<!--StartDeleteIf:userEmail-->
++         <td><input class="textInput" name="userEmail" style="color: #aaa" value="joe at example.com" onfocus="javascript: if(this.value='joe at example.com') { this.value=''; this.style.color = '#000'; };"></td>
++<!--EndDeleteIf:userEmail-->
+          <td align="left">
+             when my backups do not get backed up for:
+          </td>
+@@ -79,14 +71,9 @@
+          <td>^backupName$ : </td>
+          <td>
+             <select name="^backupName$numDays" id="^backupName$Select">
+-               <option selected>Don't notify
+-               <option>1 day
+-               <option>2 days
+-               <option>3 days
+-               <option>4 days
+-               <option>5 days
+-               <option>6 days
+-               <option>7 days
++               <!--StartRepeat:notifyOptions-->
++               <option ^selectedStr$>^optionStr$</option>
++               <!--EndRepeat:notifyOptions-->
+             </select>
+          </td>
+       </tr>
+@@ -96,5 +83,6 @@
+       </tr>
+    </table>
+ </div>
++</div>
+ </form>
+ <!--EndIncludeIf:notificationsEnabled-->
+
+
+
+From commits at rdiffweb.org  Sun Sep 23 00:10:26 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 23 Sep 2007 00:10:26 +0200
+Subject: [Rdiffweb-commits] r119 - in trunk/rdiffWeb: static templates
+Message-ID: <200709222210.l8MMAQR9011350@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-23 00:10:20 +0200 (Sun, 23 Sep 2007)
+New Revision: 119
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+   trunk/rdiffWeb/static/borders.js
+   trunk/rdiffWeb/static/revisions_popup.js
+   trunk/rdiffWeb/templates/page_start.html
+Log:
+* Fix rounded borders with javascript disabled
+* Fix rounded borders in browse page
+
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-09-22 03:45:38 UTC (rev 118)
++++ trunk/rdiffWeb/static/borders.css	2007-09-22 22:10:20 UTC (rev 119)
+@@ -91,4 +91,13 @@
+ .roundedBorderContents
+ {
+    padding: .3em .5em .3em .5em;
++   /* Use a default background color and border, for times when javascript is turned off. 
++   These will be overridden below when the borders are added.*/
++   background-color: #ccc;
++   border: 1px solid black;
+ }
++.roundedBorderInner .roundedBorderContents
++{
++   background-color: inherit;
++   border: 0px solid silver;
++}
+
+Modified: trunk/rdiffWeb/static/borders.js
+===================================================================
+--- trunk/rdiffWeb/static/borders.js	2007-09-22 03:45:38 UTC (rev 118)
++++ trunk/rdiffWeb/static/borders.js	2007-09-22 22:10:20 UTC (rev 119)
+@@ -47,7 +47,7 @@
+    }
+ }
+ 
+-window.onload = function()
++addOnLoadEvent(function()
+ {
+    roundDivBorders();
+-}
++});
+
+Modified: trunk/rdiffWeb/static/revisions_popup.js
+===================================================================
+--- trunk/rdiffWeb/static/revisions_popup.js	2007-09-22 03:45:38 UTC (rev 118)
++++ trunk/rdiffWeb/static/revisions_popup.js	2007-09-22 22:10:20 UTC (rev 119)
+@@ -92,7 +92,7 @@
+ }
+ 
+ 
+-window.onload = function()
++addOnLoadEvent(function()
+ {
+    var table = document.getElementById("PopupTable");
+    if (table)
+@@ -100,4 +100,4 @@
+       table.onmouseover = onTableMouseOver;
+       table.onmouseout = onTableMouseOut;
+    }
+-};
++});
+
+Modified: trunk/rdiffWeb/templates/page_start.html
+===================================================================
+--- trunk/rdiffWeb/templates/page_start.html	2007-09-22 03:45:38 UTC (rev 118)
++++ trunk/rdiffWeb/templates/page_start.html	2007-09-22 22:10:20 UTC (rev 119)
+@@ -6,4 +6,5 @@
+    <!--StartIncludeIf:rssLink--><link rel="alternate" type="application/rss+xml" href="^rssLink$" title="^rssTitle$"><!--EndIncludeIf:rssLink-->
+ </head>
+ <body>
++<script src="../static/globals.js" type="text/javascript"></script>
+ <script src="../static/borders.js" type="text/javascript"></script>
+
+
+
+From commits at rdiffweb.org  Sun Sep 23 00:16:11 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 23 Sep 2007 00:16:11 +0200
+Subject: [Rdiffweb-commits] r120 - trunk/rdiffWeb/static
+Message-ID: <200709222216.l8MMGBMm011571@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-23 00:16:08 +0200 (Sun, 23 Sep 2007)
+New Revision: 120
+
+Added:
+   trunk/rdiffWeb/static/globals.js
+Log:
+Oops - add file missing from previous commit
+
+
+Added: trunk/rdiffWeb/static/globals.js
+===================================================================
+--- trunk/rdiffWeb/static/globals.js	2007-09-22 22:10:20 UTC (rev 119)
++++ trunk/rdiffWeb/static/globals.js	2007-09-22 22:16:08 UTC (rev 120)
+@@ -0,0 +1,15 @@
++function addOnLoadEvent(func)
++{
++   var oldOnload = window.onload;
++   if (typeof(window.onload) !== 'function')
++      window.onload = func;
++   else
++   {
++      window.onload = function()
++      {
++         if (oldOnload)
++            oldOnload();
++         func();
++      }
++   }
++}
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Sun Sep 23 02:21:42 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 23 Sep 2007 02:21:42 +0200
+Subject: [Rdiffweb-commits] r121 - trunk/rdiffWeb
+Message-ID: <200709230021.l8N0Lgqn003353@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-23 02:21:38 +0200 (Sun, 23 Sep 2007)
+New Revision: 121
+
+Removed:
+   trunk/rdiffWeb/default.conf
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+* Fix bug with viewing a day's successful backups
+* Remove obsolete file
+
+
+Deleted: trunk/rdiffWeb/default.conf
+===================================================================
+--- trunk/rdiffWeb/default.conf	2007-09-22 22:16:08 UTC (rev 120)
++++ trunk/rdiffWeb/default.conf	2007-09-23 00:21:38 UTC (rev 121)
+@@ -1 +0,0 @@
+-ServerName=localhost
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-22 22:16:08 UTC (rev 120)
++++ trunk/rdiffWeb/page_status.py	2007-09-23 00:21:38 UTC (rev 121)
+@@ -30,8 +30,13 @@
+          startTime.timeInSeconds = entryTime.timeInSeconds
+          startTime.tzOffset = entryTime.tzOffset
+          startTime.setTime(0, 0, 0)
+-         endTime = startTime
++         
++         endTime = rdw_helpers.rdwTime() 	 
++         endTime.timeInSeconds = entryTime.timeInSeconds 	 
++         endTime.tzOffset = entryTime.tzOffset
+          endTime.setTime(23, 59, 59)
++         
++         print startTime.getDisplayString(), endTime.getDisplayString()
+ 
+          userMessages = self._getUserMessages(userRepos, True, False, startTime, endTime)
+       else:
+@@ -124,3 +129,4 @@
+       # sort messages by date
+       userMessages.sort(lambda x, y: cmp(y["date"], x["date"]))
+       return userMessages
++
+
+
+
+From commits at rdiffweb.org  Sun Sep 23 02:31:25 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 23 Sep 2007 02:31:25 +0200
+Subject: [Rdiffweb-commits] r122 - trunk/rdiffWeb
+Message-ID: <200709230031.l8N0VP80004162@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-23 02:31:22 +0200 (Sun, 23 Sep 2007)
+New Revision: 122
+
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+Log:
+Stop using "cherrypy" for the realm in HTTP authentication
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-09-23 00:21:38 UTC (rev 121)
++++ trunk/rdiffWeb/filter_authentication.py	2007-09-23 00:31:22 UTC (rev 122)
+@@ -42,7 +42,7 @@
+ 
+          cherrypy.response.status = "401 Unauthorized"
+          cherrypy.response.body = "Not Authorized\n" + error
+-         cherrypy.response.headerMap["WWW-Authenticate"] = 'Basic realm="cherrypy"'
++         cherrypy.response.headerMap["WWW-Authenticate"] = 'Basic realm="rdiffWeb"'
+          cherrypy.request.execute_main = False
+          return
+ 
+
+
+
+From commits at rdiffweb.org  Mon Sep 24 15:33:33 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 24 Sep 2007 15:33:33 +0200
+Subject: [Rdiffweb-commits] r123 - trunk
+Message-ID: <200709241333.l8ODXWGq017928@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-24 15:33:29 +0200 (Mon, 24 Sep 2007)
+New Revision: 123
+
+Modified:
+   trunk/setup.py
+Log:
+Update version info, in preparation for upcoming release.
+
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-09-23 00:31:22 UTC (rev 122)
++++ trunk/setup.py	2007-09-24 13:33:29 UTC (rev 123)
+@@ -8,7 +8,7 @@
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+ if pythonVersion > 2.3:
+    setup(name='rdiffWeb',
+-      version='0.3.5',
++      version='0.4.0',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+@@ -30,7 +30,7 @@
+    packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+ 
+    setup(name='rdiffWeb',
+-      version='0.3.5',
++      version='0.4.0',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Tue Sep 25 03:55:31 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 25 Sep 2007 03:55:31 +0200
+Subject: [Rdiffweb-commits] r124 - trunk/rdiffWeb/static
+Message-ID: <200709250155.l8P1tVO3003267@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-25 03:55:27 +0200 (Tue, 25 Sep 2007)
+New Revision: 124
+
+Modified:
+   trunk/rdiffWeb/static/borders.css
+   trunk/rdiffWeb/static/main.css
+Log:
+Better approach to handling no-Javascript scenarios with rounded borders
+
+
+Modified: trunk/rdiffWeb/static/borders.css
+===================================================================
+--- trunk/rdiffWeb/static/borders.css	2007-09-24 13:33:29 UTC (rev 123)
++++ trunk/rdiffWeb/static/borders.css	2007-09-25 01:55:27 UTC (rev 124)
+@@ -91,9 +91,8 @@
+ .roundedBorderContents
+ {
+    padding: .3em .5em .3em .5em;
+-   /* Use a default background color and border, for times when javascript is turned off. 
++   /* Use a default border, for times when javascript is turned off. 
+    These will be overridden below when the borders are added.*/
+-   background-color: #ccc;
+    border: 1px solid black;
+ }
+ .roundedBorderInner .roundedBorderContents
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-09-24 13:33:29 UTC (rev 123)
++++ trunk/rdiffWeb/static/main.css	2007-09-25 01:55:27 UTC (rev 124)
+@@ -8,7 +8,8 @@
+    text-decoration: none;
+ }
+ 
+-#NavBar .roundedBorderBackground
++#NavBar .roundedBorderBackground,
++#NavBar .roundedBorderContents
+ {
+    background-color: #ccc;
+ }
+
+
+
+From commits at rdiffweb.org  Tue Sep 25 23:53:38 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 25 Sep 2007 23:53:38 +0200
+Subject: [Rdiffweb-commits] r125 - in trunk/rdiffWeb: . templates
+Message-ID: <200709252153.l8PLrcY8000438@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-25 23:53:33 +0200 (Tue, 25 Sep 2007)
+New Revision: 125
+
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/templates/status.html
+Log:
+* Add support for only showing failed backups to status page and feed
+* Fix capitalization in login page
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/filter_authentication.py	2007-09-25 21:53:33 UTC (rev 125)
+@@ -73,7 +73,7 @@
+ 
+       # write login page
+       loginPage = page_main.rdiffPage()
+-      cherrypy.response.body = loginPage.compileTemplate("page_start.html", title="Login required - rdiffWeb", rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate("login.html", **loginParms)
++      cherrypy.response.body = loginPage.compileTemplate("page_start.html", title="Login Required - rdiffWeb", rssLink='', rssTitle='', **loginParms) + loginPage.compileTemplate("login.html", **loginParms)
+       cherrypy.request.execute_main = False      
+ 
+    def _getHTTPAuthorizationCredentials(self, authHeader):
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/page_status.py	2007-09-25 21:53:33 UTC (rev 125)
+@@ -6,12 +6,9 @@
+ import cherrypy
+ 
+ class rdiffStatusPage(page_main.rdiffPage):
+-   def index(self):
+-      userMessages = self._getRecentUserMessages()
+-      page = self.startPage("Backup Status", rssUrl=self._buildStatusFeedUrl(), rssTitle = "Backup status for "+self.getUsername())
+-      page = page + self.compileTemplate("status.html", messages=userMessages, feedLink=self._buildStatusFeedUrl(), statusLink="", title="Backup Status")
+-      page = page + self.endPage()
+-      return page
++   def index(self, failures=""):
++      userMessages = self._getRecentUserMessages(failures != "")
++      return self._compileStatusPageTemplate(True, userMessages, failures != "")
+    index.exposed = True
+ 
+    def entry(self, date="", repo=""):
+@@ -23,22 +20,7 @@
+          return self.writeErrorPage("Invalid date parameter.")
+ 
+       if not repo:
+-         userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+-
+-         # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
+-         startTime = rdw_helpers.rdwTime()
+-         startTime.timeInSeconds = entryTime.timeInSeconds
+-         startTime.tzOffset = entryTime.tzOffset
+-         startTime.setTime(0, 0, 0)
+-         
+-         endTime = rdw_helpers.rdwTime() 	 
+-         endTime.timeInSeconds = entryTime.timeInSeconds 	 
+-         endTime.tzOffset = entryTime.tzOffset
+-         endTime.setTime(23, 59, 59)
+-         
+-         print startTime.getDisplayString(), endTime.getDisplayString()
+-
+-         userMessages = self._getUserMessages(userRepos, True, False, startTime, endTime)
++         userMessages = self._getUserMessagesForDay(date)
+       else:
+          # Validate repo parameter
+          if not repo: return self.writeErrorPage("Backup location not specified.")
+@@ -51,36 +33,73 @@
+ 
+          userMessages = self._getUserMessages([repo], False, True, entryTime, entryTime)
+ 
+-      page = self.startPage("Backup Status Entry", rssUrl="", rssTitle="")
+-      page = page + self.compileTemplate("status.html", messages=userMessages, feedLink="", statusLink=self._buildAbsoluteStatusUrl(), title="Backup Status Entry")
+-      page = page + self.endPage()
+-      return page
++      return self._compileStatusPageTemplate(False, userMessages, False)
+    entry.exposed = True
+ 
+-   def feed(self, user=""):
++   def feed(self, successful=""):
+       cherrypy.response.headerMap["Content-Type"] = "text/xml"
+-      if user and user != self.getUsername():
+-         return self.writeErrorPage("Invalid username.")
+-      userMessages = self._getRecentUserMessages()
+-      statusUrl = self._buildAbsoluteStatusUrl()
++      userMessages = self._getRecentUserMessages(successful != "")
++      statusUrl = self._buildAbsoluteStatusUrl(successful != "")
+       return self.compileTemplate("status.xml", username=self.getUsername(), link=statusUrl, messages=userMessages)
+    feed.exposed = True
++   
++   def _compileStatusPageTemplate(self, isMainPage, messages, failuresOnly):
++      mainStatusLink = ""
++      failuresStatusLink = ""
++      if (not isMainPage) or failuresOnly: mainStatusLink = self._buildAbsolutePageUrl(False)
++      else: failuresStatusLink = self._buildAbsolutePageUrl(True)
++      
++      if isMainPage: title = "Backup Status"
++      else: title = "Backup Status Entry"
++      feedLink = ""
++      feedTitle = ""
++      if isMainPage:
++         feedLink = self._buildStatusFeedUrl(failuresOnly)
++         feedTitle = "Backup status for "+self.getUsername()
++      
++      page = self.startPage("Backup Status", rssUrl=feedLink, rssTitle = feedTitle)
++      page = page + self.compileTemplate("status.html", messages=messages, feedLink=feedLink, statusLink=mainStatusLink, failuresOnlyLink=failuresStatusLink, failuresOnly=failuresOnly, title=title)
++      return page + self.endPage()
+ 
+-   def _buildAbsoluteStatusUrl(self):
+-      return cherrypy.request.base + "/status/"
++   def _buildAbsolutePageUrl(self, failuresOnly):
++      url = cherrypy.request.base + "/status/"
++      if failuresOnly:
++         url = url + "?failures=T"
++      return url
+ 
+-   def _buildStatusFeedUrl(self):
+-      return "/status/feed"
++   def _buildStatusFeedUrl(self, failuresOnly):
++      url = "/status/feed"
++      if failuresOnly:
++         url = url + "?failures=T"
++      return url
+ 
+    def _buildStatusEntryUrl(self, repo, date):
+       return self._buildAbsoluteStatusUrl() + "entry?repo="+rdw_helpers.encodeUrl(repo)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
++   
++   def _getUserMessagesForDay(self, date):
++      userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+ 
+-   def _getRecentUserMessages(self):
++      # Set the start and end time to be the start and end of the day, respectively, to get all entries for that day
++      startTime = rdw_helpers.rdwTime()
++      startTime.timeInSeconds = entryTime.timeInSeconds
++      startTime.tzOffset = entryTime.tzOffset
++      startTime.setTime(0, 0, 0)
++      
++      endTime = rdw_helpers.rdwTime() 	 
++      endTime.timeInSeconds = entryTime.timeInSeconds 	 
++      endTime.tzOffset = entryTime.tzOffset
++      endTime.setTime(23, 59, 59)
++      
++      print startTime.getDisplayString(), endTime.getDisplayString()
++
++      return self._getUserMessages(userRepos, True, False, startTime, endTime)
++
++   def _getRecentUserMessages(self, failuresOnly):
+       userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+       asOfDate = rdw_helpers.rdwTime()
+       asOfDate.initFromMidnightUTC(-5)
+ 
+-      return self._getUserMessages(userRepos, True, True, asOfDate, None)
++      return self._getUserMessages(userRepos, not failuresOnly, True, asOfDate, None)
+ 
+    def _getUserMessages(self, repos, includeSuccess, includeFailure, earliestDate, latestDate):
+       userRoot = self.userDB.getUserRoot(self.getUsername())
+@@ -129,4 +148,3 @@
+       # sort messages by date
+       userMessages.sort(lambda x, y: cmp(y["date"], x["date"]))
+       return userMessages
+-
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-09-25 01:55:27 UTC (rev 124)
++++ trunk/rdiffWeb/templates/status.html	2007-09-25 21:53:33 UTC (rev 125)
+@@ -8,9 +8,19 @@
+ 
+ 
+ <h2>^title$</h2>
++
++<!--StartDeleteIf:failuresOnly-->
+ <!--StartIncludeIf:statusLink-->
+-<h3><a href="^statusLink$">Recent Backup Status</a><h3>
++<h3><a href="^statusLink$">Recent Backup Status</a></h3>
+ <!--EndIncludeIf:statusLink-->
++<!--EndDeleteIf:failuresOnly-->
++
++<!--StartIncludeIf:failuresOnly-->
++<a href="^statusLink$">Include Successful Backups</a>
++<!--EndIncludeIf:failuresOnly-->
++<!--StartDeleteIf:failuresOnly-->
++<a href="^failuresOnlyLink$">Show Only Errors</a>
++<!--EndDeleteIf:failuresOnly-->
+ <!--StartDeleteIf:messages--><p>There are no recent backups to display.</p><!--EndDeleteIf:messages-->
+ <!--StartRepeat:messages-->
+ 
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 04:47:23 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 04:47:23 +0200
+Subject: [Rdiffweb-commits] r126 - trunk/rdiffWeb/templates
+Message-ID: <200709280247.l8S2lMuB032303@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 04:47:19 +0200 (Fri, 28 Sep 2007)
+New Revision: 126
+
+Modified:
+   trunk/rdiffWeb/templates/status.html
+Log:
+Fix terminology on the status page for backups with errors
+
+
+Modified: trunk/rdiffWeb/templates/status.html
+===================================================================
+--- trunk/rdiffWeb/templates/status.html	2007-09-25 21:53:33 UTC (rev 125)
++++ trunk/rdiffWeb/templates/status.html	2007-09-28 02:47:19 UTC (rev 126)
+@@ -16,10 +16,10 @@
+ <!--EndDeleteIf:failuresOnly-->
+ 
+ <!--StartIncludeIf:failuresOnly-->
+-<a href="^statusLink$">Include Successful Backups</a>
++<a href="^statusLink$">Include successful backups</a>
+ <!--EndIncludeIf:failuresOnly-->
+ <!--StartDeleteIf:failuresOnly-->
+-<a href="^failuresOnlyLink$">Show Only Errors</a>
++<a href="^failuresOnlyLink$">Show only backups with errors</a>
+ <!--EndDeleteIf:failuresOnly-->
+ <!--StartDeleteIf:messages--><p>There are no recent backups to display.</p><!--EndDeleteIf:messages-->
+ <!--StartRepeat:messages-->
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 05:12:45 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 05:12:45 +0200
+Subject: [Rdiffweb-commits] r127 - trunk/rdiffWeb
+Message-ID: <200709280312.l8S3Cj6Y000867@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 05:12:40 +0200 (Fri, 28 Sep 2007)
+New Revision: 127
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+Fix rename errors
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-28 02:47:19 UTC (rev 126)
++++ trunk/rdiffWeb/page_status.py	2007-09-28 03:12:40 UTC (rev 127)
+@@ -39,7 +39,7 @@
+    def feed(self, successful=""):
+       cherrypy.response.headerMap["Content-Type"] = "text/xml"
+       userMessages = self._getRecentUserMessages(successful != "")
+-      statusUrl = self._buildAbsoluteStatusUrl(successful != "")
++      statusUrl = self._buildAbsolutePageUrl(successful != "")
+       return self.compileTemplate("status.xml", username=self.getUsername(), link=statusUrl, messages=userMessages)
+    feed.exposed = True
+    
+@@ -74,7 +74,7 @@
+       return url
+ 
+    def _buildStatusEntryUrl(self, repo, date):
+-      return self._buildAbsoluteStatusUrl() + "entry?repo="+rdw_helpers.encodeUrl(repo)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
++      return self._buildAbsolutePageUrl() + "entry?repo="+rdw_helpers.encodeUrl(repo)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
+    
+    def _getUserMessagesForDay(self, date):
+       userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 13:59:00 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 13:59:00 +0200
+Subject: [Rdiffweb-commits] r128 - trunk/rdiffWeb
+Message-ID: <200709281159.l8SBx0Ox018200@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 13:58:58 +0200 (Fri, 28 Sep 2007)
+New Revision: 128
+
+Modified:
+   trunk/rdiffWeb/page_status.py
+Log:
+More fixes for the feed
+
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2007-09-28 03:12:40 UTC (rev 127)
++++ trunk/rdiffWeb/page_status.py	2007-09-28 11:58:58 UTC (rev 128)
+@@ -36,10 +36,10 @@
+       return self._compileStatusPageTemplate(False, userMessages, False)
+    entry.exposed = True
+ 
+-   def feed(self, successful=""):
++   def feed(self, failures=""):
+       cherrypy.response.headerMap["Content-Type"] = "text/xml"
+-      userMessages = self._getRecentUserMessages(successful != "")
+-      statusUrl = self._buildAbsolutePageUrl(successful != "")
++      userMessages = self._getRecentUserMessages(failures != "")
++      statusUrl = self._buildAbsolutePageUrl(failures != "")
+       return self.compileTemplate("status.xml", username=self.getUsername(), link=statusUrl, messages=userMessages)
+    feed.exposed = True
+    
+@@ -74,7 +74,7 @@
+       return url
+ 
+    def _buildStatusEntryUrl(self, repo, date):
+-      return self._buildAbsolutePageUrl() + "entry?repo="+rdw_helpers.encodeUrl(repo)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
++      return self._buildAbsolutePageUrl(False) + "entry?repo="+rdw_helpers.encodeUrl(repo)+"&date="+rdw_helpers.encodeUrl(date.getUrlString())
+    
+    def _getUserMessagesForDay(self, date):
+       userRepos = self.userDB.getUserRepoPaths(self.getUsername())
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 16:01:23 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 16:01:23 +0200
+Subject: [Rdiffweb-commits] r129 - tags
+Message-ID: <200709281401.l8SE1N4G011684@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 16:01:17 +0200 (Fri, 28 Sep 2007)
+New Revision: 129
+
+Added:
+   tags/release-0.4.0/
+Log:
+Tagging release 0.4.0
+
+Copied: tags/release-0.4.0 (from rev 128, trunk)
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 16:02:29 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 16:02:29 +0200
+Subject: [Rdiffweb-commits] r130 - tags
+Message-ID: <200709281402.l8SE2TSN012388@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 16:02:26 +0200 (Fri, 28 Sep 2007)
+New Revision: 130
+
+Removed:
+   tags/release-0.4.0/
+Log:
+Correct tag naming
+
+
+
+From commits at rdiffweb.org  Fri Sep 28 16:02:59 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 28 Sep 2007 16:02:59 +0200
+Subject: [Rdiffweb-commits] r131 - tags
+Message-ID: <200709281402.l8SE2xNJ012787@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-28 16:02:52 +0200 (Fri, 28 Sep 2007)
+New Revision: 131
+
+Added:
+   tags/release-0.4/
+Log:
+Tagging release 0.4
+
+Copied: tags/release-0.4 (from rev 130, trunk)
+
+
+
+From commits at rdiffweb.org  Sun Sep 30 01:15:23 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 30 Sep 2007 01:15:23 +0200
+Subject: [Rdiffweb-commits] r132 - in trunk/tests: . inprogress_timezone
+	inprogress_timezone/repo inprogress_timezone/repo/rdiff-backup-data
+Message-ID: <200709292315.l8TNFN18013594@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-30 01:15:03 +0200 (Sun, 30 Sep 2007)
+New Revision: 132
+
+Added:
+   trunk/tests/inprogress_timezone/
+   trunk/tests/inprogress_timezone/browse_results.txt
+   trunk/tests/inprogress_timezone/history_results.txt
+   trunk/tests/inprogress_timezone/locations_results.txt
+   trunk/tests/inprogress_timezone/repo/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments/
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+   trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data
+Log:
+Add (currently failing) test for timezone differences and inprogress backups
+
+
+Added: trunk/tests/inprogress_timezone/browse_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/browse_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/browse_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,5 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++Warning: a backup is currently in progress to this location.  The displayed data may be inconsistent.
++Name	Size	Revision	Number_Previous_Revisions	Exists?
+
+Added: trunk/tests/inprogress_timezone/history_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/history_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/history_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,5 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?
++2007-09-29 17:13:22			True
++2007-09-29 17:09:27	0 bytes		False
+
+Added: trunk/tests/inprogress_timezone/locations_results.txt
+===================================================================
+--- trunk/tests/inprogress_timezone/locations_results.txt	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/locations_results.txt	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2007-09-29 17:13:22	In Progress
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/backup.log	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,30 @@
++Exception 'Truncated header string (problem probably originated remotely)' raised of class '<class 'rdiff_backup.connection.ConnectionReadError'>':
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/robust.py", line 32, in check_common_error
++    try: return function(*args)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py", line 96, in copy
++    if rpin.isreg(): copy_reg_file(rpin, rpout, compress)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py", line 118, in copy_reg_file
++    rpout.write_from_fileobj(rpin.open("rb"), compress = compress)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py", line 978, in write_from_fileobj
++    copyfileobj(fp, outfp)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py", line 58, in copyfileobj
++    inbuf = inputfp.read(blocksize)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/rpath.py", line 1201, in read
++    def read(self, length = -1): return self.file.read(length)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py", line 117, in read
++    if not self.addtobuffer(): break
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py", line 132, in addtobuffer
++    type, data = self.iwf._get()
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/iterfile.py", line 401, in _get
++    if not self.buf: self.buf += self.file.read()
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/connection.py", line 513, in read
++    return self.connection.VirtualFile.readfromid(self.id, length)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/connection.py", line 445, in __call__
++    return apply(self.connection.reval, (self.name,) + args)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/connection.py", line 365, in reval
++    result = self.get_response(req_num)
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/connection.py", line 314, in get_response
++    try: req_num, object = self._get()
++  File "/usr/lib/python2.5/site-packages/rdiff_backup/connection.py", line 230, in _get
++    raise ConnectionReadError("Truncated header string (problem "
++
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/chars_to_quote
+===================================================================
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:09:27Z.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1 @@
++PID 11283
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/current_mirror.2007-09-29T22:13:22Z.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1 @@
++PID 11397
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:09:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/error_log.2007-09-29T17:13:22-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:09:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/extended_attributes.2007-09-29T17:13:22-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:09:27-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/file_statistics.2007-09-29T17:13:22-05:00.data.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+===================================================================
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/increments.2007-09-29T17:09:27-05:00.dir
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:09:27-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/mirror_metadata.2007-09-29T17:13:22-05:00.snapshot.gz
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data
+===================================================================
+--- trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data	2007-09-28 14:02:52 UTC (rev 131)
++++ trunk/tests/inprogress_timezone/repo/rdiff-backup-data/session_statistics.2007-09-29T17:09:27-05:00.data	2007-09-29 23:15:03 UTC (rev 132)
+@@ -0,0 +1,18 @@
++StartTime 1191103767.00 (Sat Sep 29 17:09:27 2007)
++EndTime 1191103769.29 (Sat Sep 29 17:09:29 2007)
++ElapsedTime 2.29 (2.29 seconds)
++SourceFiles 1
++SourceFileSize 0 (0 bytes)
++MirrorFiles 1
++MirrorFileSize 0 (0 bytes)
++NewFiles 0
++NewFileSize 0 (0 bytes)
++DeletedFiles 0
++DeletedFileSize 0 (0 bytes)
++ChangedFiles 1
++ChangedSourceSize 0 (0 bytes)
++ChangedMirrorSize 0 (0 bytes)
++IncrementFiles 0
++IncrementFileSize 0 (0 bytes)
++TotalDestinationSizeChange 0 (0 bytes)
++Errors 0
+
+
+
+From commits at rdiffweb.org  Sun Sep 30 01:16:33 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 30 Sep 2007 01:16:33 +0200
+Subject: [Rdiffweb-commits] r133 - trunk/rdiffWeb
+Message-ID: <200709292316.l8TNGXpE022513@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-30 01:16:30 +0200 (Sun, 30 Sep 2007)
+New Revision: 133
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix in-progress backup detection when timezones are normalized server-side
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-29 23:15:03 UTC (rev 132)
++++ trunk/rdiffWeb/librdiff.py	2007-09-29 23:16:30 UTC (rev 133)
+@@ -287,8 +287,11 @@
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+    if not mirrorMarkers:
+       return True
+-   mirrorMarkers = mirrorMarkers[1:]
+-   return len(filter(lambda x: x.startswith("current_mirror."+date.getUrlString()), mirrorMarkers)) > 0
++   mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
++   for marker in mirrorMarkers:
++      if incrementEntry(marker).getDate().getSeconds() == date.getSeconds():
++         return True
++   return False
+ 
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+
+
+
+From commits at rdiffweb.org  Sun Sep 30 01:27:10 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 30 Sep 2007 01:27:10 +0200
+Subject: [Rdiffweb-commits] r134 - trunk/rdiffWeb
+Message-ID: <200709292327.l8TNRASn023440@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-09-30 01:27:06 +0200 (Sun, 30 Sep 2007)
+New Revision: 134
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Optimization for getting backup history
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-09-29 23:16:30 UTC (rev 133)
++++ trunk/rdiffWeb/librdiff.py	2007-09-29 23:27:06 UTC (rev 134)
+@@ -280,11 +280,9 @@
+    mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+    return not mirrorMarkers or len(mirrorMarkers) > 1
+ 
+-def backupIsInProgress(repo, date):
+-   rdiffDir = joinPaths(repo, rdiffDataDirName)
+-   mirrorMarkers = os.listdir(rdiffDir)
++def backupIsInProgress(repo, date, rdiffDirListing):
++   mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), rdiffDirListing)
+    mirrorMarkers.sort()
+-   mirrorMarkers = filter(lambda x: x.startswith("current_mirror."), mirrorMarkers)
+    if not mirrorMarkers:
+       return True
+    mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
+@@ -318,8 +316,8 @@
+ 
+    # Get a listing of error log files, and use that to build backup history
+    rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
+-   curEntries = os.listdir(rdiffDir)
+-   curEntries = filter(lambda x: x.startswith("error_log."), curEntries)
++   rdiffDirEntries = os.listdir(rdiffDir)
++   curEntries = filter(lambda x: x.startswith("error_log."), rdiffDirEntries)
+    curEntries.sort()
+ 
+    entries = []
+@@ -347,7 +345,7 @@
+          expression = 0
+       newEntry = backupHistoryEntry()
+       newEntry.date = entry.getDate()
+-      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate())
++      newEntry.inProgress = backupIsInProgress(repoRoot, entry.getDate(), rdiffDirEntries)
+       if newEntry.inProgress:
+          newEntry.errors = ""
+       else:
+
+
+

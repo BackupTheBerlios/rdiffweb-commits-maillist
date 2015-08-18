@@ -1,0 +1,264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r277 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r277%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200906282204.n5SM4c2v011504%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000235.html">
+   <LINK REL="Next"  HREF="000237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r277 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r277%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200906282204.n5SM4c2v011504%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r277 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Mon Jun 29 00:04:38 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000235.html">[Rdiffweb-commits] r276 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000237.html">[Rdiffweb-commits] r278 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-06-29 00:04:34 +0200 (Mon, 29 Jun 2009)
+New Revision: 277
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+   trunk/rdiffWeb/page_prefs.py
+   trunk/rdiffWeb/templates/user_prefs.html
+Log:
+Refactor email notification preferences code, in preparation for new features.
+
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2009-06-28 22:03:52 UTC (rev 276)
++++ trunk/rdiffWeb/db_sqlite.py	2009-06-28 22:04:34 UTC (rev 277)
+@@ -133,7 +133,19 @@
+       results = self._executeQuery(query, (repoPath,))
+       assert len(results) == 1
+       return int(results[0][0])
++
++   def getRepoID(self, username, repoPath):
++      query = &quot;SELECT RepoID FROM repos WHERE RepoPath=? AND UserID = &quot; + str(self._getUserID(username))
++      results = self._executeQuery(query, (repoPath,))
++      assert len(results) == 1
++      return int(results[0][0])
+       
++   def getRepoName(self, username, repoID):
++      query = &quot;SELECT RepoPath FROM repos WHERE RepoID=? AND UserID = &quot; + str(self._getUserID(username))
++      results = self._executeQuery(query, (repoID,))
++      assert len(results) == 1
++      return results[0][0]
++      
+    def userIsAdmin(self, username):
+       return bool(self._getUserField(username, &quot;IsAdmin&quot;))
+ 
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2009-06-28 22:03:52 UTC (rev 276)
++++ trunk/rdiffWeb/page_prefs.py	2009-06-28 22:04:34 UTC (rev 277)
+@@ -7,11 +7,10 @@
+ import rdw_spider_repos
+ import email_notification
+ 
++#TODO: remove all the modificationsSupported calls
+ 
+ class rdiffPreferencesPage(page_main.rdiffPage):
+    
+-   sampleEmail = '<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">joe at example.com</A>'
+-   
+    def index(self, **parms):
+       if parms:
+          action = parms['form']
+@@ -49,25 +48,23 @@
+       return self._getPrefsPage(statusMessage=&quot;Successfully updated backup locations.&quot;)
+ 
+    def _setNotifications(self, parms):
+-      if not self.getUserDB().modificationsSupported():
+-         return self._getPrefsPage(errorMessage=&quot;Email notification is not supported with the active user database.&quot;)
+-      
+       repos = self.getUserDB().getUserRepoPaths(self.getUsername())
+       
+       for parmName in parms.keys():
+          if parmName == &quot;userEmail&quot;:
+-            if parms[parmName] == self.sampleEmail:
+-               parms[parmName] = ''
+             self.getUserDB().setUserEmail(self.getUsername(), parms[parmName])
+-         if parmName.endswith(&quot;numDays&quot;):
+-            backupName = parmName[:-7]
+-            if backupName in repos:
+-               if parms[parmName] == &quot;Don't notify&quot;:
+-                  maxDays = 0
+-               else:
+-                  maxDays = int(parms[parmName][0])
+-               self.getUserDB().setRepoMaxAge(self.getUsername(), backupName, maxDays)
+-               
++         else:
++            try:
++               repoID = int(parmName)
++            except ValueError:
++               pass
++            else:
++               repoName = self.getUserDB().getRepoName(self.getUsername(),
++                                                      int(parmName))
++               if not repoName is None:
++                  self.getUserDB().setRepoMaxAge(self.getUsername(), repoName,
++                                                 int(parms[parmName]))
++
+       return self._getPrefsPage(statusMessage=&quot;Successfully changed notification settings.&quot;)
+    
+    def _setRestoreType(self, restoreType):
+@@ -86,6 +83,22 @@
+       return self._getPrefsPage(statusMessage=&quot;Successfully %s backup deletion and modification.&quot; % verb)
+    
+    def _getPrefsPage(self, errorMessage=&quot;&quot;, statusMessage=&quot;&quot;):
++      # Email notification options
++      repos = []
++      for repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
++         maxAge = self.getUserDB().getRepoMaxAge(self.getUsername(), repo)
++         options = [{
++            'optionValue': num,
++            'optionDesc': str(num) + ' days' if num else 'Don\'t notify',
++            'optionSelected': num == maxAge
++         } for num in range(0, 8)]
++
++         repos.append({
++            'repoName': repo,
++            'repoID': self.getUserDB().getRepoID(self.getUsername(), repo),
++            'notifyOptions': options
++         })
++
+       title = &quot;User Preferences&quot;
+       email = self.getUserDB().getUserEmail(self.getUsername());
+       parms = {
+@@ -93,21 +106,12 @@
+          &quot;error&quot; : errorMessage,
+          &quot;message&quot; : statusMessage,
+          &quot;userEmail&quot; : email,
+-         &quot;notificationsEnabled&quot; : False,
++         &quot;notificationsEnabled&quot; : email_notification.emailNotifier().notificationsEnabled(),
++         &quot;repos&quot;: repos,
+          &quot;backups&quot; : [],
+          &quot;useZipFormat&quot;: self.getUserDB().useZipFormat(self.getUsername()),
+-         &quot;sampleEmail&quot;: self.sampleEmail,
+          &quot;allowRepoDeletion&quot;: self.getUserDB().allowRepoDeletion(self.getUsername())
+       }
+ 
+-      if email_notification.emailNotifier().notificationsEnabled():
+-         options = {}
+-         for repo in self.getUserDB().getUserRepoPaths(self.getUsername()):
+-            options[repo] = self.getUserDB().getRepoMaxAge(self.getUsername(), repo)
+-         notificationsTable = email_notification.buildNotificationsTable(options)
+-
+-         parms.update({ &quot;notificationsEnabled&quot; : True, &quot;notificationsTable&quot; : notificationsTable })
+-
+       return self.startPage(title) + self.compileTemplate(&quot;user_prefs.html&quot;, **parms) + self.endPage()
+-      
+ 
+
+Modified: trunk/rdiffWeb/templates/user_prefs.html
+===================================================================
+--- trunk/rdiffWeb/templates/user_prefs.html	2009-06-28 22:03:52 UTC (rev 276)
++++ trunk/rdiffWeb/templates/user_prefs.html	2009-06-28 22:04:34 UTC (rev 277)
+@@ -73,40 +73,32 @@
+    &lt;h3 class=&quot;groupboxHeader&quot;&gt;Backup Notifications&lt;/h3&gt;
+    &lt;table class=&quot;emailTable&quot;&gt;
+       &lt;tr&gt;
+-         &lt;td&gt;Notify me at&lt;/td&gt;
++         &lt;td&gt;Send an email to&lt;/td&gt;
+          &lt;td&gt;&lt;input id=&quot;userEmail&quot; class=&quot;textInput&quot; name=&quot;userEmail&quot; value=&quot;^userEmail$&quot;&gt;&lt;/td&gt;
+          &lt;td align=&quot;left&quot;&gt;
+-            when my backups do not get backed up for:
++            when my backups do not complete for:
+          &lt;/td&gt;
+       &lt;/tr&gt;
+    &lt;/table&gt;
+-   ^raw:notificationsTable$
++   &lt;table class=&quot;notificationsTable&quot;&gt;
++      &lt;tr&gt;&lt;/tr&gt;
++      &lt;!--StartRepeat:repos--&gt;
++      &lt;tr class=&quot;notificationsRow&quot;&gt;
++         &lt;td&gt;^repoName$ : &lt;/td&gt;
++         &lt;td&gt;
++            &lt;select name=&quot;^repoID$&quot;&gt;
++               &lt;!--StartRepeat:notifyOptions--&gt;
++               &lt;option &lt;!--StartIncludeIf:optionSelected--&gt;selected&lt;!--EndIncludeIf:optionSelected--&gt; value=&quot;^optionValue$&quot;&gt;^optionDesc$&lt;/option&gt;
++               &lt;!--EndRepeat:notifyOptions--&gt;
++            &lt;/select&gt;
++         &lt;/td&gt;
++      &lt;/tr&gt;
++      &lt;!--EndRepeat:repos--&gt;
++   &lt;/table&gt;
+    &lt;div&gt;&lt;input type=&quot;submit&quot; class=&quot;groupboxButton&quot; value=&quot;Change Notifications&quot; /&gt;&lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;/form&gt;
+-&lt;script type=&quot;text/javascript&quot;&gt;
+-   var sExampleEmail = '^sampleEmail$';
+-   var oUserEmailElem = document.getElementById('userEmail');
+-   fnOnBlur = function()
+-   {
+-      if (oUserEmailElem.value === '')
+-      {
+-         oUserEmailElem.style.color = '#AAA';
+-         oUserEmailElem.value = sExampleEmail;
+-      }
+-   }
+-   oUserEmailElem.onfocus = function()
+-   {
+-      if (oUserEmailElem.value === sExampleEmail)
+-      {
+-         oUserEmailElem.value = '';
+-         oUserEmailElem.style.color = '#000';
+-      }
+-   }
+-   oUserEmailElem.onblur = fnOnBlur;
+-   fnOnBlur();
+-&lt;/script&gt;
+ &lt;!--EndIncludeIf:notificationsEnabled--&gt;
+ 
+ &lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000235.html">[Rdiffweb-commits] r276 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000237.html">[Rdiffweb-commits] r278 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

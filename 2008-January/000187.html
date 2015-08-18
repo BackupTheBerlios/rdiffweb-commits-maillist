@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r230 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r230%20-%20trunk&In-Reply-To=%3C200801282347.m0SNljFv028536%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000186.html">
+   <LINK REL="Next"  HREF="000188.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r230 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r230%20-%20trunk&In-Reply-To=%3C200801282347.m0SNljFv028536%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r230 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 00:47:45 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000186.html">[Rdiffweb-commits] r229 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000188.html">[Rdiffweb-commits] r231 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#187">[ date ]</a>
+              <a href="thread.html#187">[ thread ]</a>
+              <a href="subject.html#187">[ subject ]</a>
+              <a href="author.html#187">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 00:47:42 +0100 (Tue, 29 Jan 2008)
+New Revision: 230
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn off cherrypy's encode tool. It was getting in the way of encoding, and didn't work anyway.
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-01-28 23:42:22 UTC (rev 229)
++++ trunk/rdiff-web	2008-01-28 23:47:42 UTC (rev 230)
+@@ -58,7 +58,6 @@
+    if not debug:
+       environment = &quot;production&quot;
+    global_settings = {
+-      'tools.encode.on' : True,
+       'tools.gzip.on': True,
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+@@ -81,9 +80,6 @@
+       '/status/feed': {
+          'tools.authenticate.authMethod' : 'HTTP Header'
+       },
+-      '/restore': {
+-         'tools.encode.on': False,
+-      },
+       '/static' : {
+          'tools.staticdir.on' : True,
+          'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000186.html">[Rdiffweb-commits] r229 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000188.html">[Rdiffweb-commits] r231 - trunk/rdiffWeb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#187">[ date ]</a>
+              <a href="thread.html#187">[ thread ]</a>
+              <a href="subject.html#187">[ subject ]</a>
+              <a href="author.html#187">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

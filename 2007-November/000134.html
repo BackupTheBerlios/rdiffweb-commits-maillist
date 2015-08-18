@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r177 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r177%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711242351.lAONpuaV002601%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000133.html">
+   <LINK REL="Next"  HREF="000135.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r177 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r177%20-%20trunk/rdiffWeb&In-Reply-To=%3C200711242351.lAONpuaV002601%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r177 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Nov 25 00:51:56 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000133.html">[Rdiffweb-commits] r176 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000135.html">[Rdiffweb-commits] r178 - in trunk: . rdiffWeb tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-11-25 00:51:51 +0100 (Sun, 25 Nov 2007)
+New Revision: 177
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_restore.py
+Log:
+Start respecting user preference to restore directories as .tar.gz. This will let users restore files with symlinks, etc.
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-11-24 23:49:38 UTC (rev 176)
++++ trunk/rdiffWeb/librdiff.py	2007-11-24 23:51:51 UTC (rev 177)
+@@ -274,7 +274,7 @@
+    return entriesList
+ 
+ import tempfile
+-def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate):
++def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate, useZip):
+    &quot;&quot;&quot; returns a file path to the file.  User is responsible for deleting file, as well as containing dir, after use. &quot;&quot;&quot;
+    filePath = joinPaths(dirPath, filename)
+    filePath = rdiffQuotedPath(repoRoot).getQuotedPath(filePath)
+@@ -294,9 +294,14 @@
+          error = 'rdiff-backup claimed success, but did not restore anything. This indicates a bug in rdiffWeb. Please report this to a developer.'
+       raise UnknownError('Unable to restore! rdiff-backup output:\n'+error)
+    if os.path.isdir(rdiffOutputFile):
+-      rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+&quot;.zip&quot;)
+-      rdw_helpers.removeDir(rdiffOutputFile)
+-      rdiffOutputFile = rdiffOutputFile+&quot;.zip&quot;
++      if useZip:
++         rdw_helpers.recursiveZipDir(rdiffOutputFile, rdiffOutputFile+&quot;.zip&quot;)
++         rdw_helpers.removeDir(rdiffOutputFile)
++         rdiffOutputFile = rdiffOutputFile+&quot;.zip&quot;
++      else:
++         rdw_helpers.recursiveTarDir(rdiffOutputFile, rdiffOutputFile+&quot;.tar.gz&quot;)
++         rdw_helpers.removeDir(rdiffOutputFile)
++         rdiffOutputFile = rdiffOutputFile+&quot;.tar.gz&quot;
+    return rdiffOutputFile
+ 
+ def backupIsInProgressForRepo(repo):
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2007-11-24 23:49:38 UTC (rev 176)
++++ trunk/rdiffWeb/page_restore.py	2007-11-24 23:51:51 UTC (rev 177)
+@@ -32,7 +32,9 @@
+          if not file:
+             file = path
+             path = &quot;/&quot;
+-         filePath = librdiff.restoreFileOrDir(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo), path, file, restoreTime)
++         fullPath = rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), repo)
++         useZipFormat = self.userDB.useZipFormat(self.getUsername())
++         filePath = librdiff.restoreFileOrDir(fullPath, path, file, restoreTime, useZipFormat)
+       except librdiff.FileError, error:
+          return self.writeErrorPage(error.getErrorString())
+       except ValueError:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000133.html">[Rdiffweb-commits] r176 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000135.html">[Rdiffweb-commits] r178 - in trunk: . rdiffWeb tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r245 - trunk/debian
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r245%20-%20trunk/debian&In-Reply-To=%3C200802092030.m19KU2qv007263%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000201.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r245 - trunk/debian</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r245%20-%20trunk/debian&In-Reply-To=%3C200802092030.m19KU2qv007263%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r245 - trunk/debian">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Feb  9 21:30:02 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000201.html">[Rdiffweb-commits] r244 - trunk
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#202">[ date ]</a>
+              <a href="thread.html#202">[ thread ]</a>
+              <a href="subject.html#202">[ subject ]</a>
+              <a href="author.html#202">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: mukidohime
+Date: 2008-02-09 21:30:02 +0100 (Sat, 09 Feb 2008)
+New Revision: 245
+
+Modified:
+   trunk/debian/changelog
+   trunk/debian/control
+   trunk/debian/copyright
+   trunk/debian/rdiff-web.install
+   trunk/debian/rules
+Log:
+* init script fix
+* misc fixes and tidying
+
+
+Modified: trunk/debian/changelog
+===================================================================
+--- trunk/debian/changelog	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/changelog	2008-02-09 20:30:02 UTC (rev 245)
+@@ -1,6 +1,14 @@
+ rdiff-web (0.6.2-1) unstable; urgency=low
+ 
+   * New upstream testing release.
++  * Changed init script handling.
++  * Fixed python-pysqlite2 dependency.
++
++ -- Matthew Rosewarne &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">mrosewarne at inoutbox.com</A>&gt;  Sat, 09 Feb 2008 15:09:52 -0500
++
++rdiff-web (0.6.1-1) unstable; urgency=low
++
++  * New upstream testing release.
+   * Switched from python-cherrypy to python-cherrypy3.
+   * Switched from python-mysqldb to python-pysqlite2.
+ 
+
+Modified: trunk/debian/control
+===================================================================
+--- trunk/debian/control	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/control	2008-02-09 20:30:02 UTC (rev 245)
+@@ -2,7 +2,7 @@
+ Section: www
+ Priority: extra
+ Maintainer: Matthew Rosewarne &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">mrosewarne at inoutbox.com</A>&gt;
+-Build-Depends: cdbs, debhelper (&gt;= 5), python-central
++Build-Depends: cdbs, debhelper (&gt;= 5), python-all-dev, python-central
+ Standards-Version: 3.7.3
+ Homepage: <A HREF="http://www.rdiffweb.org/">http://www.rdiffweb.org/</A>
+ XS-Python-Version: all
+@@ -10,7 +10,8 @@
+ Package: python-rdiff-web
+ Architecture: all
+ XB-Python-Version: ${python:Versions}
+-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python (&gt;=2.4), python-cherrypy3, rdiff-backup, python-pysqlite2
++Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
++ python-cherrypy3, python-pysqlite2, rdiff-backup
+ Provides: ${python:Provides}
+ Description: Python module for rdiffWeb
+  This package contains Python modules used by rdiffWeb.
+
+Modified: trunk/debian/copyright
+===================================================================
+--- trunk/debian/copyright	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/copyright	2008-02-09 20:30:02 UTC (rev 245)
+@@ -3,13 +3,13 @@
+ 
+ It was downloaded from <A HREF="http://www.rdiffweb.org/">http://www.rdiffweb.org/</A>
+ 
+-Upstream Author(s): 
++Upstream Author:
+ 
+-    Josh Nisly
++    Josh Nisly &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at joshnisly.com</A>&gt;
+ 
+ Copyright: 
+ 
+-    &lt;Copyright (C) 2008 Josh Nisly&gt;
++    Copyright (C) 2008 Josh Nisly
+ 
+ License:
+ 
+@@ -32,7 +32,3 @@
+ 
+ The Debian packaging is (C) 2008, Matthew Rosewarne &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">mrosewarne at inoutbox.com</A>&gt; and
+ is licensed under the GPL, see above.
+-
+-
+-# Please also look if there are files or directories which have a
+-# different copyright/license attached and list them here.
+
+Modified: trunk/debian/rdiff-web.install
+===================================================================
+--- trunk/debian/rdiff-web.install	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/rdiff-web.install	2008-02-09 20:30:02 UTC (rev 245)
+@@ -1,2 +1,3 @@
++etc/init.d/rdiff-web
+ usr/bin/rdiff-web
+ usr/bin/rdiff-web-config
+
+Modified: trunk/debian/rules
+===================================================================
+--- trunk/debian/rules	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/rules	2008-02-09 20:30:02 UTC (rev 245)
+@@ -3,10 +3,11 @@
+ DEB_PYTHON_SYSTEM = pycentral
+ 
+ include /usr/share/cdbs/1/rules/debhelper.mk
++include /usr/share/cdbs/1/rules/utils.mk
+ include /usr/share/cdbs/1/class/python-distutils.mk
+ 
+ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+ 
+-DEB_DH_INSTALLINIT_ARGS = --no-start
++DEB_DH_INSTALLINIT_ARGS = --onlyscripts
+ 
+ DEB_INSTALL_DOCS_ALL = 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000201.html">[Rdiffweb-commits] r244 - trunk
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#202">[ date ]</a>
+              <a href="thread.html#202">[ thread ]</a>
+              <a href="subject.html#202">[ subject ]</a>
+              <a href="author.html#202">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

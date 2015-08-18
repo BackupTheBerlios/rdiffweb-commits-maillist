@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r202 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r202%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801012134.m01LYqTR012599%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000158.html">
+   <LINK REL="Next"  HREF="000160.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r202 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r202%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801012134.m01LYqTR012599%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r202 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  1 22:34:52 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000158.html">[Rdiffweb-commits] r201 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000160.html">[Rdiffweb-commits] r203 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-01 22:34:49 +0100 (Tue, 01 Jan 2008)
+New Revision: 202
+
+Modified:
+   trunk/rdiffWeb/rdw_config.py
+Log:
+Return blank setting instead of raising an exception if the config file doesn't exist. This makes so that rdiffWeb can bootstrap without a config file.
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2008-01-01 21:33:58 UTC (rev 201)
++++ trunk/rdiffWeb/rdw_config.py	2008-01-01 21:34:49 UTC (rev 202)
+@@ -26,7 +26,7 @@
+    if ('=' in settingName): raise ParameterError
+    if settingsFile == None:
+       settingsFile = getConfigFile()
+-   if (not os.access(settingsFile, os.F_OK)): raise ParameterError
++   if (not os.access(settingsFile, os.F_OK)): return &quot;&quot;
+    settingsStrings = open(settingsFile, &quot;r&quot;).readlines()
+    for setting in settingsStrings:
+       setting = re.compile(&quot;(.*)#.*&quot;).sub(r'\1', setting)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000158.html">[Rdiffweb-commits] r201 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000160.html">[Rdiffweb-commits] r203 - trunk/rdiffWeb/static
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

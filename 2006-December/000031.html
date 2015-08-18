@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r74 - in trunk/rdiffWeb: . templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-December/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r74%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200612102015.kBAKFi0n020022%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000032.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r74 - in trunk/rdiffWeb: . templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r74%20-%20in%20trunk/rdiffWeb%3A%20.%20templates&In-Reply-To=%3C200612102015.kBAKFi0n020022%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r74 - in trunk/rdiffWeb: . templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Sun Dec 10 21:15:44 CET 2006</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000032.html">[Rdiffweb-commits] r75 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#31">[ date ]</a>
+              <a href="thread.html#31">[ thread ]</a>
+              <a href="subject.html#31">[ subject ]</a>
+              <a href="author.html#31">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-12-10 21:15:40 +0100 (Sun, 10 Dec 2006)
+New Revision: 74
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/rdiffWeb/page_status.py
+   trunk/rdiffWeb/templates/status.xml
+Log:
+* Changing &quot;Failed&quot; terminology to &quot;Completed with errors&quot;
+* Don't display backups in progress on status page/feed.
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-10-30 19:46:43 UTC (rev 73)
++++ trunk/rdiffWeb/librdiff.py	2006-12-10 20:15:40 UTC (rev 74)
+@@ -273,6 +273,12 @@
+       rdiffOutputFile = rdiffOutputFile+&quot;.zip&quot;
+    return rdiffOutputFile
+ 
++def backupIsInProgress(repo):
++   rdiffDir = joinPaths(repo, rdiffDataDirName)
++   mirrorMarkers = os.listdir(rdiffDir)
++   mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
++   return mirrorMarkers and len(mirrorMarkers) &gt; 1
++
+ import gzip, re
+ def getBackupHistory(repoRoot):
+    return _getBackupHistory(repoRoot)
+@@ -287,10 +293,10 @@
+    return _getBackupHistory(repoRoot, -1, date)
+ 
+ def getBackupHistoryForDateRange(repoRoot, earliestDate, latestDate):
+-   return _getBackupHistory(repoRoot, -1, earliestDate, latestDate)
++   return _getBackupHistory(repoRoot, -1, earliestDate, latestDate, False)
+ 
+ # earliestDate and latestDate are inclusive
+-def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None):
++def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+    &quot;&quot;&quot;Returns a list of backupHistoryEntry's&quot;&quot;&quot;
+    checkRepoPath(repoRoot, &quot;&quot;)
+ 
+@@ -333,6 +339,8 @@
+       newEntry.size = int(expression)
+       entries.append(newEntry)
+ 
++   if len(entries) &gt; 0 and not includeInProgress and backupIsInProgress(repoRoot):
++      entries.pop()
+    return entries
+ 
+ def getDirRestoreDates(repo, path):
+@@ -356,13 +364,6 @@
+    return backupHistory
+ 
+ 
+-def backupIsInProgress(repo):
+-   rdiffDir = joinPaths(repo, rdiffDataDirName)
+-   mirrorMarkers = os.listdir(rdiffDir)
+-   mirrorMarkers = filter(lambda x: x.startswith(&quot;current_mirror.&quot;), mirrorMarkers)
+-   return mirrorMarkers and len(mirrorMarkers) &gt; 1
+-
+-
+ ##################### Unit Tests #########################
+ 
+ def runRdiff(src, dest, time):
+
+Modified: trunk/rdiffWeb/page_status.py
+===================================================================
+--- trunk/rdiffWeb/page_status.py	2006-10-30 19:46:43 UTC (rev 73)
++++ trunk/rdiffWeb/page_status.py	2006-12-10 20:15:40 UTC (rev 74)
+@@ -107,7 +107,7 @@
+       if includeFailure:
+          for job in failedBackups:
+             date = job[&quot;date&quot;]
+-            title = &quot;Backup Failed: &quot; + job[&quot;repo&quot;]
++            title = &quot;Backup Completed with Errors: &quot; + job[&quot;repo&quot;]
+             job.update({&quot;isSuccess&quot;: False, &quot;date&quot;: date, &quot;pubDate&quot;: date.getRSSPubDateString(),
+                &quot;link&quot;: self._buildStatusEntryUrl(job[&quot;repo&quot;], date), &quot;title&quot;: title, &quot;repoErrors&quot;: [], &quot;backups&quot;: []})
+             userMessages.append(job)
+
+Modified: trunk/rdiffWeb/templates/status.xml
+===================================================================
+--- trunk/rdiffWeb/templates/status.xml	2006-10-30 19:46:43 UTC (rev 73)
++++ trunk/rdiffWeb/templates/status.xml	2006-12-10 20:15:40 UTC (rev 74)
+@@ -22,7 +22,7 @@
+ &lt;!-- BACKUP FAILURE --&gt;
+ &lt;!--StartDeleteIf:isSuccess--&gt;
+ &lt;p&gt;The backup to &lt;strong&gt;^repo$&lt;/strong&gt; on &lt;strong&gt;^displayDate$&lt;/strong&gt;
+-failed with the following errors:&lt;/p&gt;
++completed with the following errors:&lt;/p&gt;
+ &lt;blockquote&gt;^multiline:errors$&lt;/blockquote&gt;
+ &lt;p&gt;Backup size: ^size$&lt;/p&gt;
+ &lt;/div&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000032.html">[Rdiffweb-commits] r75 - in trunk/rdiffWeb: . templates
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#31">[ date ]</a>
+              <a href="thread.html#31">[ thread ]</a>
+              <a href="subject.html#31">[ subject ]</a>
+              <a href="author.html#31">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

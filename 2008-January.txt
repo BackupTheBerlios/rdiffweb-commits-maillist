@@ -1,0 +1,2790 @@
+From commits at rdiffweb.org  Tue Jan  1 18:51:22 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 18:51:22 +0100
+Subject: [Rdiffweb-commits] r200 - trunk
+Message-ID: <200801011751.m01HpMIq012250@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 18:51:18 +0100 (Tue, 01 Jan 2008)
+New Revision: 200
+
+Modified:
+   trunk/setup.py
+Log:
+Stop supporting python 2.3
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-12-28 13:37:46 UTC (rev 199)
++++ trunk/setup.py	2008-01-01 17:51:18 UTC (rev 200)
+@@ -3,50 +3,23 @@
+ from distutils.core import setup, Command
+ import glob, sys
+ 
+-# < Python 2.4 does not have the package_data setup keyword, making installation a pain.
+-# If we can, use package_data, otherwise, hack in the files
++# < Python 2.4 does not have the package_data setup keyword, so it is unsupported
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+-if pythonVersion > 2.3:
+-   setup(name='rdiffWeb',
+-      version='0.6.0',
+-      description='A web interface to rdiff-backup repositories',
+-      author='Josh Nisly',
+-      author_email='rdiffweb at rdiffweb.org',
+-      url='http://www.rdiffweb.org',
+-      packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+-      data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+-                  ('/etc/init.d', ['init/rdiff-web']),
+-                  ('/usr/bin', ['rdiff-web']), # Manually place rdiff-web in /usr/bin, so the init script can find it
+-                  ],
+-      scripts=['rdiff-web-config']
+-   )
+-else:
+-   from distutils.dist import Distribution
+-   import distutils.command.install
+-
+-   installer = distutils.command.install.install(Distribution())
+-   installer.initialize_options()
+-   installer.finalize_options()
+-   packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+-
+-   setup(name='rdiffWeb',
+-      version='0.6.0',
+-      description='A web interface to rdiff-backup repositories',
+-      author='Josh Nisly',
+-      author_email='rdiffweb at rdiffweb.org',
+-      url='http://www.rdiffweb.org',
+-      packages=['rdiffWeb'],
+-      data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+-                  ('/etc/init.d', ['init/rdiff-web']),
+-                  ('/usr/bin', ['rdiff-web']),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.txt')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+-                  (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+-                  ],
+-      scripts=['rdiff-web-config']
+-   )
++if pythonVersion < 2.4:
++   print 'Python version 2.3 and lower is not supported.'
++   sys.exit(1)
++   
++setup(name='rdiffWeb',
++   version='0.6.0',
++   description='A web interface to rdiff-backup repositories',
++   author='Josh Nisly',
++   author_email='rdiffweb at rdiffweb.org',
++   url='http://www.rdiffweb.org',
++   packages=['rdiffWeb'],
++   package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
++   data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
++               ('/etc/init.d', ['init/rdiff-web']),
++               ('/usr/bin', ['rdiff-web']), # Manually place rdiff-web in /usr/bin, so the init script can find it
++               ],
++   scripts=['rdiff-web-config']
++)
+
+
+
+From commits at rdiffweb.org  Tue Jan  1 22:34:00 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 22:34:00 +0100
+Subject: [Rdiffweb-commits] r201 - trunk
+Message-ID: <200801012134.m01LY0SZ012565@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 22:33:58 +0100 (Tue, 01 Jan 2008)
+New Revision: 201
+
+Modified:
+   trunk/rdw.conf.sample
+Log:
+Remove old database variables from sample config file
+
+Modified: trunk/rdw.conf.sample
+===================================================================
+--- trunk/rdw.conf.sample	2008-01-01 17:51:18 UTC (rev 200)
++++ trunk/rdw.conf.sample	2008-01-01 21:33:58 UTC (rev 201)
+@@ -5,23 +5,6 @@
+ # This is the port that the server should listen on
+ # ServerPort=8080
+ 
+-# There are two options for user databases: file and MySQL.
+-# The main limitation of the file-based user database is that it only supports
+-# one user, while the MySQL-based user database has no limit. Automatic updating
+-# of user repositories and email notifications are also not supported for
+-# file-based databases.
+-# UserDB=mysql
+-
+-
+-# The following variables for only for file-based backends (they are stored
+-# in the database when using MySQL.)
+-#
+-# Username=user
+-# Password=pass
+-# UserRoot=/var/backups
+-# UserRepoPaths=/home_backup|/work_backup # A pipe-delimited list of repositories, relative to UserRoot
+-
+-
+ # The server can be configured to email user when their repositories have not
+ # been backed up for a user-specified period of time. To enable this feature,
+ # set below settings to correct values.
+
+
+
+From commits at rdiffweb.org  Tue Jan  1 22:34:52 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 22:34:52 +0100
+Subject: [Rdiffweb-commits] r202 - trunk/rdiffWeb
+Message-ID: <200801012134.m01LYqTR012599@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 22:34:49 +0100 (Tue, 01 Jan 2008)
+New Revision: 202
+
+Modified:
+   trunk/rdiffWeb/rdw_config.py
+Log:
+Return blank setting instead of raising an exception if the config file doesn't exist. This makes so that rdiffWeb can bootstrap without a config file.
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2008-01-01 21:33:58 UTC (rev 201)
++++ trunk/rdiffWeb/rdw_config.py	2008-01-01 21:34:49 UTC (rev 202)
+@@ -26,7 +26,7 @@
+    if ('=' in settingName): raise ParameterError
+    if settingsFile == None:
+       settingsFile = getConfigFile()
+-   if (not os.access(settingsFile, os.F_OK)): raise ParameterError
++   if (not os.access(settingsFile, os.F_OK)): return ""
+    settingsStrings = open(settingsFile, "r").readlines()
+    for setting in settingsStrings:
+       setting = re.compile("(.*)#.*").sub(r'\1', setting)
+
+
+
+From commits at rdiffweb.org  Tue Jan  1 22:38:12 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 22:38:12 +0100
+Subject: [Rdiffweb-commits] r203 - trunk/rdiffWeb/static
+Message-ID: <200801012138.m01LcCJB012734@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 22:38:08 +0100 (Tue, 01 Jan 2008)
+New Revision: 203
+
+Added:
+   trunk/rdiffWeb/static/json2.js
+Log:
+Pull in public domain javascript json implemention.
+
+Added: trunk/rdiffWeb/static/json2.js
+===================================================================
+--- trunk/rdiffWeb/static/json2.js	2008-01-01 21:34:49 UTC (rev 202)
++++ trunk/rdiffWeb/static/json2.js	2008-01-01 21:38:08 UTC (rev 203)
+@@ -0,0 +1,273 @@
++/*
++    json2.js
++    2007-12-02
++
++    Public Domain
++
++    No warranty expressed or implied. Use at your own risk.
++
++    See http://www.JSON.org/js.html
++
++    This file creates a global JSON object containing two methods:
++
++        JSON.stringify(value, whitelist)
++            value       any JavaScript value, usually an object or array.
++
++            whitelist   an optional array prameter that determines how object
++                        values are stringified.
++
++            This method produces a JSON text from a JavaScript value.
++            There are three possible ways to stringify an object, depending
++            on the optional whitelist parameter.
++
++            If an object has a toJSON method, then the toJSON() method will be
++            called. The value returned from the toJSON method will be
++            stringified.
++
++            Otherwise, if the optional whitelist parameter is an array, then
++            the elements of the array will be used to select members of the
++            object for stringification.
++
++            Otherwise, if there is no whitelist parameter, then all of the
++            members of the object will be stringified.
++
++            Values that do not have JSON representaions, such as undefined or
++            functions, will not be serialized. Such values in objects will be
++            dropped; in arrays will be replaced with null.
++            JSON.stringify(undefined) returns undefined. Dates will be
++            stringified as quoted ISO dates.
++
++            Example:
++
++            var text = JSON.stringify(['e', {pluribus: 'unum'}]);
++            // text is '["e",{"pluribus":"unum"}]'
++
++        JSON.parse(text, filter)
++            This method parses a JSON text to produce an object or
++            array. It can throw a SyntaxError exception.
++
++            The optional filter parameter is a function that can filter and
++            transform the results. It receives each of the keys and values, and
++            its return value is used instead of the original value. If it
++            returns what it received, then structure is not modified. If it
++            returns undefined then the member is deleted.
++
++            Example:
++
++            // Parse the text. If a key contains the string 'date' then
++            // convert the value to a date.
++
++            myData = JSON.parse(text, function (key, value) {
++                return key.indexOf('date') >= 0 ? new Date(value) : value;
++            });
++
++    This is a reference implementation. You are free to copy, modify, or
++    redistribute.
++
++    Use your own copy. It is extremely unwise to load third party
++    code into your pages.
++*/
++
++/*jslint evil: true */
++
++/*global JSON */
++
++/*members "\b", "\t", "\n", "\f", "\r", "\"", JSON, "\\", apply,
++    charCodeAt, floor, getUTCDate, getUTCFullYear, getUTCHours,
++    getUTCMinutes, getUTCMonth, getUTCSeconds, hasOwnProperty, join, length,
++    parse, propertyIsEnumerable, prototype, push, replace, stringify, test,
++    toJSON, toString
++*/
++
++if (!this.JSON) {
++
++    JSON = function () {
++
++        function f(n) {    // Format integers to have at least two digits.
++            return n < 10 ? '0' + n : n;
++        }
++
++        Date.prototype.toJSON = function () {
++
++// Eventually, this method will be based on the date.toISOString method.
++
++            return this.getUTCFullYear()   + '-' +
++                 f(this.getUTCMonth() + 1) + '-' +
++                 f(this.getUTCDate())      + 'T' +
++                 f(this.getUTCHours())     + ':' +
++                 f(this.getUTCMinutes())   + ':' +
++                 f(this.getUTCSeconds())   + 'Z';
++        };
++
++
++        var m = {    // table of character substitutions
++            '\b': '\\b',
++            '\t': '\\t',
++            '\n': '\\n',
++            '\f': '\\f',
++            '\r': '\\r',
++            '"' : '\\"',
++            '\\': '\\\\'
++        };
++
++        function stringify(value, whitelist) {
++            var a,          // The array holding the partial texts.
++                i,          // The loop counter.
++                k,          // The member key.
++                l,          // Length.
++                r = /["\\\x00-\x1f\x7f-\x9f]/g,
++                v;          // The member value.
++
++            switch (typeof value) {
++            case 'string':
++
++// If the string contains no control characters, no quote characters, and no
++// backslash characters, then we can safely slap some quotes around it.
++// Otherwise we must also replace the offending characters with safe sequences.
++
++                return r.test(value) ?
++                    '"' + value.replace(r, function (a) {
++                        var c = m[a];
++                        if (c) {
++                            return c;
++                        }
++                        c = a.charCodeAt();
++                        return '\\u00' + Math.floor(c / 16).toString(16) +
++                                                   (c % 16).toString(16);
++                    }) + '"' :
++                    '"' + value + '"';
++
++            case 'number':
++
++// JSON numbers must be finite. Encode non-finite numbers as null.
++
++                return isFinite(value) ? String(value) : 'null';
++
++            case 'boolean':
++            case 'null':
++                return String(value);
++
++            case 'object':
++
++// Due to a specification blunder in ECMAScript,
++// typeof null is 'object', so watch out for that case.
++
++                if (!value) {
++                    return 'null';
++                }
++
++// If the object has a toJSON method, call it, and stringify the result.
++
++                if (typeof value.toJSON === 'function') {
++                    return stringify(value.toJSON());
++                }
++                a = [];
++                if (typeof value.length === 'number' &&
++                        !(value.propertyIsEnumerable('length'))) {
++
++// The object is an array. Stringify every element. Use null as a placeholder
++// for non-JSON values.
++
++                    l = value.length;
++                    for (i = 0; i < l; i += 1) {
++                        a.push(stringify(value[i], whitelist) || 'null');
++                    }
++
++// Join all of the elements together and wrap them in brackets.
++
++                    return '[' + a.join(',') + ']';
++                }
++                if (whitelist) {
++
++// If a whitelist (array of keys) is provided, use it to select the components
++// of the object.
++
++                    l = whitelist.length;
++                    for (i = 0; i < l; i += 1) {
++                        k = whitelist[i];
++                        if (typeof k === 'string') {
++                            v = stringify(value[k], whitelist);
++                            if (v) {
++                                a.push(stringify(k) + ':' + v);
++                            }
++                        }
++                    }
++                } else {
++
++// Otherwise, iterate through all of the keys in the object.
++
++                    for (k in value) {
++                        if (typeof k === 'string') {
++                            v = stringify(value[k], whitelist);
++                            if (v) {
++                                a.push(stringify(k) + ':' + v);
++                            }
++                        }
++                    }
++                }
++
++// Join all of the member texts together and wrap them in braces.
++
++                return '{' + a.join(',') + '}';
++            }
++        }
++
++        return {
++            stringify: stringify,
++            parse: function (text, filter) {
++                var j;
++
++                function walk(k, v) {
++                    var i, n;
++                    if (v && typeof v === 'object') {
++                        for (i in v) {
++                            if (Object.prototype.hasOwnProperty.apply(v, [i])) {
++                                n = walk(i, v[i]);
++                                if (n !== undefined) {
++                                    v[i] = n;
++                                }
++                            }
++                        }
++                    }
++                    return filter(k, v);
++                }
++
++
++// Parsing happens in three stages. In the first stage, we run the text against
++// regular expressions that look for non-JSON patterns. We are especially
++// concerned with '()' and 'new' because they can cause invocation, and '='
++// because it can cause mutation. But just to be safe, we want to reject all
++// unexpected forms.
++
++// We split the first stage into 4 regexp operations in order to work around
++// crippling inefficiencies in IE's and Safari's regexp engines. First we
++// replace all backslash pairs with '@' (a non-JSON character). Second, we
++// replace all simple value tokens with ']' characters. Third, we delete all
++// open brackets that follow a colon or comma or that begin the text. Finally,
++// we look to see that the remaining characters are only whitespace or ']' or
++// ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
++
++                if (/^[\],:{}\s]*$/.test(text.replace(/\\./g, '@').
++replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(:?[eE][+\-]?\d+)?/g, ']').
++replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
++
++// In the second stage we use the eval function to compile the text into a
++// JavaScript structure. The '{' operator is subject to a syntactic ambiguity
++// in JavaScript: it can begin a block or an object literal. We wrap the text
++// in parens to eliminate the ambiguity.
++
++                    j = eval('(' + text + ')');
++
++// In the optional third stage, we recursively walk the new structure, passing
++// each name/value pair to a filter function for possible transformation.
++
++                    return typeof filter === 'function' ? walk('', j) : j;
++                }
++
++// If the text is not JSON parseable, then a SyntaxError is thrown.
++
++                throw new SyntaxError('parseJSON');
++            }
++        };
++    }();
++}
+
+
+
+From commits at rdiffweb.org  Tue Jan  1 22:39:38 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 22:39:38 +0100
+Subject: [Rdiffweb-commits] r204 - trunk/rdiffWeb
+Message-ID: <200801012139.m01Ldcat012811@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 22:39:35 +0100 (Tue, 01 Jan 2008)
+New Revision: 204
+
+Added:
+   trunk/rdiffWeb/json.py
+Log:
+Pull in LGPL python json implementation, courtesy of Patrick D. Logan.
+
+Added: trunk/rdiffWeb/json.py
+===================================================================
+--- trunk/rdiffWeb/json.py	2008-01-01 21:38:08 UTC (rev 203)
++++ trunk/rdiffWeb/json.py	2008-01-01 21:39:35 UTC (rev 204)
+@@ -0,0 +1,310 @@
++import string
++import types
++
++##    json.py implements a JSON (http://json.org) reader and writer.
++##    Copyright (C) 2005  Patrick D. Logan
++##    Contact mailto:patrickdlogan at stardecisions.com
++##
++##    This library is free software; you can redistribute it and/or
++##    modify it under the terms of the GNU Lesser General Public
++##    License as published by the Free Software Foundation; either
++##    version 2.1 of the License, or (at your option) any later version.
++##
++##    This library is distributed in the hope that it will be useful,
++##    but WITHOUT ANY WARRANTY; without even the implied warranty of
++##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++##    Lesser General Public License for more details.
++##
++##    You should have received a copy of the GNU Lesser General Public
++##    License along with this library; if not, write to the Free Software
++##    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++
++class _StringGenerator(object):
++	def __init__(self, string):
++		self.string = string
++		self.index = -1
++	def peek(self):
++		i = self.index + 1
++		if i < len(self.string):
++			return self.string[i]
++		else:
++			return None
++	def next(self):
++		self.index += 1
++		if self.index < len(self.string):
++			return self.string[self.index]
++		else:
++			raise StopIteration
++	def all(self):
++		return self.string
++
++class WriteException(Exception):
++    pass
++
++class ReadException(Exception):
++    pass
++
++class JsonReader(object):
++    hex_digits = {'A': 10,'B': 11,'C': 12,'D': 13,'E': 14,'F':15}
++    escapes = {'t':'\t','n':'\n','f':'\f','r':'\r','b':'\b'}
++
++    def read(self, s):
++        self._generator = _StringGenerator(s)
++        result = self._read()
++        return result
++
++    def _read(self):
++        self._eatWhitespace()
++        peek = self._peek()
++        if peek is None:
++            raise ReadException, "Nothing to read: '%s'" % self._generator.all()
++        if peek == '{':
++            return self._readObject()
++        elif peek == '[':
++            return self._readArray()            
++        elif peek == '"':
++            return self._readString()
++        elif peek == '-' or peek.isdigit():
++            return self._readNumber()
++        elif peek == 't':
++            return self._readTrue()
++        elif peek == 'f':
++            return self._readFalse()
++        elif peek == 'n':
++            return self._readNull()
++        elif peek == '/':
++            self._readComment()
++            return self._read()
++        else:
++            raise ReadException, "Input is not valid JSON: '%s'" % self._generator.all()
++
++    def _readTrue(self):
++        self._assertNext('t', "true")
++        self._assertNext('r', "true")
++        self._assertNext('u', "true")
++        self._assertNext('e', "true")
++        return True
++
++    def _readFalse(self):
++        self._assertNext('f', "false")
++        self._assertNext('a', "false")
++        self._assertNext('l', "false")
++        self._assertNext('s', "false")
++        self._assertNext('e', "false")
++        return False
++
++    def _readNull(self):
++        self._assertNext('n', "null")
++        self._assertNext('u', "null")
++        self._assertNext('l', "null")
++        self._assertNext('l', "null")
++        return None
++
++    def _assertNext(self, ch, target):
++        if self._next() != ch:
++            raise ReadException, "Trying to read %s: '%s'" % (target, self._generator.all())
++
++    def _readNumber(self):
++        isfloat = False
++        result = self._next()
++        peek = self._peek()
++        while peek is not None and (peek.isdigit() or peek == "."):
++            isfloat = isfloat or peek == "."
++            result = result + self._next()
++            peek = self._peek()
++        try:
++            if isfloat:
++                return float(result)
++            else:
++                return int(result)
++        except ValueError:
++            raise ReadException, "Not a valid JSON number: '%s'" % result
++
++    def _readString(self):
++        result = ""
++        assert self._next() == '"'
++        try:
++            while self._peek() != '"':
++                ch = self._next()
++                if ch == "\\":
++                    ch = self._next()
++                    if ch in 'brnft':
++                        ch = self.escapes[ch]
++                    elif ch == "u":
++		        ch4096 = self._next()
++			ch256  = self._next()
++			ch16   = self._next()
++			ch1    = self._next()
++			n = 4096 * self._hexDigitToInt(ch4096)
++			n += 256 * self._hexDigitToInt(ch256)
++			n += 16  * self._hexDigitToInt(ch16)
++			n += self._hexDigitToInt(ch1)
++			ch = unichr(n)
++                    elif ch not in '"/\\':
++                        raise ReadException, "Not a valid escaped JSON character: '%s' in %s" % (ch, self._generator.all())
++                result = result + ch
++        except StopIteration:
++            raise ReadException, "Not a valid JSON string: '%s'" % self._generator.all()
++        assert self._next() == '"'
++        return result
++
++    def _hexDigitToInt(self, ch):
++        try:
++            result = self.hex_digits[ch.upper()]
++        except KeyError:
++            try:
++                result = int(ch)
++	    except ValueError:
++	         raise ReadException, "The character %s is not a hex digit." % ch
++        return result
++
++    def _readComment(self):
++        assert self._next() == "/"
++        second = self._next()
++        if second == "/":
++            self._readDoubleSolidusComment()
++        elif second == '*':
++            self._readCStyleComment()
++        else:
++            raise ReadException, "Not a valid JSON comment: %s" % self._generator.all()
++
++    def _readCStyleComment(self):
++        try:
++            done = False
++            while not done:
++                ch = self._next()
++                done = (ch == "*" and self._peek() == "/")
++                if not done and ch == "/" and self._peek() == "*":
++                    raise ReadException, "Not a valid JSON comment: %s, '/*' cannot be embedded in the comment." % self._generator.all()
++            self._next()
++        except StopIteration:
++            raise ReadException, "Not a valid JSON comment: %s, expected */" % self._generator.all()
++
++    def _readDoubleSolidusComment(self):
++        try:
++            ch = self._next()
++            while ch != "\r" and ch != "\n":
++                ch = self._next()
++        except StopIteration:
++            pass
++
++    def _readArray(self):
++        result = []
++        assert self._next() == '['
++        done = self._peek() == ']'
++        while not done:
++            item = self._read()
++            result.append(item)
++            self._eatWhitespace()
++            done = self._peek() == ']'
++            if not done:
++                ch = self._next()
++                if ch != ",":
++                    raise ReadException, "Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch)
++        assert ']' == self._next()
++        return result
++
++    def _readObject(self):
++        result = {}
++        assert self._next() == '{'
++        done = self._peek() == '}'
++        while not done:
++            key = self._read()
++            if type(key) is not types.StringType:
++                raise ReadException, "Not a valid JSON object key (should be a string): %s" % key
++            self._eatWhitespace()
++            ch = self._next()
++            if ch != ":":
++                raise ReadException, "Not a valid JSON object: '%s' due to: '%s'" % (self._generator.all(), ch)
++            self._eatWhitespace()
++            val = self._read()
++            result[key] = val
++            self._eatWhitespace()
++            done = self._peek() == '}'
++            if not done:
++                ch = self._next()
++                if ch != ",":
++                    raise ReadException, "Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch)
++	assert self._next() == "}"
++        return result
++
++    def _eatWhitespace(self):
++        p = self._peek()
++        while p is not None and p in string.whitespace or p == '/':
++            if p == '/':
++                self._readComment()
++            else:
++                self._next()
++            p = self._peek()
++
++    def _peek(self):
++        return self._generator.peek()
++
++    def _next(self):
++        return self._generator.next()
++
++class JsonWriter(object):
++        
++    def _append(self, s):
++        self._results.append(s)
++
++    def write(self, obj, escaped_forward_slash=False):
++        self._escaped_forward_slash = escaped_forward_slash
++        self._results = []
++        self._write(obj)
++        return "".join(self._results)
++
++    def _write(self, obj):
++        ty = type(obj)
++        if ty is types.DictType:
++            n = len(obj)
++            self._append("{")
++            for k, v in obj.items():
++                self._write(k)
++                self._append(":")
++                self._write(v)
++                n = n - 1
++                if n > 0:
++                    self._append(",")
++            self._append("}")
++        elif ty is types.ListType or ty is types.TupleType:
++            n = len(obj)
++            self._append("[")
++            for item in obj:
++                self._write(item)
++                n = n - 1
++                if n > 0:
++                    self._append(",")
++            self._append("]")
++        elif ty is types.StringType or ty is types.UnicodeType:
++            self._append('"')
++	    obj = obj.replace('\\', r'\\')
++            if self._escaped_forward_slash:
++                obj = obj.replace('/', r'\/')
++	    obj = obj.replace('"', r'\"')
++	    obj = obj.replace('\b', r'\b')
++	    obj = obj.replace('\f', r'\f')
++	    obj = obj.replace('\n', r'\n')
++	    obj = obj.replace('\r', r'\r')
++	    obj = obj.replace('\t', r'\t')
++            self._append(obj)
++            self._append('"')
++        elif ty is types.IntType or ty is types.LongType:
++            self._append(str(obj))
++        elif ty is types.FloatType:
++            self._append("%f" % obj)
++        elif obj is True:
++            self._append("true")
++        elif obj is False:
++            self._append("false")
++        elif obj is None:
++            self._append("null")
++        else:
++            raise WriteException, "Cannot write in JSON: %s" % repr(obj)
++
++def write(obj, escaped_forward_slash=False):
++    return JsonWriter().write(obj, escaped_forward_slash)
++
++def read(s):
++    return JsonReader().read(s)
+
+
+
+From commits at rdiffweb.org  Tue Jan  1 22:41:11 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 1 Jan 2008 22:41:11 +0100
+Subject: [Rdiffweb-commits] r205 - in trunk: . rdiffWeb rdiffWeb/static
+	rdiffWeb/templates
+Message-ID: <200801012141.m01LfBOQ012918@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-01 22:41:02 +0100 (Tue, 01 Jan 2008)
+New Revision: 205
+
+Added:
+   trunk/rdiffWeb/filter_setup.py
+   trunk/rdiffWeb/page_setup.py
+   trunk/rdiffWeb/static/ajax.js
+   trunk/rdiffWeb/static/setup.css
+   trunk/rdiffWeb/static/setup.js
+   trunk/rdiffWeb/templates/setup.html
+Modified:
+   trunk/rdiff-web
+   trunk/rdiffWeb/static/main.css
+Log:
+Instead of showing an error when rdiffWeb is not configured, redirect to a setup page. The user must enter the root password to configure rdiffWeb.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiff-web	2008-01-01 21:41:02 UTC (rev 205)
+@@ -11,25 +11,18 @@
+ import rdiffWeb.email_notification
+ import rdiffWeb.page_error
+ import rdiffWeb.filter_authentication
++import rdiffWeb.filter_setup
+ 
+-if __name__ == "__main__":
+-   # First make sure we have a valid config file.  If not, tell the user to run the config script
+-   if not rdiffWeb.rdw_config.getConfigFile():
+-      if os.getuid() != 0:
+-         error = "<h2>Error: rdiffWeb must be run as root.</h2>"
+-      else:
+-         error =  "<h2>Error: rdiffWeb has been installed, but no configuration file exists.<br/>Please run 'rdiff-web-config' to configure settings, then restart rdiffWeb.</h2>"
+-      root = rdiffWeb.page_error.rdiffErrorPage(error)
+-      cherrypy.quickstart(root, config={
+-         '/static' : {
+-            'tools.staticdir.on' : True,
+-            'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+-            'tools.staticdir.dir': "static",
+-         }
+-      })
+-      sys.exit(2)
++import rdiffWeb.page_admin
++import rdiffWeb.page_browse
++import rdiffWeb.page_history
++import rdiffWeb.page_locations
++import rdiffWeb.page_restore
++import rdiffWeb.page_setup
++import rdiffWeb.page_status
++import rdiffWeb.page_prefs
+ 
+-
++if __name__ == "__main__":
+    # Parse command line options
+    verbose = True
+    debug = False
+@@ -56,20 +49,11 @@
+    if pidFile:
+       # Write our process id to specified file, so we can be killed later
+       open(pidFile, 'a').write(str(os.getpid())+"\n")
+-      
+-   # We import the rdiffWeb modules now instead of at the top of the file because it needs to access
+-   # the config file, and the config file may not exist
+-   import rdiffWeb.page_admin
+-   import rdiffWeb.page_browse
+-   import rdiffWeb.page_history
+-   import rdiffWeb.page_locations
+-   import rdiffWeb.page_restore
+-   import rdiffWeb.page_status
+-   import rdiffWeb.page_prefs
+ 
+    serverPort = 8080
+    if rdiffWeb.rdw_config.getConfigSetting("ServerPort") != "":
+       serverPort = int(rdiffWeb.rdw_config.getConfigSetting("ServerPort"))
++         
+    environment = "development"
+    if not debug:
+       environment = "production"
+@@ -79,7 +63,7 @@
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+       'autoreload.on' : autoReload,
+-      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting("ServerName"),
++      'server.socket_host' : rdiffWeb.rdw_config.getConfigSetting("ServerHost"),
+       'server.socket_port' : serverPort,
+       'server.log_file' : logFile,
+       'server.ssl_certificate': rdiffWeb.rdw_config.getConfigSetting("SslCertificate"),
+@@ -92,6 +76,7 @@
+       '/': {
+          'tools.authenticate.checkAuth' : rdiffWeb.page_locations.rdiffLocationsPage().checkAuthentication,
+          'tools.authenticate.on' : True,
++         'tools.setup.on': True,
+       },
+       '/status/feed': {
+          'tools.authenticate.authMethod' : 'HTTP Header'
+@@ -104,9 +89,15 @@
+          'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+          'tools.staticdir.dir': "static",
+          'tools.authenticate.on' : False,
++         'tools.setup.on': False,
++      },
++      '/setup': {
++         'tools.setup.on': False,
++         'tools.authenticate.on' : False,
++         'tools.sessions.on' : False,
+       }
+    }
+-
++   
+    if rdiffWeb.rdw_config.getConfigSetting("SessionStorage").lower() == "disk":
+       sessionDir = rdiffWeb.rdw_config.getConfigSetting("SessionDir")
+       if os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK):
+@@ -117,6 +108,7 @@
+ 
+    cherrypy.config.update(global_settings)
+    root = rdiffWeb.page_locations.rdiffLocationsPage()
++   root.setup = rdiffWeb.page_setup.rdiffSetupPage()
+    root.browse = rdiffWeb.page_browse.rdiffBrowsePage()
+    root.restore = rdiffWeb.page_restore.rdiffRestorePage()
+    root.history = rdiffWeb.page_history.rdiffHistoryPage()
+
+Added: trunk/rdiffWeb/filter_setup.py
+===================================================================
+--- trunk/rdiffWeb/filter_setup.py	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/filter_setup.py	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,10 @@
++import cherrypy
++import rdw_config
++
++
++def handle_setup():
++   if not rdw_config.getConfigFile():
++      print
++      raise cherrypy.HTTPRedirect("/setup/")
++
++cherrypy.tools.setup = cherrypy.Tool('before_handler', handle_setup)
+
+Added: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/page_setup.py	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,104 @@
++#!/usr/bin/python
++
++import cherrypy
++import json
++import spwd
++import os
++import stat
++import crypt
++
++import page_main
++import rdw_helpers
++
++
++class rdiffSetupPage(page_main.rdiffPage):
++   """Helps the user through initial rdiffWeb setup.
++      This page is displayed with rdiffWeb is not yet configured.
++      """
++   @cherrypy.expose
++   def index(self):
++      page = rdw_helpers.compileTemplate("page_start.html", title='Set up rdiffWeb', rssLink='', rssTitle='')
++      rootEnabled = False
++      error = ""
++      try:
++         rootEnabled = self._rootAccountEnabled()
++      except KeyError:
++         error = "rdiffWeb setup must be run with root privileges."
++      page += rdw_helpers.compileTemplate("setup.html", rootEnabled=rootEnabled, error=error)
++      page += rdw_helpers.compileTemplate("page_end.html")
++      return page
++
++   @cherrypy.expose
++   def ajax(self):
++      postData = cherrypy.request.body.read()
++      request = json.JsonReader().read(postData)
++      print request
++      if not 'rootPassword' in request:
++         return json.JsonWriter().write({"error": "No password specified."})
++         
++      try:
++         self._ensureConfigFileExists()
++
++         self._validatePassword(request['rootPassword'])
++         if 'adminUsername' in request:
++            self._setAdminUser(request['adminUsername'], request['adminPassword'], request['adminConfirmPassword'])
++         if 'adminRoot' in request:
++            self._setAdminRoot(request['adminUsername'], request['adminRoot'])
++      except ValueError, error:
++         return json.JsonWriter().write({"error": str(error)})
++
++      return json.JsonWriter().write({})
++         
++         
++   def _validatePassword(self, password):
++      if self._rootAccountEnabled():
++         # Check the root account
++         if (self._checkSystemPassword("root", password)):
++            return
++      else: 
++         raise ValueError, "The root account has been disabled. Web-based setup is not supported."
++         # If the root account is disabled, check to see if another
++         # user set up the account, in which case their password is valid.
++         if password != "billfrank":
++            raise ValueError, "The password is invalid."
++         
++   def _checkSystemPassword(self, username, password):
++      cryptedpasswd = spwd.getspnam(username)[1]
++      if crypt.crypt(password, cryptedpasswd) != cryptedpasswd:
++         raise ValueError, "Invalid password."
++   
++   def _setAdminUser(self, username, password, confirmPassword):
++      if not username:
++         raise ValueError, "A username was not specified."
++      if not password:
++         raise ValueError, "The administrative user must have a password."
++      if password != confirmPassword:
++         raise ValueError, "The passwords do not match."
++      
++      self.getUserDB().addUser(username)
++      self.getUserDB().setUserPassword(username, password)
++   
++   def _setAdminRoot(self, username, userRoot):
++      if not username:
++         raise ValueError, "A username was not specified."
++      if not userRoot:
++         raise ValueError, "A root directory was not specified."
++      if not os.path.exists(userRoot):
++         raise ValueError, "The specified directory does not exist."
++      
++      self.getUserDB().setUserRoot(username, userRoot)
++      
++   def _rootAccountEnabled(self):
++      cryptedpasswd = spwd.getspnam("root")[1]
++      return cryptedpasswd != '!'
++
++   def _ensureConfigFileExists(self):
++      try:
++         if not os.path.exists("/etc/rdiffweb"):
++            os.mkdir("/etc/rdiffweb", stat.S_IRWXU)
++         if not os.path.exists("/etc/rdiffweb/rdw.conf"):
++            open("/etc/rdiffweb/rdw.conf", "a").close()
++            os.chmod("/etc/rdiffweb/rdw.conf", stat.S_IRWXU)
++      except OSError, error:
++         raise ValueError, str(error)
++
+
+Added: trunk/rdiffWeb/static/ajax.js
+===================================================================
+--- trunk/rdiffWeb/static/ajax.js	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/ajax.js	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,51 @@
++window.ajax = window.ajax || {
++   getUrl: function(url, onSuccess, onFailure)
++   {
++      this._doUrl(url, "GET", null, onSuccess, onFailure);
++   },
++   
++   postUrl: function(url, postString, onSuccess, onFailure)
++   {
++      this._doUrl(url, "POST", postString, onSuccess, onFailure);
++   },
++   
++   _doUrl: function(url, method, postString, onSuccess, onFailure)
++   {   
++      function _stateChange()
++      {
++         if (XHR.readyState == 4)
++         {
++            if (XHR.status == 200)  
++               onSuccess(XHR.responseText);
++            else
++               onFailure();
++         }
++      }
++      
++      var XHR = this._getXHR();
++      XHR.onreadystatechange = _stateChange;
++      XHR.open(method, url, true);
++      XHR.send(postString);
++   },
++   
++   _getXHR: function()
++   {
++      if (window.XMLHttpRequest)
++         return new XMLHttpRequest()
++      try
++      {
++         return new ActiveXObject("Msxml2.XMLHTTP");
++      }
++      catch (e)
++      {
++         try
++         {
++            return new ActiveXObject("Microsoft.XMLHTTP");
++         }
++         catch (e)
++         {
++            return null;
++         }
++      }
++   }
++}
+\ No newline at end of file
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/main.css	2008-01-01 21:41:02 UTC (rev 205)
+@@ -207,6 +207,7 @@
+    background-color: #FFF;
+ }
+ 
++h1,
+ h2,
+ h3,
+ table thead
+
+Added: trunk/rdiffWeb/static/setup.css
+===================================================================
+--- trunk/rdiffWeb/static/setup.css	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/setup.css	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,34 @@
++h3
++{
++   margin-bottom: 0.25em;
++}
++
++button
++{
++   border: 1px solid #888;
++   background-color: #DDD;
++   font-weight: bold;
++   font-size: 120%;
++   color: #555;
++}
++
++input
++{
++   font-size: 120%;
++   border: 1px solid #999;
++}
++
++.error
++{
++   color: red;
++}
++
++#SetupCompleteDiv
++{
++   color: green;
++}
++
++table td
++{
++   vertical-align: middle;
++}
+\ No newline at end of file
+
+Added: trunk/rdiffWeb/static/setup.js
+===================================================================
+--- trunk/rdiffWeb/static/setup.js	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/static/setup.js	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,85 @@
++
++function setText(parent, text)
++{
++   parent.innerHTML = "";
++   parent.appendChild(document.createTextNode(text));
++}
++
++function getPassword()
++{
++   return document.getElementById("rootpassword").value;
++}
++
++function handleResponse(responseError, errorElem, nextStepElem)
++{
++   if (responseError)
++      setText(errorElem, responseError);
++   else
++   {
++      setText(errorElem, "");
++      nextStepElem.style.display = 'block';
++   }
++}
++
++function handleRequestButton(request, errorElem, nextStepElem)
++{
++   function onSuccess(str)
++   {
++      var response = eval("("+str+")");
++      handleResponse(response.error, errorElem, nextStepElem);
++   }
++   function onFailure()
++   {
++      handleResponse("Unable to communicate with server.", errorElem, nextStepElem);
++   }
++   ajax.postUrl("/setup/ajax", JSON.stringify(request), onSuccess, onFailure);
++}
++
++function handleAdmin()
++{
++   var errorElem = document.getElementById("adminRootError");
++   var nextStepElem = document.getElementById("adminRoot");
++   
++   var adminUsername = document.getElementById("adminUsername").value;
++   var adminPassword = document.getElementById("adminPassword").value;
++   var adminConfirmPassword = document.getElementById("adminConfirmPassword").value;
++   
++   var request = {
++      "rootPassword": getPassword(),
++      "adminUsername": adminUsername,
++      "adminPassword": adminPassword,
++      "adminConfirmPassword": adminConfirmPassword
++   };
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function handleAdminRoot()
++{
++   var errorElem = document.getElementById("adminError");
++   var nextStepElem = document.getElementById("SetupCompleteDiv");
++   
++   var adminRoot = document.getElementById("adminRoot").value;
++   
++   var request = {
++      "rootPassword": getPassword(),
++      "adminRoot": adminRoot
++   };
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function handleRootPassword()
++{
++   var errorElem = document.getElementById("rootpassworderror");
++   var nextStepElem = document.getElementById("adminSetup");
++   var request = {"rootPassword": getPassword()};
++   handleRequestButton(request, errorElem, nextStepElem);
++}
++
++function initEvents()
++{
++   document.getElementById("rootpasswordbtn").onclick = handleRootPassword;
++   document.getElementById("adminbtn").onclick = handleAdmin;
++   document.getElementById("adminRootBtn").onclick = handleAdminRoot;
++}
++
++addOnLoadEvent(initEvents)
+
+Added: trunk/rdiffWeb/templates/setup.html
+===================================================================
+--- trunk/rdiffWeb/templates/setup.html	2008-01-01 21:39:35 UTC (rev 204)
++++ trunk/rdiffWeb/templates/setup.html	2008-01-01 21:41:02 UTC (rev 205)
+@@ -0,0 +1,90 @@
++<!--StartDelete-->
++<html>
++   <head>
++      <title>Setup rdiffWeb</title>
++      <link rel="stylesheet" href="../static/main.css"/>
++      <link rel="stylesheet" href="../static/setup.css"/>
++   </head>
++<!--EndDelete-->
++<link rel="stylesheet" href="../static/setup.css"/>
++<!--StartIncludeIf:error-->
++<body>
++<h1 class="error">Error: ^error$</h1>
++</body>
++<!--EndIncludeIf:error-->
++<!--StartDeleteIf:error-->
++<body>
++<h1>Set up rdiffWeb</h1>
++<div>
++   <div style="padding-bottom: 1em;">
++      rdiffWeb has not been configured, so we need to do that before logging in. Configuration will only take a few minutes.
++   </div>
++   <div class="error" id="rootpassworderror"></div>
++   <div>
++      <!--StartIncludeIf:rootEnabled-->
++      Enter the root password to continue: <input type="password" name="rootpassword" id="rootpassword"/>
++      <!--EndIncludeIf:rootEnabled-->
++      <!--StartDeleteIf:rootEnabled-->
++      rdiffWeb has detected that the root account has been disabled.<br/>
++      Enter the password for the user that installed rdiffWeb: <input type="password" name="rootpassword" id="rootpassword"/>
++      <!--EndDeleteIf:rootEnabled-->
++   </div>
++   <div>
++      <button type="button" id="rootpasswordbtn">Start setup</button>
++   </div>
++</div>
++<div id="adminSetup" style="display: none">
++   <h3>Add initial adminstrator account</h3>
++   <div class="error" id="adminError"></div>
++      There must be one user account set up with adminstrative privileges.
++      This user account can then be used to add other user accounts.<br/>
++      Let's set up this user now.
++   <table>
++   <tr>
++      <td>Username for the administrative user:</td>
++      <td><input type="text" id="adminUsername"/></td>
++   </tr>
++   <tr>
++      <td>Password for the administrative user:</td>
++      <td><input type="password" id="adminPassword"/></td>
++   </tr>
++   <tr>
++      <td>Confirm password for the administrative user:</td>
++      <td><input type="password" id="adminConfirmPassword"/></td>
++   </tr>
++   </table>
++   <button type="button" id="adminbtn">Add administrative user</button>
++</div>
++<div id="adminRoot" style="display: none">
++   <h3>Set user root directory</h3>
++   <div class="error" id="adminRootError"></div>
++   <div>
++      Just one more step, and then we're done. We need to have a "root" directory for the newly-created user.<br/>
++      All rdiff-backup repositories for this user must be within this directory, and rdiffWeb will search within<br/>
++      this directory for repositories.
++   </div>
++   <table>
++   <tr>
++      <td>Enter the root directory:</td>
++      <td><input type="text" id="adminRoot"/></td>
++   </tr>
++   </table>
++   <button type="button" id="adminRootBtn">Set root directory</button>
++</div>
++<div id="SetupCompleteDiv" style="display: none">
++   <p>
++   Congratulations, rdiffWeb setup is now complete! <a href="/">Click here</a> to log into rdiffWeb.
++   </p>
++</div>
++</form>
++</body>
++<script src="/static/ajax.js" type="text/javascript"></script>
++<script src="/static/setup.js" type="text/javascript"></script>
++<script src="/static/json2.js" type="text/javascript"></script>
++<!--EndDeleteIf:error-->
++<!--StartDelete-->
++</html>
++<script src="../static/globals.js" type="text/javascript"></script>
++<script src="../static/borders.js" type="text/javascript"></script>
++<script src="../static/setup.js" type="text/javascript"></script>
++<!--EndDelete-->
+\ No newline at end of file
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 14:04:54 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 14:04:54 +0100
+Subject: [Rdiffweb-commits] r206 - trunk/rdiffWeb
+Message-ID: <200801031304.m03D4sK6025444@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 14:04:51 +0100 (Thu, 03 Jan 2008)
+New Revision: 206
+
+Modified:
+   trunk/rdiffWeb/rdw_config.py
+Log:
+Fix unit test broken by r202
+
+Modified: trunk/rdiffWeb/rdw_config.py
+===================================================================
+--- trunk/rdiffWeb/rdw_config.py	2008-01-01 21:41:02 UTC (rev 205)
++++ trunk/rdiffWeb/rdw_config.py	2008-01-03 13:04:51 UTC (rev 206)
+@@ -76,10 +76,8 @@
+          os.remove(self.configFilePath)
+ 
+    def testBadParms(self):
+-      try:
+-         getConfigSetting("setting", "/tmp/rdw_bogus.conf")
+-      except ParameterError: pass
+-      else: assert(False)
++      value = getConfigSetting("setting", "/tmp/rdw_bogus.conf")
++      assert(value == "")
+       self.writeGoodFile()
+       try:
+          getConfigSetting("setting=", "/tmp/rdw_config.conf")
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 14:05:18 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 14:05:18 +0100
+Subject: [Rdiffweb-commits] r207 - trunk/rdiffWeb
+Message-ID: <200801031305.m03D5IfZ025540@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 14:05:15 +0100 (Thu, 03 Jan 2008)
+New Revision: 207
+
+Modified:
+   trunk/rdiffWeb/db_sql.py
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Fix exception when deleting user
+
+Modified: trunk/rdiffWeb/db_sql.py
+===================================================================
+--- trunk/rdiffWeb/db_sql.py	2008-01-03 13:04:51 UTC (rev 206)
++++ trunk/rdiffWeb/db_sql.py	2008-01-03 13:05:15 UTC (rev 207)
+@@ -40,6 +40,12 @@
+       authModule = self._getUserDB()
+       assert(authModule.getUserList() == ["test"])
+ 
++   def testDeleteUser(self):
++      authModule = self._getUserDB()
++      assert(authModule.getUserList() == ["test"])
++      authModule.deleteUser("test")
++      assert(authModule.getUserList() == [])
++
+    def testUserInfo(self):
+       authModule = self._getUserDB()
+       assert(authModule.getUserRoot("test") == "/data")
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2008-01-03 13:04:51 UTC (rev 206)
++++ trunk/rdiffWeb/db_sqlite.py	2008-01-03 13:05:15 UTC (rev 207)
+@@ -59,7 +59,7 @@
+       if not self.userExists(username): raise ValueError
+       self._deleteUserRepos(username)
+       query = "DELETE FROM users WHERE Username = ?"
+-      self._executeQuery(query, (username))
++      self._executeQuery(query, (username,))
+ 
+    def setUserInfo(self, username, userRoot, isAdmin):
+       if not self.userExists(username): raise ValueError
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 14:16:35 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 14:16:35 +0100
+Subject: [Rdiffweb-commits] r208 - trunk/init
+Message-ID: <200801031316.m03DGZoo026028@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 14:16:33 +0100 (Thu, 03 Jan 2008)
+New Revision: 208
+
+Modified:
+   trunk/init/rdiff-web
+Log:
+Explicitly check for root access in init script.
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2008-01-03 13:05:15 UTC (rev 207)
++++ trunk/init/rdiff-web	2008-01-03 13:16:33 UTC (rev 208)
+@@ -19,6 +19,14 @@
+  . /etc/init.d/functions
+ fi
+ 
++# This script won't be able to run without root privileges.
++USERNAME=`id -un`
++if [ "$USERNAME" != "root" ]; then
++   echo "Error: this script must be run as root."
++   exit 1
++fi
++
++
+ # See how we were called.
+ case "$1" in
+    start)
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 14:58:38 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 14:58:38 +0100
+Subject: [Rdiffweb-commits] r209 - trunk/rdiffWeb
+Message-ID: <200801031358.m03Dwcsx029000@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 14:58:34 +0100 (Thu, 03 Jan 2008)
+New Revision: 209
+
+Modified:
+   trunk/rdiffWeb/page_prefs.py
+Log:
+Fix exception when updating repos from prefs page.
+
+Modified: trunk/rdiffWeb/page_prefs.py
+===================================================================
+--- trunk/rdiffWeb/page_prefs.py	2008-01-03 13:16:33 UTC (rev 208)
++++ trunk/rdiffWeb/page_prefs.py	2008-01-03 13:58:34 UTC (rev 209)
+@@ -43,7 +43,7 @@
+       return self._getPrefsPage(statusMessage="Password updated successfully.")
+    
+    def _updateRepos(self):
+-      rdw_spider_repos.findReposForUser(self.getUsername(), self.userDB)
++      rdw_spider_repos.findReposForUser(self.getUsername(), self.getUserDB())
+       return self._getPrefsPage(statusMessage="Successfully updated backup locations.")
+ 
+    def _setNotifications(self, parms):
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 15:46:22 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 15:46:22 +0100
+Subject: [Rdiffweb-commits] r210 - trunk
+Message-ID: <200801031446.m03EkM0O032599@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 15:46:17 +0100 (Thu, 03 Jan 2008)
+New Revision: 210
+
+Modified:
+   trunk/MANIFEST.in
+Log:
+Include xml and txt templates in source distribution package.
+
+Modified: trunk/MANIFEST.in
+===================================================================
+--- trunk/MANIFEST.in	2008-01-03 13:58:34 UTC (rev 209)
++++ trunk/MANIFEST.in	2008-01-03 14:46:17 UTC (rev 210)
+@@ -1,5 +1,7 @@
+ include COPYING rdiff-web rdiff-web-config rdw.conf.sample init/rdiff-web
+ include rdiffWeb/templates/*.html
++include rdiffWeb/templates/*.xml
++include rdiffWeb/templates/*.txt
+ include rdiffWeb/static/*.png 
+ include rdiffWeb/static/*.css 
+ include rdiffWeb/static/*.js
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 15:46:39 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 15:46:39 +0100
+Subject: [Rdiffweb-commits] r211 - trunk/rdiffWeb/templates
+Message-ID: <200801031446.m03EkdYl032644@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 15:46:37 +0100 (Thu, 03 Jan 2008)
+New Revision: 211
+
+Modified:
+   trunk/rdiffWeb/templates/admin_main.html
+Log:
+Fix adding a user after deleting a user.
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2008-01-03 14:46:17 UTC (rev 210)
++++ trunk/rdiffWeb/templates/admin_main.html	2008-01-03 14:46:37 UTC (rev 211)
+@@ -42,7 +42,7 @@
+ </table>
+ 
+ <br>
+-<form action="" method="post">
++<form action="/admin/" method="post">
+ <input style="display:none" name="action" value="add" />
+ <h3>Add User</h3>
+ <table>
+
+
+
+From commits at rdiffweb.org  Thu Jan  3 17:09:28 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 3 Jan 2008 17:09:28 +0100
+Subject: [Rdiffweb-commits] r212 - trunk/rdiffWeb
+Message-ID: <200801031609.m03G9ShE010063@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-03 17:09:24 +0100 (Thu, 03 Jan 2008)
+New Revision: 212
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+Log:
+Actually set password when adding a new user.
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2008-01-03 14:46:37 UTC (rev 211)
++++ trunk/rdiffWeb/page_admin.py	2008-01-03 16:09:24 UTC (rev 212)
+@@ -18,6 +18,7 @@
+       # We need to change values. Change them, then give back that main page again, with a message
+       action = cherrypy.request.params["action"]
+       username = cherrypy.request.params["username"]
++      password = cherrypy.request.params["password"]
+       userRoot = cherrypy.request.params["userRoot"]
+       userIsAdmin = cherrypy.request.params.get("isAdmin", False) != False
+       
+@@ -33,6 +34,7 @@
+          if username == "":
+             return self._generatePageHtml("", "The username is invalid.", username, userRoot, userIsAdmin)
+          self.getUserDB().addUser(username)
++         self.getUserDB().setUserPassword(username, password)
+          self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml("User added successfully.", "")
+       
+
+
+
+From commits at rdiffweb.org  Fri Jan  4 02:33:08 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 4 Jan 2008 02:33:08 +0100
+Subject: [Rdiffweb-commits] r213 - trunk/init
+Message-ID: <200801040133.m041X8Y4025484@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-04 02:33:05 +0100 (Fri, 04 Jan 2008)
+New Revision: 213
+
+Modified:
+   trunk/init/rdiff-web
+Log:
+Better way of detecting root privileges in init script.
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2008-01-03 16:09:24 UTC (rev 212)
++++ trunk/init/rdiff-web	2008-01-04 01:33:05 UTC (rev 213)
+@@ -20,8 +20,7 @@
+ fi
+ 
+ # This script won't be able to run without root privileges.
+-USERNAME=`id -un`
+-if [ "$USERNAME" != "root" ]; then
++if [ `id -u` -ne 0 ]; then
+    echo "Error: this script must be run as root."
+    exit 1
+ fi
+
+
+
+From commits at rdiffweb.org  Fri Jan  4 02:38:40 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 4 Jan 2008 02:38:40 +0100
+Subject: [Rdiffweb-commits] r214 - trunk
+Message-ID: <200801040138.m041cekj025603@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-04 02:38:37 +0100 (Fri, 04 Jan 2008)
+New Revision: 214
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+More bullet-proofing for configuration script.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2008-01-04 01:33:05 UTC (rev 213)
++++ trunk/rdiff-web-config	2008-01-04 01:38:37 UTC (rev 214)
+@@ -107,6 +107,7 @@
+    configDir = "/etc/rdiffweb"
+    if not os.path.exists(configDir):
+       os.mkdir("/etc/rdiffweb", stat.S_IRWXU)
++   os.chmod("/etc/rdiffweb", stat.S_IRWXU)
+    # If the configuration path exists, make sure that we can look inside
+    files = os.listdir(configDir)
+    
+@@ -120,8 +121,8 @@
+    # Validate this before the user has spent a lot of time entering data.
+    try:
+       createNeededFolders()
+-   except OSError, error:
+-      if error.errno != 13: # Only catch "permission denied" errors
++   except (IOError, OSError), error:
++      if error.errno != 13 and error.errno != 1: # Only catch "permission denied" errors
+          raise
+       print "Error: this script must be run with root privileges."
+       sys.exit(2)
+
+
+
+From commits at rdiffweb.org  Sun Jan  6 22:08:22 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 6 Jan 2008 22:08:22 +0100
+Subject: [Rdiffweb-commits] r215 - trunk/rdiffWeb
+Message-ID: <200801062108.m06L8Mp3010934@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-06 22:08:19 +0100 (Sun, 06 Jan 2008)
+New Revision: 215
+
+Modified:
+   trunk/rdiffWeb/page_setup.py
+Log:
+The spwd module is only supported by Python >= 2.5. If it's not available, roll our own.
+
+Modified: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-04 01:38:37 UTC (rev 214)
++++ trunk/rdiffWeb/page_setup.py	2008-01-06 21:08:19 UTC (rev 215)
+@@ -63,7 +63,7 @@
+             raise ValueError, "The password is invalid."
+          
+    def _checkSystemPassword(self, username, password):
+-      cryptedpasswd = spwd.getspnam(username)[1]
++      cryptedpasswd = self._getCryptedPassword(username)
+       if crypt.crypt(password, cryptedpasswd) != cryptedpasswd:
+          raise ValueError, "Invalid password."
+    
+@@ -89,7 +89,7 @@
+       self.getUserDB().setUserRoot(username, userRoot)
+       
+    def _rootAccountEnabled(self):
+-      cryptedpasswd = spwd.getspnam("root")[1]
++      cryptedpasswd = self._getCryptedPassword("root")
+       return cryptedpasswd != '!'
+ 
+    def _ensureConfigFileExists(self):
+@@ -101,4 +101,18 @@
+             os.chmod("/etc/rdiffweb/rdw.conf", stat.S_IRWXU)
+       except OSError, error:
+          raise ValueError, str(error)
++         
++   def _getCryptedPassword(self, username):
++      try:
++         import spwd
++      except ImportError:
++         return self._manualGetCryptedPassword(username)
++      else:
++         return spwd.getspnam(username)[1]
+ 
++   def _manualGetCryptedPassword(self, username):
++      pwlines = open("/etc/shadow").readlines()
++      for line in pwlines:
++         entryParts = line.split(":")
++         if len(entryParts) == 9 and entryParts[0] == username:
++            return entryParts[1]
+
+
+
+From commits at rdiffweb.org  Sun Jan  6 22:09:26 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 6 Jan 2008 22:09:26 +0100
+Subject: [Rdiffweb-commits] r216 - trunk/rdiffWeb/templates
+Message-ID: <200801062109.m06L9Qlp011126@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-06 22:09:21 +0100 (Sun, 06 Jan 2008)
+New Revision: 216
+
+Modified:
+   trunk/rdiffWeb/templates/setup.html
+Log:
+Web-based configuration is not yet supported for setups with the root account disabled.
+
+Modified: trunk/rdiffWeb/templates/setup.html
+===================================================================
+--- trunk/rdiffWeb/templates/setup.html	2008-01-06 21:08:19 UTC (rev 215)
++++ trunk/rdiffWeb/templates/setup.html	2008-01-06 21:09:21 UTC (rev 216)
+@@ -24,13 +24,19 @@
+       <!--StartIncludeIf:rootEnabled-->
+       Enter the root password to continue: <input type="password" name="rootpassword" id="rootpassword"/>
+       <!--EndIncludeIf:rootEnabled-->
+-      <!--StartDeleteIf:rootEnabled-->
++      <!--StartDelete-->
+       rdiffWeb has detected that the root account has been disabled.<br/>
+       Enter the password for the user that installed rdiffWeb: <input type="password" name="rootpassword" id="rootpassword"/>
++      <!--EndDelete-->
++      <!--StartDeleteIf:rootEnabled-->
++      <div style="color: red">rdiffWeb has detected that the root account has been disabled.<br/>
++      Web-based setup for this configuration is not supported. Please run "rdiff-web-config" from the console with root privileges.</div>
+       <!--EndDeleteIf:rootEnabled-->
+    </div>
+    <div>
++      <!--StartIncludeIf:rootEnabled-->
+       <button type="button" id="rootpasswordbtn">Start setup</button>
++      <!--EndIncludeIf:rootEnabled-->
+    </div>
+ </div>
+ <div id="adminSetup" style="display: none">
+
+
+
+From commits at rdiffweb.org  Tue Jan  8 02:33:20 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 8 Jan 2008 02:33:20 +0100
+Subject: [Rdiffweb-commits] r217 - trunk/rdiffWeb
+Message-ID: <200801080133.m081XK9Y027631@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-08 02:33:16 +0100 (Tue, 08 Jan 2008)
+New Revision: 217
+
+Modified:
+   trunk/rdiffWeb/page_setup.py
+Log:
+Stop requiring spwd module in setup page. This fixes the module for python 2.4.
+
+Modified: trunk/rdiffWeb/page_setup.py
+===================================================================
+--- trunk/rdiffWeb/page_setup.py	2008-01-06 21:09:21 UTC (rev 216)
++++ trunk/rdiffWeb/page_setup.py	2008-01-08 01:33:16 UTC (rev 217)
+@@ -2,7 +2,6 @@
+ 
+ import cherrypy
+ import json
+-import spwd
+ import os
+ import stat
+ import crypt
+
+
+
+From commits at rdiffweb.org  Tue Jan  8 02:36:02 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 8 Jan 2008 02:36:02 +0100
+Subject: [Rdiffweb-commits] r218 - trunk/rdiffWeb
+Message-ID: <200801080136.m081a2rE027850@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-08 02:35:12 +0100 (Tue, 08 Jan 2008)
+New Revision: 218
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Several fixes for older distros/python versions:
+* Fix syntax error on python 2.4
+* Older distros packaged python-pysqlite2 with a modulename of pysqlite2
+
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2008-01-08 01:33:16 UTC (rev 217)
++++ trunk/rdiffWeb/db_sqlite.py	2008-01-08 01:35:12 UTC (rev 218)
+@@ -5,9 +5,8 @@
+ 
+ """We do no length validation for incoming parameters, since truncated values will
+ at worst lead to slightly confusing results, but no security risks"""
+-class sqliteUserDB():
++class sqliteUserDB:
+    def __init__(self, databaseFilePath, autoConvertDatabase=True):
+-      import sqlite3
+       self._databaseFilePath = databaseFilePath
+       self._autoConvertDatabase = autoConvertDatabase
+       self.userRootCache = {}
+@@ -159,7 +158,11 @@
+       return results
+ 
+    def _connect(self):
+-      import sqlite3
++      try:
++         import sqlite3
++      except ImportError:
++         from pysqlite2 import dbapi2 as sqlite3
++         
+       connectPath = self._databaseFilePath
+       if not connectPath:
+          connectPath = ":memory:"
+@@ -193,7 +196,7 @@
+       if self._getTables(): return
+       
+       cursor = self.sqlConnection.cursor()
+-      self.sqlConnection.execute("BEGIN TRANSACTION")
++      cursor.execute("BEGIN TRANSACTION")
+       for statement in self._getCreateStatements():
+          cursor.execute(statement)
+ 
+@@ -206,8 +209,8 @@
+             users = prevDB._executeQuery("SELECT UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat FROM users")
+             cursor.executemany("INSERT INTO users (UserID, Username, Password, UserRoot, IsAdmin, UserEmail, RestoreFormat) values (?, ?, ?, ?, ?, ?, ?)", users)
+             
+-            repos = prevDB._executeQuery("SELECT RepoID, UserID, RepoPath, MaxAge FROM repos")
+-            cursor.executemany("INSERT INTO repos (RepoID, UserID, RepoPath, MaxAge) values (?, ?, ?, ?)", repos)
++            repos = prevDB._executeQuery("SELECT UserID, RepoPath, MaxAge FROM repos")
++            cursor.executemany("INSERT INTO repos (UserID, RepoPath, MaxAge) values (?, ?, ?)", repos)
+          elif prevDBType.lower() == "file":
+             print 'Converting database from file...'
+             import db_file
+@@ -219,7 +222,7 @@
+             self.setUserInfo(username, prevDB.getUserRoot(username), True)
+             self.setUserRepos(username, prevDB.getUserRepoPaths(username))
+          
+-      self.sqlConnection.execute("COMMIT TRANSACTION")
++      cursor.execute("COMMIT TRANSACTION")
+ 
+ 
+ class sqliteUserDBTest(db_sql.sqlUserDBTest):
+@@ -236,4 +239,4 @@
+ 
+    def testUserTruncation(self):
+       pass
+-      
+\ No newline at end of file
++      
+
+
+
+From commits at rdiffweb.org  Fri Jan 11 16:41:34 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 11 Jan 2008 16:41:34 +0100
+Subject: [Rdiffweb-commits] r219 - tags
+Message-ID: <200801111541.m0BFfYeS010503@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-11 16:41:31 +0100 (Fri, 11 Jan 2008)
+New Revision: 219
+
+Added:
+   tags/release-0.5.1/
+Log:
+Preparing for bugfix release 0.5.1
+
+Copied: tags/release-0.5.1 (from rev 218, tags/release-0.5)
+
+
+
+From commits at rdiffweb.org  Fri Jan 11 16:51:32 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 11 Jan 2008 16:51:32 +0100
+Subject: [Rdiffweb-commits] r220 - tags/release-0.5.1/rdiffWeb
+Message-ID: <200801111551.m0BFpWFL011449@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-11 16:51:30 +0100 (Fri, 11 Jan 2008)
+New Revision: 220
+
+Modified:
+   tags/release-0.5.1/rdiffWeb/db_file.py
+Log:
+Fix exception when restoring directories.
+
+Modified: tags/release-0.5.1/rdiffWeb/db_file.py
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/db_file.py	2008-01-11 15:41:31 UTC (rev 219)
++++ tags/release-0.5.1/rdiffWeb/db_file.py	2008-01-11 15:51:30 UTC (rev 220)
+@@ -31,7 +31,10 @@
+    def userIsAdmin(self, username):
+       return False
+ 
++   def useZipFormat(self, username):
++      return False
+ 
++
+ ##################### Unit Tests #########################
+ 
+ import unittest, os
+
+
+
+From commits at rdiffweb.org  Fri Jan 11 16:56:18 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 11 Jan 2008 16:56:18 +0100
+Subject: [Rdiffweb-commits] r221 - in tags/release-0.5.1: . rdiffWeb
+	rdiffWeb/templates
+Message-ID: <200801111556.m0BFuImh011899@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-11 16:56:15 +0100 (Fri, 11 Jan 2008)
+New Revision: 221
+
+Modified:
+   tags/release-0.5.1/MANIFEST.in
+   tags/release-0.5.1/rdiffWeb/page_admin.py
+   tags/release-0.5.1/rdiffWeb/templates/admin_main.html
+Log:
+Merge several fixes from trunk (r210-212), including fixes for packaging and adding users.
+
+Modified: tags/release-0.5.1/MANIFEST.in
+===================================================================
+--- tags/release-0.5.1/MANIFEST.in	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/MANIFEST.in	2008-01-11 15:56:15 UTC (rev 221)
+@@ -1,5 +1,7 @@
+ include COPYING rdiff-web rdiff-web-config rdw.conf.sample init/rdiff-web
+ include rdiffWeb/templates/*.html
++include rdiffWeb/templates/*.xml
++include rdiffWeb/templates/*.txt
+ include rdiffWeb/static/*.png 
+ include rdiffWeb/static/*.css 
+ include rdiffWeb/static/*.js
+
+Modified: tags/release-0.5.1/rdiffWeb/page_admin.py
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/page_admin.py	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/rdiffWeb/page_admin.py	2008-01-11 15:56:15 UTC (rev 221)
+@@ -16,9 +16,9 @@
+          return self._generatePageHtml("", "")
+       
+       # We need to change values. Change them, then give back that main page again, with a message
+-      print cherrypy.request.paramMap
+       action = cherrypy.request.paramMap["action"]
+       username = cherrypy.request.paramMap["username"]
++      password = cherrypy.request.paramMap["password"]
+       userRoot = cherrypy.request.paramMap["userRoot"]
+       userIsAdmin = cherrypy.request.paramMap.get("isAdmin", False) != False
+       
+@@ -34,6 +34,7 @@
+          if username == "":
+             return self._generatePageHtml("", "The username is invalid.", username, userRoot, userIsAdmin)
+          self.userDB.addUser(username)
++         self.userDB.setUserPassword(username, password)
+          self.userDB.setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml("User added successfully.", "")
+       
+
+Modified: tags/release-0.5.1/rdiffWeb/templates/admin_main.html
+===================================================================
+--- tags/release-0.5.1/rdiffWeb/templates/admin_main.html	2008-01-11 15:51:30 UTC (rev 220)
++++ tags/release-0.5.1/rdiffWeb/templates/admin_main.html	2008-01-11 15:56:15 UTC (rev 221)
+@@ -42,7 +42,7 @@
+ </table>
+ 
+ <br>
+-<form action="" method="post">
++<form action="/admin/" method="post">
+ <input style="display:none" name="action" value="add" />
+ <h3>Add User</h3>
+ <table>
+
+
+
+From commits at rdiffweb.org  Fri Jan 11 16:59:51 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 11 Jan 2008 16:59:51 +0100
+Subject: [Rdiffweb-commits] r222 - tags/release-0.5.1
+Message-ID: <200801111559.m0BFxpCW012325@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-11 16:59:49 +0100 (Fri, 11 Jan 2008)
+New Revision: 222
+
+Modified:
+   tags/release-0.5.1/setup.py
+Log:
+Bump version.
+
+Modified: tags/release-0.5.1/setup.py
+===================================================================
+--- tags/release-0.5.1/setup.py	2008-01-11 15:56:15 UTC (rev 221)
++++ tags/release-0.5.1/setup.py	2008-01-11 15:59:49 UTC (rev 222)
+@@ -8,7 +8,7 @@
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+ if pythonVersion > 2.3:
+    setup(name='rdiffWeb',
+-      version='0.5.0',
++      version='0.5.1',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+@@ -31,7 +31,7 @@
+    packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+ 
+    setup(name='rdiffWeb',
+-      version='0.5.0',
++      version='0.5.1',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Tue Jan 15 20:00:27 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 15 Jan 2008 20:00:27 +0100
+Subject: [Rdiffweb-commits] r223 - trunk
+Message-ID: <200801151900.m0FJ0R7K014354@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-15 20:00:20 +0100 (Tue, 15 Jan 2008)
+New Revision: 223
+
+Modified:
+   trunk/setup.py
+Log:
+Fix author email in setup.py
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2008-01-11 15:59:49 UTC (rev 222)
++++ trunk/setup.py	2008-01-15 19:00:20 UTC (rev 223)
+@@ -13,7 +13,7 @@
+    version='0.6.0',
+    description='A web interface to rdiff-backup repositories',
+    author='Josh Nisly',
+-   author_email='rdiffweb at rdiffweb.org',
++   author_email='rdiffweb at joshnisly.com',
+    url='http://www.rdiffweb.org',
+    packages=['rdiffWeb'],
+    package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+
+
+
+From commits at rdiffweb.org  Thu Jan 17 17:12:53 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 17 Jan 2008 17:12:53 +0100
+Subject: [Rdiffweb-commits] r224 - trunk/rdiffWeb
+Message-ID: <200801171612.m0HGCqaK010056@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-17 17:12:50 +0100 (Thu, 17 Jan 2008)
+New Revision: 224
+
+Modified:
+   trunk/rdiffWeb/email_notification.py
+Log:
+Fix email notifications with sqlite backend.
+
+Modified: trunk/rdiffWeb/email_notification.py
+===================================================================
+--- trunk/rdiffWeb/email_notification.py	2008-01-15 19:00:20 UTC (rev 223)
++++ trunk/rdiffWeb/email_notification.py	2008-01-17 16:12:50 UTC (rev 224)
+@@ -18,9 +18,9 @@
+    def __init__(self, killEvent):
+       self.killEvent = killEvent
+       threading.Thread.__init__(self)
+-      self.notifier = emailNotifier()
+       
+    def run(self):
++      self.notifier = emailNotifier()
+       if not self.notifier.notificationsEnabled():
+          return;
+       emailTimeStr = rdw_config.getConfigSetting("emailNotificationTime")
+
+
+
+From commits at rdiffweb.org  Thu Jan 17 17:13:34 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 17 Jan 2008 17:13:34 +0100
+Subject: [Rdiffweb-commits] r225 - trunk
+Message-ID: <200801171613.m0HGDY3h010122@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-17 17:13:32 +0100 (Thu, 17 Jan 2008)
+New Revision: 225
+
+Modified:
+   trunk/setup.py
+Log:
+Bump version in preparation for release.
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2008-01-17 16:12:50 UTC (rev 224)
++++ trunk/setup.py	2008-01-17 16:13:32 UTC (rev 225)
+@@ -10,7 +10,7 @@
+    sys.exit(1)
+    
+ setup(name='rdiffWeb',
+-   version='0.6.0',
++   version='0.6.1',
+    description='A web interface to rdiff-backup repositories',
+    author='Josh Nisly',
+    author_email='rdiffweb at joshnisly.com',
+
+
+
+From commits at rdiffweb.org  Thu Jan 17 17:25:35 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 17 Jan 2008 17:25:35 +0100
+Subject: [Rdiffweb-commits] r226 - tags
+Message-ID: <200801171625.m0HGPZj3010945@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-17 17:25:31 +0100 (Thu, 17 Jan 2008)
+New Revision: 226
+
+Added:
+   tags/release-0.6.1/
+Log:
+Tagging version 0.6.1
+
+Copied: tags/release-0.6.1 (from rev 225, trunk)
+
+
+
+From commits at rdiffweb.org  Sat Jan 26 02:34:43 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 26 Jan 2008 02:34:43 +0100
+Subject: [Rdiffweb-commits] r227 - trunk
+Message-ID: <200801260134.m0Q1YhLN013652@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-26 02:34:38 +0100 (Sat, 26 Jan 2008)
+New Revision: 227
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Mirror r218 for rdiff-web-config.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2008-01-17 16:25:31 UTC (rev 226)
++++ trunk/rdiff-web-config	2008-01-26 01:34:38 UTC (rev 227)
+@@ -46,8 +46,10 @@
+    try:
+       import sqlite3
+    except ImportError:
+-      print "Unable to load the python bindings for sqlite (sometimes packaged as python-sqlite).  Please install this module and try again."
+-      sys.exit(2)
++      from pysqlite2 import dbapi2 as sqlite3
++   	except ImportError:
++	      print "Unable to load the python bindings for sqlite (sometimes packaged as python-sqlite).  Please install this module and try again."
++	      sys.exit(2)
+ 
+    userDB = rdiffWeb.db_sqlite.sqliteUserDB(rdiffWeb.rdw_config.getDatabasePath())
+ 
+
+
+
+From commits at rdiffweb.org  Mon Jan 28 22:04:38 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 28 Jan 2008 22:04:38 +0100
+Subject: [Rdiffweb-commits] r228 - trunk
+Message-ID: <200801282104.m0SL4c7b012694@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-28 22:04:36 +0100 (Mon, 28 Jan 2008)
+New Revision: 228
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Fix indentation in rdiff-web-config.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2008-01-26 01:34:38 UTC (rev 227)
++++ trunk/rdiff-web-config	2008-01-28 21:04:36 UTC (rev 228)
+@@ -47,9 +47,9 @@
+       import sqlite3
+    except ImportError:
+       from pysqlite2 import dbapi2 as sqlite3
+-   	except ImportError:
+-	      print "Unable to load the python bindings for sqlite (sometimes packaged as python-sqlite).  Please install this module and try again."
+-	      sys.exit(2)
++   except ImportError:
++      print "Unable to load the python bindings for sqlite (sometimes packaged as python-sqlite).  Please install this module and try again."
++      sys.exit(2)
+ 
+    userDB = rdiffWeb.db_sqlite.sqliteUserDB(rdiffWeb.rdw_config.getDatabasePath())
+ 
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 00:42:29 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 00:42:29 +0100
+Subject: [Rdiffweb-commits] r229 - trunk/rdiffWeb
+Message-ID: <200801282342.m0SNgTjB018999@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 00:42:22 +0100 (Tue, 29 Jan 2008)
+New Revision: 229
+
+Modified:
+   trunk/rdiffWeb/page_restore.py
+Log:
+Fix names for restorations.
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2008-01-28 21:04:36 UTC (rev 228)
++++ trunk/rdiffWeb/page_restore.py	2008-01-28 23:42:22 UTC (rev 229)
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+ 
+-from cherrypy.lib.static import serve_file
++from cherrypy.lib.static import serve_file, serve_download
+ import rdw_helpers, page_main, librdiff
+ import os
+ 
+@@ -13,6 +13,8 @@
+       rdw_helpers.removeDir(self.dirPath)
+ 
+ class rdiffRestorePage(page_main.rdiffPage):
++   _cp_config = {"response.stream": True, "response.timeout": 3000 }
++   
+    def index(self, repo, path, date):
+       try:
+          self.validateUserPath(rdw_helpers.joinPaths(repo, path))
+@@ -41,8 +43,7 @@
+          return self.writeErrorPage("Invalid date parameter.")
+ 
+       (directory, filename) = os.path.split(filePath)
+-      file = autoDeleteDir(directory)
+-      filename = "\""+filename.replace("\"", "\\\"")+"\"" # quote file to handle files with spaces, while escaping quotes in filename
++      filename = filename.replace("\"", "\\\"") # Escape quotes in filename
+       return serve_file(filePath, None, disposition="attachment", name=filename)
+    index.exposed = True
+ 
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 00:47:45 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 00:47:45 +0100
+Subject: [Rdiffweb-commits] r230 - trunk
+Message-ID: <200801282347.m0SNljFv028536@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 00:47:42 +0100 (Tue, 29 Jan 2008)
+New Revision: 230
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn off cherrypy's encode tool. It was getting in the way of encoding, and didn't work anyway.
+
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-01-28 23:42:22 UTC (rev 229)
++++ trunk/rdiff-web	2008-01-28 23:47:42 UTC (rev 230)
+@@ -58,7 +58,6 @@
+    if not debug:
+       environment = "production"
+    global_settings = {
+-      'tools.encode.on' : True,
+       'tools.gzip.on': True,
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+@@ -81,9 +80,6 @@
+       '/status/feed': {
+          'tools.authenticate.authMethod' : 'HTTP Header'
+       },
+-      '/restore': {
+-         'tools.encode.on': False,
+-      },
+       '/static' : {
+          'tools.staticdir.on' : True,
+          'tools.staticdir.root': rdiffWeb.rdw_helpers.getStaticRootPath(),
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 00:54:52 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 00:54:52 +0100
+Subject: [Rdiffweb-commits] r231 - trunk/rdiffWeb
+Message-ID: <200801282354.m0SNsq6N002371@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 00:54:45 +0100 (Tue, 29 Jan 2008)
+New Revision: 231
+
+Modified:
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/rdw_helpers.py
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+First attempt at handling non-ascii characters in repo paths.
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/page_browse.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+ 
+-from rdw_helpers import joinPaths
++from rdw_helpers import joinPaths, encodePath
+ import rdw_helpers, page_main, librdiff
+ import os
+ import urllib
+@@ -32,6 +32,8 @@
+    
+    
+    def getParmsForPage(self, userRoot, repo="", path="", restore=""):
++      repo = encodePath(repo)
++      path = encodePath(path)
+       # Build "parent directories" links
+       parentDirs = [{ "parentPath" : self.buildLocationsUrl(), "parentDir" : "Backup Locations" }]
+       parentDirs.append({ "parentPath" : self.buildBrowseUrl(repo, "/", False), "parentDir" : repo.lstrip("/") })
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/page_main.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -31,7 +31,7 @@
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
+-      path = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), path)
++      path = rdw_helpers.joinPaths(self.getUserDB().getUserRoot(self.getUsername()), rdw_helpers.encodePath(path))
+       path = path.rstrip("/")
+       realPath = os.path.realpath(path)
+       if realPath != path:
+@@ -39,8 +39,7 @@
+       
+       # Make sure that the path starts with the user root
+       # This check should be accomplished by ensurePathValid, but adding for a sanity check
+-      realDestPath = os.path.realpath(path)
+-      if realDestPath.find(self.getUserDB().getUserRoot(self.getUsername())) != 0:      
++      if realPath.find(rdw_helpers.encodePath(self.getUserDB().getUserRoot(self.getUsername()))) != 0:
+          raise rdw_helpers.accessDeniedError
+       
+       
+
+Modified: trunk/rdiffWeb/rdw_helpers.py
+===================================================================
+--- trunk/rdiffWeb/rdw_helpers.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/rdw_helpers.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -12,7 +12,13 @@
+ 
+ import rdw_templating
+ 
++def encodePath(path):
++   if isinstance(path, unicode):
++      return path.encode('utf-8')
++   return path
++
+ def joinPaths(parentPath, *args):
++   parentPath = encodePath(parentPath)
+    args = [x.lstrip("/") for x in args]
+    return os.path.join(parentPath, *args)
+ 
+@@ -25,6 +31,7 @@
+ 
+ def encodeUrl(url, safeChars=""):
+    if not url: return url
++   url = encodePath(url)
+    return urllib.quote_plus(url, safeChars)
+ 
+ def decodeUrl(encodedUrl):
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:47:42 UTC (rev 230)
++++ trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:54:45 UTC (rev 231)
+@@ -4,10 +4,7 @@
+ import re
+ 
+ class templateError:
+-   def __init__(self, errorString):
+-      self.errorString = errorString
+-   def __repr__(self):
+-      return self.errorString
++   pass
+ class templateDataError(templateError):
+    pass
+ class templateDefinitionError(templateError):
+@@ -81,7 +78,7 @@
+          matchText = matchText[len(multilineKeyword):]
+       if not matchText in replacements.keys():
+          raise templateDataError(matchText)
+-      replacementText = rdw_helpers.encodeText(str(replacements[matchText]))
++      replacementText = self._getReplacementText(replacements[matchText])
+       if isMultiline:
+          replacementText = replacementText.replace("\n", "\n<br/>")
+       return replacementText
+@@ -102,6 +99,11 @@
+             return self.parseSingleTemplate(textToInclude)
+          return textToInclude
+       return ""
++   
++   def _getReplacementText(self, replacement):
++      if isinstance(replacement, unicode):
++         replacement = replacement.encode('utf-8')
++      return rdw_helpers.encodeText(replacement)
+ 
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 03:05:21 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 03:05:21 +0100
+Subject: [Rdiffweb-commits] r232 - trunk/rdiffWeb
+Message-ID: <200801290205.m0T25L6S001178@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 03:05:17 +0100 (Tue, 29 Jan 2008)
+New Revision: 232
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Fix errors in last commit.
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2008-01-28 23:54:45 UTC (rev 231)
++++ trunk/rdiffWeb/rdw_templating.py	2008-01-29 02:05:17 UTC (rev 232)
+@@ -3,7 +3,7 @@
+ import rdw_helpers
+ import re
+ 
+-class templateError:
++class templateError(BaseException):
+    pass
+ class templateDataError(templateError):
+    pass
+@@ -28,7 +28,7 @@
+       regEx = re.compile(r"<!--StartRepeat:(.*?)-->(.*?)<!--EndRepeat:\1-->", re.S)
+       workingText = regEx.sub(self._handleListMatch, templateString)
+       if "<!--StartRepeat" in workingText or "<!--EndRepeat" in workingText:
+-         raise templateDefinitionError(workingText)
++         raise templateDefinitionError, workingText
+ 
+       # handle all other single replacements
+       workingText = self.parseSingleTemplate(workingText)
+@@ -60,7 +60,7 @@
+       listName = match.group(1)
+       textToReplace = match.group(2).rstrip("\n")
+       if not replacements.get(listName) and replacements.get(listName) != []: # allow empty dictionaries
+-         raise templateDataError(listName)
++         raise templateDataError, listName
+       entireResult = ""
+       listToReplaceWith = replacements[listName]
+       for listInList in listToReplaceWith[:-1]:
+@@ -77,7 +77,7 @@
+       if isMultiline:
+          matchText = matchText[len(multilineKeyword):]
+       if not matchText in replacements.keys():
+-         raise templateDataError(matchText)
++         raise templateDataError, matchText
+       replacementText = self._getReplacementText(replacements[matchText])
+       if isMultiline:
+          replacementText = replacementText.replace("\n", "\n<br/>")
+@@ -103,7 +103,7 @@
+    def _getReplacementText(self, replacement):
+       if isinstance(replacement, unicode):
+          replacement = replacement.encode('utf-8')
+-      return rdw_helpers.encodeText(replacement)
++      return rdw_helpers.encodeText(str(replacement))
+ 
+ import unittest
+ class templateParsingTest(unittest.TestCase):
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 03:06:18 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 03:06:18 +0100
+Subject: [Rdiffweb-commits] r233 - in trunk/tests: . encoding encoding/repo
+	encoding/repo/rdiff-backup-data
+Message-ID: <200801290206.m0T26IsW001193@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 03:06:11 +0100 (Tue, 29 Jan 2008)
+New Revision: 233
+
+Added:
+   trunk/tests/encoding/
+   trunk/tests/encoding/.browse_results.txt.swp
+   trunk/tests/encoding/browse_results.txt
+   trunk/tests/encoding/history_results.txt
+   trunk/tests/encoding/locations_results.txt
+   trunk/tests/encoding/repo/
+   trunk/tests/encoding/repo/B?\195?\188ro.txt
+   trunk/tests/encoding/repo/B?\195?\188ro/
+   trunk/tests/encoding/repo/rdiff-backup-data/
+   trunk/tests/encoding/repo/rdiff-backup-data/backup.log
+   trunk/tests/encoding/repo/rdiff-backup-data/chars_to_quote
+   trunk/tests/encoding/repo/rdiff-backup-data/current_mirror.2008-01-28T18:00:09-06:00.data
+   trunk/tests/encoding/repo/rdiff-backup-data/error_log.2008-01-28T18:00:09-06:00.data.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/file_statistics.2008-01-28T18:00:09-06:00.data.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/increments/
+   trunk/tests/encoding/repo/rdiff-backup-data/mirror_metadata.2008-01-28T18:00:09-06:00.snapshot.gz
+   trunk/tests/encoding/repo/rdiff-backup-data/session_statistics.2008-01-28T18:00:09-06:00.data
+Log:
+Add test for encoding.
+
+/usr/local/bin/commit-email.pl: `/usr/bin/svnlook diff /svnroot/repos/rdiffweb -r 233' failed with this output:
+Added: trunk/tests/encoding/.browse_results.txt.swp
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/tests/encoding/.browse_results.txt.swp
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/tests/encoding/browse_results.txt
+===================================================================
+--- trunk/tests/encoding/browse_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/browse_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,7 @@
++Title:Browse repo
++Path: / Backup Locations / repo
++Viewing
++
++Name	Size	Revision	Number_Previous_Revisions	Exists?
++B?ro	 	2008-01-28 18:00:09	0	True
++B?ro.txt	0 bytes	2008-01-28 18:00:09	0	True
+
+Added: trunk/tests/encoding/history_results.txt
+===================================================================
+--- trunk/tests/encoding/history_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/history_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,4 @@
++Title: Backup history for repo
++
++Date	Size	Errors	In Progress?	Cumulative Size
++2008-01-28 18:00:09	0 bytes		False	0 bytes
+
+Added: trunk/tests/encoding/locations_results.txt
+===================================================================
+--- trunk/tests/encoding/locations_results.txt	2008-01-29 02:05:17 UTC (rev 232)
++++ trunk/tests/encoding/locations_results.txt	2008-01-29 02:06:11 UTC (rev 233)
+@@ -0,0 +1,3 @@
++Name	Last Backup	Last Backup Size
++
++repo	2008-01-28 18:00:09	0 bytes
+
+svnlook: Can't convert string from 'UTF-8' to native encoding:
+svnlook: /tmp/svnlook.1/trunk/tests/encoding/repo/B?\195?\188ro.txt
+
+
+From commits at rdiffweb.org  Tue Jan 29 20:49:27 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 20:49:27 +0100
+Subject: [Rdiffweb-commits] r234 - trunk/rdiffWeb
+Message-ID: <200801291949.m0TJnRwa002440@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 20:49:26 +0100 (Tue, 29 Jan 2008)
+New Revision: 234
+
+Modified:
+   trunk/rdiffWeb/page_admin.py
+Log:
+Fix error when modifying user.
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2008-01-29 02:06:11 UTC (rev 233)
++++ trunk/rdiffWeb/page_admin.py	2008-01-29 19:49:26 UTC (rev 234)
+@@ -18,7 +18,6 @@
+       # We need to change values. Change them, then give back that main page again, with a message
+       action = cherrypy.request.params["action"]
+       username = cherrypy.request.params["username"]
+-      password = cherrypy.request.params["password"]
+       userRoot = cherrypy.request.params["userRoot"]
+       userIsAdmin = cherrypy.request.params.get("isAdmin", False) != False
+       
+@@ -34,7 +33,7 @@
+          if username == "":
+             return self._generatePageHtml("", "The username is invalid.", username, userRoot, userIsAdmin)
+          self.getUserDB().addUser(username)
+-         self.getUserDB().setUserPassword(username, password)
++         self.getUserDB().setUserPassword(username, cherrypy.request.params["password"])
+          self.getUserDB().setUserInfo(username, userRoot, userIsAdmin)
+          return self._generatePageHtml("User added successfully.", "")
+       
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 20:50:05 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 20:50:05 +0100
+Subject: [Rdiffweb-commits] r235 - trunk/rdiffWeb
+Message-ID: <200801291950.m0TJo5tf002566@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 20:50:03 +0100 (Tue, 29 Jan 2008)
+New Revision: 235
+
+Modified:
+   trunk/rdiffWeb/db_sqlite.py
+Log:
+Make sqlite module handle encoding.
+
+Modified: trunk/rdiffWeb/db_sqlite.py
+===================================================================
+--- trunk/rdiffWeb/db_sqlite.py	2008-01-29 19:49:26 UTC (rev 234)
++++ trunk/rdiffWeb/db_sqlite.py	2008-01-29 19:50:03 UTC (rev 235)
+@@ -26,13 +26,13 @@
+ 
+    def getUserRoot(self, username):
+       if not username in self.userRootCache:
+-         self.userRootCache[username] = self._getUserField(username, "UserRoot")
++         self.userRootCache[username] = self._encodePath(self._getUserField(username, "UserRoot"))
+       return self.userRootCache[username]
+ 
+    def getUserRepoPaths(self, username):
+       if not self.userExists(username): return None
+       query = "SELECT RepoPath FROM repos WHERE UserID = %d" % self._getUserID(username)
+-      repos = [ row[0] for row in self._executeQuery(query)]
++      repos = [ self._encodePath(row[0]) for row in self._executeQuery(query)]
+       repos.sort(lambda x, y: cmp(x.upper(), y.upper()))
+       return repos
+       
+@@ -118,6 +118,10 @@
+       return bool(self._getUserField(username, "IsAdmin"))
+ 
+    ########## Helper functions ###########   
++   def _encodePath(self, path):
++      if isinstance(path, unicode):
++         return path.encode('utf-8')
++      return path
+    def _deleteUserRepos(self, username):
+       if not self.userExists(username): raise ValueError
+       self._executeQuery("DELETE FROM repos WHERE UserID=%d" % self._getUserID(username))
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 21:05:59 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 21:05:59 +0100
+Subject: [Rdiffweb-commits] r236 - trunk
+Message-ID: <200801292005.m0TK5xWg005815@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 21:05:57 +0100 (Tue, 29 Jan 2008)
+New Revision: 236
+
+Modified:
+   trunk/rdiff-web
+Log:
+Turn encoding back on, defaulted to utf-8.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-01-29 19:50:03 UTC (rev 235)
++++ trunk/rdiff-web	2008-01-29 20:05:57 UTC (rev 236)
+@@ -58,6 +58,8 @@
+    if not debug:
+       environment = "production"
+    global_settings = {
++      'tools.encode.on': True,
++      'tools.encode.encoding': 'utf-8',
+       'tools.gzip.on': True,
+       'tools.sessions.on' : True,
+       'tools.authenticate.on' : True,
+
+
+
+From commits at rdiffweb.org  Tue Jan 29 21:06:12 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Tue, 29 Jan 2008 21:06:12 +0100
+Subject: [Rdiffweb-commits] r237 - trunk/tests/encoding
+Message-ID: <200801292006.m0TK6CrO005864@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-01-29 21:06:10 +0100 (Tue, 29 Jan 2008)
+New Revision: 237
+
+Removed:
+   trunk/tests/encoding/.browse_results.txt.swp
+Log:
+Remove bogus swap file.
+
+Deleted: trunk/tests/encoding/.browse_results.txt.swp
+===================================================================
+(Binary files differ)
+
+
+
+From johnphilips42 at yahoo.com  Sat Jan 26 00:21:35 2008
+From: johnphilips42 at yahoo.com (John Philips)
+Date: Fri, 25 Jan 2008 23:21:35 -0000
+Subject: [Rdiffweb-commits] Can't load sqlite module
+Message-ID: <467528.84892.qm@web57812.mail.re3.yahoo.com>
+
+Hi,
+
+I'm trying to use rdiffWeb 0.6.1.  It installs fine,
+but when I run `rdiff-web-config` it reports this
+error:
+
+Unable to load the python bindings for sqlite
+(sometimes packaged as python-sqlite).  Please install
+this module and try again.
+
+I've tried this on Debian and Gentoo, both report the
+same error.
+
+I'm pretty sure all the necessary libs are installed.
+
+Debian:
+python 2.4.4-2
+python-cherrypy3 3.0.2-1
+python-pysqlite2 2.3.2-2
+
+Gentoo:
+dev-lang/python-2.4.3-r4
+dev-python/cherrypy-3.0.2-r1
+dev-python/pysqlite-2.3.5
+
+Please help.
+
+
+      ____________________________________________________________________________________
+Never miss a thing.  Make Yahoo your home page. 
+http://www.yahoo.com/r/hs
+
+

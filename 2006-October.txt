@@ -1,0 +1,931 @@
+From commits at rdiffweb.org  Mon Oct  9 04:37:36 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 9 Oct 2006 04:37:36 +0200
+Subject: [Rdiffweb-commits] r65 - in trunk: rdiffWeb tests tests/deleted_dir
+	tests/deleted_dir/2006-01-04T01:49:50Z
+	tests/deleted_dir/2006-01-04T01:49:50Z/testdir2
+	tests/deleted_dir/2006-01-05T01:49:50Z
+	tests/deleted_dir/2006-01-05T01:49:50Z/testdir2
+	tests/deleted_dir/results tests/simple
+	tests/simple/2006-01-03T01:49:50Z tests/simple/2006-01-04T01:49:50Z
+	tests/simple/2006-01-05T01:49:50Z tests/simple/results
+Message-ID: <200610090237.k992bauE000038@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-09 04:36:29 +0200 (Mon, 09 Oct 2006)
+New Revision: 65
+
+Added:
+   trunk/tests/deleted_dir/
+   trunk/tests/deleted_dir/2006-01-03T01:49:50Z/
+   trunk/tests/deleted_dir/2006-01-04T01:49:50Z/
+   trunk/tests/deleted_dir/2006-01-04T01:49:50Z/testdir2/
+   trunk/tests/deleted_dir/2006-01-04T01:49:50Z/testdir2/testfile6
+   trunk/tests/deleted_dir/2006-01-04T01:49:50Z/testdir2/testfile7
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/testfile8
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/testfile9
+   trunk/tests/deleted_dir/results/
+   trunk/tests/deleted_dir/results/dir_entries.txt
+   trunk/tests/simple/
+   trunk/tests/simple/2006-01-03T01:49:50Z/
+   trunk/tests/simple/2006-01-03T01:49:50Z/file.txt
+   trunk/tests/simple/2006-01-04T01:49:50Z/
+   trunk/tests/simple/2006-01-04T01:49:50Z/file.txt
+   trunk/tests/simple/2006-01-05T01:49:50Z/
+   trunk/tests/simple/2006-01-05T01:49:50Z/file.txt
+   trunk/tests/simple/results/
+   trunk/tests/simple/results/dir_entries.txt
+Removed:
+   trunk/tests/basic/
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix bugs in dir listings (thanks to Jan Hugo Prins for reporting these).
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-09-21 02:28:09 UTC (rev 64)
++++ trunk/rdiffWeb/librdiff.py	2006-10-09 02:36:29 UTC (rev 65)
+@@ -159,13 +159,17 @@
+          if entry.shouldShowIncrement() or entry.isMissingIncrement():
+             entryDate = entry.getDate()
+             if not entry.isSnapshotIncrement():
+-               entryDate = self._getFirstBackupAfterDate(entry.getDate())
+-            if (not entryName in entriesDict.keys()):
++               if entry.isMissingIncrement():
++                  entryDate = self._getFirstBackupAfterDate(entry.getDate())
++               else:
++                  entryDate = entry.getDate()
++            if not entryName in entriesDict.keys():
+                entryPath = joinPaths(self.repo, rdiffIncrementsDirName, self.dirPath, entryName)
+                newEntry = dirEntry(entryName, os.path.isdir(entryPath), 0, False, [entryDate])
+                entriesDict[entryName] = newEntry
+             else:
+-               bisect.insort_left(entriesDict[entryName].changeDates, entryDate)
++               if not entryDate in entriesDict[entryName].changeDates:
++                  bisect.insort_left(entriesDict[entryName].changeDates, entryDate)
+ 
+       return entriesDict
+ 
+@@ -178,7 +182,7 @@
+    def _getLastChangedBackupTime(self, filename):
+       files = self.groupedIncrementEntries.get(filename, [])
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+-         files = filter(lambda x: x.endswith(".dir"), files)
++         files = filter(lambda x: x.endswith(".dir") or x.endswith(".missing"), files)
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+@@ -415,18 +419,11 @@
+       return filter(lambda x: not x.startswith("."), os.listdir(self.masterDirPath))
+ 
+    def getBackupStates(self, backupTestDir):
+-      return filter(lambda x: not x.startswith("."), os.listdir(backupTestDir))
++      return filter(lambda x: not x.startswith(".") and x != "results", os.listdir(backupTestDir))
++   
++   def getExpectedDirEntriesResults(self, testName):
++      return open(joinPaths(self.masterDirPath, testName, "results", "dir_entries.txt")).read()
+ 
+-   def fileChangedBetweenBackups(self, backupTest, filename, lastBackup, allBackups):
+-      prevRevisions = filter(lambda x: x < lastBackup, allBackups)
+-      if not prevRevisions: return False
+-      oldVersion = prevRevisions[-1]
+-      oldFilePath = joinPaths(self.masterDirPath, backupTest, oldVersion, filename)
+-      newFilePath = joinPaths(self.masterDirPath, backupTest, lastBackup, filename)
+-
+-      if not os.access(oldFilePath, os.F_OK): return False
+-      return open(oldFilePath, "r").read() == open(newFilePath, "r").read()
+-
+    ################  Start actual tests ###################
+    def testGetDirEntries(self):
+       tests = self.getBackupTests()
+@@ -435,37 +432,16 @@
+          rdiffDestDir = joinPaths(self.destRoot, testDir)
+          entries = getDirEntries(rdiffDestDir, "/")
+ 
+-         # Go back through all backup states and make sure that the backup entries match the files that exist
+-         origStateDir = joinPaths(self.masterDirPath, testDir)
+-         backupStates = self.getBackupStates(origStateDir)
+-         backupStates.sort(lambda x, y: cmp(x, y))
+-         for backupState in backupStates:
+-            backupTime = rdw_helpers.rdwTime()
+-            backupTime.initFromString(backupState)
++         statusText = ""
++         for entry in entries:
++            for changeDate in entry.changeDates:
++               statusText = statusText + entry.name + "\t" + str(entry.isDir) + "\t" + str(entry.fileSize) + "\t" + str(entry.exists) + "\t" + changeDate.getUrlString()+"\n"
++            
++         assert statusText.replace("\n", "") == self.getExpectedDirEntriesResults(testDir).replace("\n", ""), "Got: " + statusText + "\nExpected:" + self.getExpectedDirEntriesResults(testDir)
+ 
+-            # Go through each file, and make sure we have a backup entry for this file and date
+-            origStateDir = joinPaths(self.masterDirPath, testDir, backupState)
+-            files = self.getBackupStates(origStateDir)
+-            for file in files:
+-               origFilePath = joinPaths(origStateDir, file)
++   def testGetDirRestoreDates(self):
++      pass
+ 
+-               entry = getMatchingDirEntry(entries, file)
+-               assertionErrorMessage = "backupTime "+backupTime.getDisplayString()+" not found in backup entries for backup test \""+testDir+"\" for file \""+file+"\". Returned changeDates:"
+-               for changeDate in entry.changeDates:
+-                  assertionErrorMessage = assertionErrorMessage + "\n"+changeDate.getDisplayString()
+-               assertionErrorMessage = assertionErrorMessage + "\nIncrements dir: "+str(os.listdir(joinPaths(rdiffDestDir, "rdiff-backup-data", "increments")))
+-               for entryDate in entry.changeDates:
+-                  if backupTime.getSeconds() == entryDate.getSeconds():
+-                     if self.fileChangedBetweenBackups(testDir, entry.name, backupState, backupStates):
+-                        assert False, assertionErrorMessage
+-                     break
+-               else:
+-                  if not self.fileChangedBetweenBackups(testDir, entry.name, backupState, backupStates):
+-                     assert False or False, assertionErrorMessage
+-               assert os.path.isdir(origFilePath) == entry.isDir
+-               #assert os.lstat(origFilePath)[6] == entry.fileSize, "Real size: "+str(os.lstat(origFilePath)[6])+" Reported size: "+str(entry.fileSize)
+-
+-
+    def testGetBackupHistory(self):
+       tests = self.getBackupTests()
+       for testDir in tests:
+@@ -498,10 +474,6 @@
+ 
+          # Test that timezone differences are ignored
+          historyAsOf = lastEntry.date.getUrlString()
+-#          if "+" in historyAsOf:
+-#             historyAsOf = historyAsOf.replace("+", "-")
+-#          else:
+-#             historyAsOf = historyAsOf[:19] + "+" + historyAsOf[20:]
+ 
+          lastBackupTime = rdw_helpers.rdwTime()
+          lastBackupTime.initFromString(historyAsOf)
+
+Added: trunk/tests/deleted_dir/2006-01-04T01:49:50Z/testdir2/testfile6
+===================================================================
+
+Added: trunk/tests/deleted_dir/2006-01-04T01:49:50Z/testdir2/testfile7
+===================================================================
+
+Added: trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/testfile8
+===================================================================
+
+Added: trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/testfile9
+===================================================================
+
+Added: trunk/tests/deleted_dir/results/dir_entries.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_entries.txt	2006-09-21 02:28:09 UTC (rev 64)
++++ trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-09 02:36:29 UTC (rev 65)
+@@ -0,0 +1,3 @@
++testdir2	True	112	True	2006-01-04T01:49:50Z
++testdir2	True	112	True	2006-01-05T01:49:50Z
++
+
+Added: trunk/tests/simple/2006-01-03T01:49:50Z/file.txt
+===================================================================
+--- trunk/tests/simple/2006-01-03T01:49:50Z/file.txt	2006-09-21 02:28:09 UTC (rev 64)
++++ trunk/tests/simple/2006-01-03T01:49:50Z/file.txt	2006-10-09 02:36:29 UTC (rev 65)
+@@ -0,0 +1,3 @@
++This file is changed before the second backup.
++And changed again before the third backup.
++testdir1 has been removed before the third backup.
+
+Added: trunk/tests/simple/2006-01-04T01:49:50Z/file.txt
+===================================================================
+
+Added: trunk/tests/simple/2006-01-05T01:49:50Z/file.txt
+===================================================================
+
+Added: trunk/tests/simple/results/dir_entries.txt
+===================================================================
+--- trunk/tests/simple/results/dir_entries.txt	2006-09-21 02:28:09 UTC (rev 64)
++++ trunk/tests/simple/results/dir_entries.txt	2006-10-09 02:36:29 UTC (rev 65)
+@@ -0,0 +1,4 @@
++file.txt	False	0	True	2006-01-03T01:49:50Z
++file.txt	False	0	True	2006-01-04T01:49:50Z
++file.txt	False	0	True	2006-01-05T01:49:50Z
++
+
+
+
+From commits at rdiffweb.org  Mon Oct  9 07:00:03 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 9 Oct 2006 07:00:03 +0200
+Subject: [Rdiffweb-commits] r66 - in trunk: rdiffWeb tests
+	tests/deleted_dir/results tests/deleted_file
+	tests/deleted_file/2006-01-03T01:49:50Z
+	tests/deleted_file/2006-01-04T01:49:50Z tests/deleted_file/results
+Message-ID: <200610090500.k99503dY028725@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-09 06:59:49 +0200 (Mon, 09 Oct 2006)
+New Revision: 66
+
+Added:
+   trunk/tests/deleted_file/
+   trunk/tests/deleted_file/2006-01-03T01:49:50Z/
+   trunk/tests/deleted_file/2006-01-03T01:49:50Z/file.txt
+   trunk/tests/deleted_file/2006-01-04T01:49:50Z/
+   trunk/tests/deleted_file/2006-01-04T01:49:50Z/file.txt
+   trunk/tests/deleted_file/2006-01-05T01:49:50Z/
+   trunk/tests/deleted_file/results/
+   trunk/tests/deleted_file/results/dir_entries.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+   trunk/tests/deleted_dir/results/dir_entries.txt
+Log:
+* Tweaks to tests to deal with .svn folders
+* Adding another test scenario
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-10-09 02:36:29 UTC (rev 65)
++++ trunk/rdiffWeb/librdiff.py	2006-10-09 04:59:49 UTC (rev 66)
+@@ -434,8 +434,11 @@
+ 
+          statusText = ""
+          for entry in entries:
+-            for changeDate in entry.changeDates:
+-               statusText = statusText + entry.name + "\t" + str(entry.isDir) + "\t" + str(entry.fileSize) + "\t" + str(entry.exists) + "\t" + changeDate.getUrlString()+"\n"
++            if entry.name != ".svn":
++               for changeDate in entry.changeDates:
++                  size = entry.fileSize
++                  if entry.isDir: size = 0
++                  statusText = statusText + entry.name + "\t" + str(entry.isDir) + "\t" + str(size) + "\t" + str(entry.exists) + "\t" + changeDate.getUrlString()+"\n"
+             
+          assert statusText.replace("\n", "") == self.getExpectedDirEntriesResults(testDir).replace("\n", ""), "Got: " + statusText + "\nExpected:" + self.getExpectedDirEntriesResults(testDir)
+ 
+
+Modified: trunk/tests/deleted_dir/results/dir_entries.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-09 02:36:29 UTC (rev 65)
++++ trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-09 04:59:49 UTC (rev 66)
+@@ -1,3 +1,3 @@
+-testdir2	True	112	True	2006-01-04T01:49:50Z
+-testdir2	True	112	True	2006-01-05T01:49:50Z
++testdir2	True	0	True	2006-01-04T01:49:50Z
++testdir2	True	0	True	2006-01-05T01:49:50Z
+ 
+
+Added: trunk/tests/deleted_file/2006-01-03T01:49:50Z/file.txt
+===================================================================
+--- trunk/tests/deleted_file/2006-01-03T01:49:50Z/file.txt	2006-10-09 02:36:29 UTC (rev 65)
++++ trunk/tests/deleted_file/2006-01-03T01:49:50Z/file.txt	2006-10-09 04:59:49 UTC (rev 66)
+@@ -0,0 +1,3 @@
++This file is changed before the second backup.
++And changed again before the third backup.
++testdir1 has been removed before the third backup.
+
+Added: trunk/tests/deleted_file/2006-01-04T01:49:50Z/file.txt
+===================================================================
+
+Added: trunk/tests/deleted_file/results/dir_entries.txt
+===================================================================
+--- trunk/tests/deleted_file/results/dir_entries.txt	2006-10-09 02:36:29 UTC (rev 65)
++++ trunk/tests/deleted_file/results/dir_entries.txt	2006-10-09 04:59:49 UTC (rev 66)
+@@ -0,0 +1,3 @@
++file.txt	False	0	False	2006-01-03T01:49:50Z
++file.txt	False	0	False	2006-01-04T01:49:50Z
++
+
+
+
+From commits at rdiffweb.org  Wed Oct 11 05:59:54 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 11 Oct 2006 05:59:54 +0200
+Subject: [Rdiffweb-commits] r67 - in trunk: rdiffWeb
+	tests/deleted_dir/2006-01-05T01:49:50Z tests/deleted_dir/results
+Message-ID: <200610110359.k9B3xsCL018747@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-11 05:59:48 +0200 (Wed, 11 Oct 2006)
+New Revision: 67
+
+Added:
+   trunk/tests/deleted_dir/results/dir_restore_dates.txt
+Removed:
+   trunk/tests/deleted_dir/2006-01-05T01:49:50Z/testdir2/
+   trunk/tests/deleted_dir/results/dir_entries.txt
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix bugs in dir restore (thanks to Jan Hugo Prins for reporting this).
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/rdiffWeb/librdiff.py	2006-10-11 03:59:48 UTC (rev 67)
+@@ -347,11 +347,11 @@
+       entry = entries[0]
+ 
+       # Don't allow restores before the dir existed
+-      backupHistory = filter(lambda x: x > entry.changeDates[0], backupHistory)
++      backupHistory = filter(lambda x: x >= entry.changeDates[0], backupHistory)
+ 
+       if not entry.exists:
+          # If the dir has been deleted, don't allow restores after its deletion
+-         backupHistory = filter(lambda x: x < entry.changeDates[-1], backupHistory)
++         backupHistory = filter(lambda x: x <= entry.changeDates[-1], backupHistory)
+ 
+    return backupHistory
+ 
+@@ -421,6 +421,15 @@
+    def getBackupStates(self, backupTestDir):
+       return filter(lambda x: not x.startswith(".") and x != "results", os.listdir(backupTestDir))
+    
++   def hasDirEntriesResults(self, testname):
++      return os.access(joinPaths(self.masterDirPath, testname, "results", "dir_entries.txt"), os.F_OK)
++   
++   def hasDirRestoreDates(self, testname):
++      return os.access(joinPaths(self.masterDirPath, testname, "results", "dir_restore_dates.txt"), os.F_OK)
++   
++   def getExpectedDirRestoreDates(self, testName):
++      return open(joinPaths(self.masterDirPath, testName, "results", "dir_restore_dates.txt")).read()
++
+    def getExpectedDirEntriesResults(self, testName):
+       return open(joinPaths(self.masterDirPath, testName, "results", "dir_entries.txt")).read()
+ 
+@@ -428,23 +437,35 @@
+    def testGetDirEntries(self):
+       tests = self.getBackupTests()
+       for testDir in tests:
+-         # Get a list of backup entries for the root folder
+-         rdiffDestDir = joinPaths(self.destRoot, testDir)
+-         entries = getDirEntries(rdiffDestDir, "/")
++         if self.hasDirEntriesResults(testDir):
++            # Get a list of backup entries for the root folder
++            rdiffDestDir = joinPaths(self.destRoot, testDir)
++            entries = getDirEntries(rdiffDestDir, "/")
++   
++            statusText = ""
++            for entry in entries:
++               if entry.name != ".svn":
++                  for changeDate in entry.changeDates:
++                     size = entry.fileSize
++                     if entry.isDir: size = 0
++                     statusText = statusText + entry.name + "\t" + str(entry.isDir) + "\t" + str(size) + "\t" + str(entry.exists) + "\t" + changeDate.getUrlString()+"\n"
++               
++            assert statusText.replace("\n", "") == self.getExpectedDirEntriesResults(testDir).replace("\n", ""), "Got: " + statusText + "\nExpected:" + self.getExpectedDirEntriesResults(testDir)
+ 
+-         statusText = ""
+-         for entry in entries:
+-            if entry.name != ".svn":
+-               for changeDate in entry.changeDates:
+-                  size = entry.fileSize
+-                  if entry.isDir: size = 0
+-                  statusText = statusText + entry.name + "\t" + str(entry.isDir) + "\t" + str(size) + "\t" + str(entry.exists) + "\t" + changeDate.getUrlString()+"\n"
++   def testGetDirRestoreDates(self):
++      tests = self.getBackupTests()
++      for testDir in tests:
++         if self.hasDirRestoreDates(testDir):
++            rdiffDestDir = joinPaths(self.destRoot, testDir)
+             
+-         assert statusText.replace("\n", "") == self.getExpectedDirEntriesResults(testDir).replace("\n", ""), "Got: " + statusText + "\nExpected:" + self.getExpectedDirEntriesResults(testDir)
++            #print rdiffDestDir
++            dates = getDirRestoreDates(rdiffDestDir, "/testdir2")
++            statusText = ""
++            for date in dates:
++               statusText = statusText + date.getUrlString() + "\n"
++            
++            assert statusText.replace("\n", "") == self.getExpectedDirRestoreDates(testDir).replace("\n", ""), "Got: " + statusText + "\nExpected:" + self.getExpectedDirRestoreDates(testDir)
+ 
+-   def testGetDirRestoreDates(self):
+-      pass
+-
+    def testGetBackupHistory(self):
+       tests = self.getBackupTests()
+       for testDir in tests:
+
+Deleted: trunk/tests/deleted_dir/results/dir_entries.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/tests/deleted_dir/results/dir_entries.txt	2006-10-11 03:59:48 UTC (rev 67)
+@@ -1,3 +0,0 @@
+-testdir2	True	0	True	2006-01-04T01:49:50Z
+-testdir2	True	0	True	2006-01-05T01:49:50Z
+-
+
+Added: trunk/tests/deleted_dir/results/dir_restore_dates.txt
+===================================================================
+--- trunk/tests/deleted_dir/results/dir_restore_dates.txt	2006-10-09 04:59:49 UTC (rev 66)
++++ trunk/tests/deleted_dir/results/dir_restore_dates.txt	2006-10-11 03:59:48 UTC (rev 67)
+@@ -0,0 +1,2 @@
++2006-01-04T01:49:50Z
++
+
+
+
+From commits at rdiffweb.org  Thu Oct 26 02:01:40 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 26 Oct 2006 02:01:40 +0200
+Subject: [Rdiffweb-commits] r68 - in trunk/rdiffWeb: . static static/images
+	templates
+Message-ID: <200610260001.k9Q01eP3017839@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-26 02:01:14 +0200 (Thu, 26 Oct 2006)
+New Revision: 68
+
+Added:
+   trunk/rdiffWeb/static/images/
+   trunk/rdiffWeb/static/images/file.png
+   trunk/rdiffWeb/static/images/folder.png
+   trunk/rdiffWeb/static/images/history.png
+   trunk/rdiffWeb/static/images/repo.png
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/page_main.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/dir_listing.html
+   trunk/rdiffWeb/templates/history.html
+   trunk/rdiffWeb/templates/login.html
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+* Adding icons to lists (initial patch by CARON Dominique)
+* Improving login page
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/filter_authentication.py	2006-10-26 00:01:14 UTC (rev 68)
+@@ -17,7 +17,7 @@
+    def beforeMain(self):
+       if not cherrypy.config.get("rdwAuthenticateFilter.on", False):
+          return
+-      checkLoginAndPassword = cherrypy.config.get("rdwAuthenticateFilter.checkLoginAndPassword", lambda username, password: u"Wrong login/password")
++      checkLoginAndPassword = cherrypy.config.get("rdwAuthenticateFilter.checkLoginAndPassword", lambda username, password: u"Invalid username or password")
+ 
+       if cherrypy.request.path == self.logoutUrl:
+          cherrypy.session[self.sessionUserNameKey] = None
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/page_browse.py	2006-10-26 00:01:14 UTC (rev 68)
+@@ -63,20 +63,25 @@
+             entryLink = ""
+             if libEntry.isDir:
+                entryLink = self.buildBrowseUrl(repo, joinPaths(path, libEntry.name), False)
++               fileType = "folder"
++               fileSize= " "
+                changeDates = []
+             else:
+                entryLink = self.buildRestoreUrl(repo, joinPaths(path, libEntry.name), libEntry.changeDates[-1])
++               fileType = "file"
+                entryChangeDates = libEntry.changeDates[:-1]
+                entryChangeDates.reverse()
++               fileSize = rdw_helpers.formatFileSizeStr(libEntry.fileSize)
+                changeDates = [ { "changeDateUrl" : self.buildRestoreUrl(repo, joinPaths(path, libEntry.name), x),
+                                  "changeDateStr" : x.getDisplayString() } for x in entryChangeDates]
+ 
+             showNoRevisionsText = (len(changeDates) == 0) and (not libEntry.isDir)
+             entries.append({ "filename" : libEntry.name,
+                            "fileRestoreUrl" : entryLink,
++                           "filetype" : fileType,
+                            "exists" : libEntry.exists,
+                            "date" : libEntry.changeDates[-1].getDisplayString(),
+-                           "size" : rdw_helpers.formatFileSizeStr(libEntry.fileSize),
++                           "size" : fileSize,
+                            "hasPrevRevisions" : len(changeDates) > 0,
+                            "showNoRevisionsText" : showNoRevisionsText,
+                            "changeDates" : changeDates })
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/page_main.py	2006-10-26 00:01:14 UTC (rev 68)
+@@ -90,7 +90,7 @@
+       if self.userDB.areUserCredentialsValid(username, password):
+          cherrypy.session['username'] = username #TODO: this seems like a hack.  Figure out clean way to pull this off
+          return None
+-      return "Bad password!"
++      return "Invalid username or password."
+ 
+    def getUsername(self):
+       username = cherrypy.session['username']
+
+Added: trunk/rdiffWeb/static/images/file.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/file.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/rdiffWeb/static/images/folder.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/folder.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/rdiffWeb/static/images/history.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/history.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: trunk/rdiffWeb/static/images/repo.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/rdiffWeb/static/images/repo.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/static/main.css	2006-10-26 00:01:14 UTC (rev 68)
+@@ -40,7 +40,8 @@
+    padding-right: 2em
+ }
+ 
+-/* disable padding on flyouts */
++/* disable padding on icons and flyouts */
++td.Icon,
+ td.FlyoutContainer,
+ td.FlyoutContainer td
+ {
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/templates/dir_listing.html	2006-10-26 00:01:14 UTC (rev 68)
+@@ -26,6 +26,7 @@
+ <table id="PopupTable">
+ <thead>
+    <tr>
++      <td></td>
+       <td>Name</td>
+       <td>Size</td>
+       <td>Last Revision</td>
+@@ -34,6 +35,7 @@
+ <tbody>
+    <!--StartRepeat:files-->
+    <!--StartIncludeIf:exists--><tr><!--EndIncludeIf:exists--><!--StartDeleteIf:exists--><tr style="color: #999" ><!--EndDeleteIf:exists-->
++      <td class="Icon"><img src="/static/images/^filetype$.png" valign=middle alt="^filetype$" ></td>
+       <td><a href="^fileRestoreUrl$">^filename$</a></td>
+       <td>^size$</td>
+       <td>^date$</td>
+@@ -69,12 +71,14 @@
+ <table>
+ <thead>
+    <tr>
++      <td></td>
+       <td>Choose a backup date to restore as of:</td>
+    </tr>
+ </thead>
+ <tbody>
+    <!--StartRepeat:restoreDates-->
+    <tr>
++      <td class="Icon" valign="middle"><img src="/static/images/history.png"></img></td>
+       <td><a href="^dirRestoreUrl$">^dateStr$</a></td>
+    </tr>
+    <!--EndRepeat:restoreDates-->
+
+Modified: trunk/rdiffWeb/templates/history.html
+===================================================================
+--- trunk/rdiffWeb/templates/history.html	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/templates/history.html	2006-10-26 00:01:14 UTC (rev 68)
+@@ -12,6 +12,7 @@
+ <table id="PopupTable">
+ <thead>
+    <tr>
++      <td></td>
+       <td>Date</td>
+       <td>Size</td>
+       <td>Result</td>
+@@ -20,6 +21,7 @@
+ <tbody>
+    <!--StartRepeat:history-->
+    <tr>
++      <td class="Icon" valign="middle"><img src="/static/images/history.png"></img></td>
+       <td>^date$</td>
+       <td>^size$</td>
+       <!--StartIncludeIf:errors-->
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/templates/login.html	2006-10-26 00:01:14 UTC (rev 68)
+@@ -1,10 +1,28 @@
+-<html><body>
+-   Message: ^message$
++<html>
++<head>
++   <link rel="stylesheet" href="../static/main.css" type="text/css" />
++   <script type="text/javascript">
++      window.onload = function()
++      {
++         document.getElementById('username').focus();
++      };
++   </script>
++</head>
++<body>
++<div id="NavBar">
++   <div id="logo">rdiffWeb</div>
++</div>
++<br/>
++
++<!--StartDeleteIf:message--><p>Enter your username and password to log in:</p><!--EndDeleteIf:message-->
++<!--StartIncludeIf:message-->
++   <p class="warning">^message$</p>
++<!--EndIncludeIf:message-->
+    <form method="post" action="^action$">
+-     Login: <input type="text" name="^loginKey$" value="^loginValue$" size="10"/><br/>
+-     Password: <input type="password" name="^passwordKey$" size="10"/><br/>
++     Username: <input type="text" name="^loginKey$" value="^loginValue$" size="20" id="username" /><br/>
++     Password: <input type="password" name="^passwordKey$" size="20"/><br/>
+      <input type="hidden" name="^redirectKey$" value="^redirectValue$"/><br/>
+-     <input type="submit"/>
++     <input type="submit" value="Log In" />
+      </form>
+ </body></html>
+ 
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2006-10-11 03:59:48 UTC (rev 67)
++++ trunk/rdiffWeb/templates/repo_listing.html	2006-10-26 00:01:14 UTC (rev 68)
+@@ -3,6 +3,7 @@
+ <table id="PopupTable">
+    <thead>
+       <tr>
++         <td></td>
+          <td>Name</td>
+          <td>Last Backup</td>
+          <td>Last Backup Size</td>
+@@ -11,6 +12,7 @@
+    <tbody>
+       <!--StartRepeat:repos-->
+       <tr>
++         <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
+          <td><a href="^repoBrowseUrl$">^repoName$</a></td>
+          <td>^repoDate$</td><td>^repoSize$</td>
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+
+
+
+From commits at rdiffweb.org  Sat Oct 28 05:18:57 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 28 Oct 2006 05:18:57 +0200
+Subject: [Rdiffweb-commits] r69 - trunk
+Message-ID: <200610280318.k9S3IvN5025635@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-28 05:18:49 +0200 (Sat, 28 Oct 2006)
+New Revision: 69
+
+Modified:
+   trunk/MANIFEST.in
+   trunk/setup.py
+Log:
+Tweaks to packaging
+
+Modified: trunk/MANIFEST.in
+===================================================================
+--- trunk/MANIFEST.in	2006-10-26 00:01:14 UTC (rev 68)
++++ trunk/MANIFEST.in	2006-10-28 03:18:49 UTC (rev 69)
+@@ -1,5 +1,7 @@
+ include COPYING rdiff-web rdiff-web-config rdw.conf.sample init/rdiff-web
+-recursive-include rdiffWeb/templates *
+-recursive-include rdiffWeb/static *
+-recursive-include rdiffWeb *.py
+-
++include rdiffWeb/templates/*.html
++include rdiffWeb/static/*.png 
++include rdiffWeb/static/*.css 
++include rdiffWeb/static/*.js
++include rdiffWeb/static/images/*
++include rdiffWeb/*.py
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2006-10-26 00:01:14 UTC (rev 68)
++++ trunk/setup.py	2006-10-28 03:18:49 UTC (rev 69)
+@@ -14,7 +14,7 @@
+       author_email='rdiffweb at rdiffweb.org',
+       url='http://www.rdiffweb.org',
+       packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*']},
++      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css' 'static/images/*']},
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+
+
+
+From commits at rdiffweb.org  Mon Oct 30 20:07:42 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 30 Oct 2006 20:07:42 +0100
+Subject: [Rdiffweb-commits] r70 - trunk
+Message-ID: <200610301907.k9UJ7ggV027355@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-30 20:07:39 +0100 (Mon, 30 Oct 2006)
+New Revision: 70
+
+Modified:
+   trunk/setup.py
+Log:
+Corrections to packaging
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2006-10-28 03:18:49 UTC (rev 69)
++++ trunk/setup.py	2006-10-30 19:07:39 UTC (rev 70)
+@@ -14,7 +14,7 @@
+       author_email='rdiffweb at rdiffweb.org',
+       url='http://www.rdiffweb.org',
+       packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css' 'static/images/*']},
++      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+       data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+                   ('/etc/init.d', ['init/rdiff-web'])
+                   ],
+@@ -40,7 +40,10 @@
+                   ('/etc/init.d', ['init/rdiff-web']),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+                   (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
++                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
++                  (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+                   ],
+       scripts=['rdiff-web', 'rdiff-web-config']
+      )
+
+
+
+From commits at rdiffweb.org  Mon Oct 30 20:08:16 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 30 Oct 2006 20:08:16 +0100
+Subject: [Rdiffweb-commits] r71 - in trunk/rdiffWeb: static templates
+Message-ID: <200610301908.k9UJ8GNW027496@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-30 20:08:12 +0100 (Mon, 30 Oct 2006)
+New Revision: 71
+
+Modified:
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/login.html
+Log:
+Improving login page
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2006-10-30 19:07:39 UTC (rev 70)
++++ trunk/rdiffWeb/static/main.css	2006-10-30 19:08:12 UTC (rev 71)
+@@ -48,6 +48,20 @@
+    padding-right: 0em;
+ }
+ 
++table.Login td
++{
++   padding-right: .5em;
++}
++
++#Login
++{
++   background-color: #E8EEFA;
++   color: #000;
++   spacing: 0.5em;
++   float: left;
++   border: 10px double white;
++}
++
+ td.FlyoutContainer div
+ {
+    display:none;
+
+Modified: trunk/rdiffWeb/templates/login.html
+===================================================================
+--- trunk/rdiffWeb/templates/login.html	2006-10-30 19:07:39 UTC (rev 70)
++++ trunk/rdiffWeb/templates/login.html	2006-10-30 19:08:12 UTC (rev 71)
+@@ -1,5 +1,6 @@
+ <html>
+ <head>
++   <title>Login Required - rdiffWeb</title>
+    <link rel="stylesheet" href="../static/main.css" type="text/css" />
+    <script type="text/javascript">
+       window.onload = function()
+@@ -14,15 +15,32 @@
+ </div>
+ <br/>
+ 
++   <div id="Login">
++      <div style="margin: 1em">
++      <h2>Login Required</h2>
+ <!--StartDeleteIf:message--><p>Enter your username and password to log in:</p><!--EndDeleteIf:message-->
+ <!--StartIncludeIf:message-->
+-   <p class="warning">^message$</p>
++      <p class="warning">^message$</p>
+ <!--EndIncludeIf:message-->
+-   <form method="post" action="^action$">
+-     Username: <input type="text" name="^loginKey$" value="^loginValue$" size="20" id="username" /><br/>
+-     Password: <input type="password" name="^passwordKey$" size="20"/><br/>
+-     <input type="hidden" name="^redirectKey$" value="^redirectValue$"/><br/>
+-     <input type="submit" value="Log In" />
+-     </form>
++      <form method="post" action="^action$">
++         <input type="hidden" name="^redirectKey$" value="^redirectValue$"/>
++         <table class="Login">
++            <tr>
++               <td>Username:</td>
++               <td><input type="text" name="^loginKey$" value="^loginValue$" size="20" id="username" /></td>
++            </tr>
++            <tr>
++               <td>Password:</td>
++               <td><input type="password" name="^passwordKey$" size="20"/></td>
++            </tr>
++            <tr>
++               <td></td>
++               <td><input type="submit" value="Log In" /></td>
++            </tr>
++        </table>
++        </form>
++      </div>
++   </div>
++   <div style="clear: both;"></div>
+ </body></html>
+ 
+
+
+
+From commits at rdiffweb.org  Mon Oct 30 20:41:52 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 30 Oct 2006 20:41:52 +0100
+Subject: [Rdiffweb-commits] r72 - trunk
+Message-ID: <200610301941.k9UJfq9W031606@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-30 20:41:50 +0100 (Mon, 30 Oct 2006)
+New Revision: 72
+
+Modified:
+   trunk/setup.py
+Log:
+Preparing for new release
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2006-10-30 19:08:12 UTC (rev 71)
++++ trunk/setup.py	2006-10-30 19:41:50 UTC (rev 72)
+@@ -8,7 +8,7 @@
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+ if pythonVersion > 2.3:
+    setup(name='rdiffWeb',
+-      version='0.3.2',
++      version='0.3.5',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+@@ -30,7 +30,7 @@
+    packageDataDir = installer.config_vars['prefix']+"/lib/python"+installer.config_vars['py_version_short']+"/site-packages/rdiffWeb"
+ 
+    setup(name='rdiffWeb',
+-      version='0.3.2',
++      version='0.3.5',
+       description='A web interface to rdiff-backup repositories',
+       author='Josh Nisly',
+       author_email='rdiffweb at rdiffweb.org',
+
+
+
+From commits at rdiffweb.org  Mon Oct 30 20:46:47 2006
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 30 Oct 2006 20:46:47 +0100
+Subject: [Rdiffweb-commits] r73 - tags
+Message-ID: <200610301946.k9UJklFR032138@sheep.berlios.de>
+
+Author: joshn
+Date: 2006-10-30 20:46:43 +0100 (Mon, 30 Oct 2006)
+New Revision: 73
+
+Added:
+   tags/release-0.3.5/
+Log:
+Tagging version 0.3.5
+
+Copied: tags/release-0.3.5 (from rev 72, trunk)
+
+
+

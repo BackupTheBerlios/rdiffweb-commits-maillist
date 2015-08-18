@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r52 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r52%20-%20trunk/rdiffWeb&In-Reply-To=%3C200605271443.k4REhEeF001324%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000008.html">
+   <LINK REL="Next"  HREF="000010.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r52 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r52%20-%20trunk/rdiffWeb&In-Reply-To=%3C200605271443.k4REhEeF001324%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r52 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat May 27 16:43:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000008.html">[Rdiffweb-commits] r51 - trunk/rdiffWeb/static
+</A></li>
+        <LI>Next message: <A HREF="000010.html">[Rdiffweb-commits] r53 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-05-27 16:43:12 +0200 (Sat, 27 May 2006)
+New Revision: 52
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Optimize dir listing for large directories
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2006-05-27 12:38:00 UTC (rev 51)
++++ trunk/rdiffWeb/librdiff.py	2006-05-27 14:43:12 UTC (rev 52)
+@@ -62,7 +62,7 @@
+ 
+    def isMissingIncrement(self):
+       return self.entryName.endswith(self.missingSuffix)
+-   
++
+    def isSnapshotIncrement(self):
+       return self.entryName.endswith(&quot;.snapshot.gz&quot;)
+ 
+@@ -136,6 +136,10 @@
+       if os.access(incrementsDir, os.F_OK): # the increments may not exist if the folder has existed forever and never been changed
+          self.incrementEntries = os.listdir(incrementsDir)
+ 
++      self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(x).getFilename())
++      self.backupTimes = [ incrementEntry(x).getDate() for x in filter(lambda x: x.startswith(&quot;mirror_metadata&quot;), self.dataDirEntries) ]
++      self.backupTimes.sort()
++
+    def getDirEntries(self):
+       &quot;&quot;&quot; returns dictionary of dir entries, keyed by dir name &quot;&quot;&quot;
+       entriesDict = {}
+@@ -167,20 +171,14 @@
+ 
+    def _getFirstBackupAfterDate(self, date):
+       &quot;&quot;&quot; Iterates the mirror_metadata files in the rdiff data dir &quot;&quot;&quot;
+-      backupFiles = filter(lambda x: x.startswith(&quot;mirror_metadata&quot;), self.dataDirEntries)
+-      backupFiles.sort()
+-      for backup in backupFiles:
+-         incrEntry = incrementEntry(backup)
+-         backupTime = incrEntry.getDate()
+-         if not date or backupTime &gt; date:
+-            return backupTime
+-      return backupFiles[-1]
++      if not date:
++         return self.backupTimes[0]
++      return self.backupTimes[bisect.bisect_right(self.backupTimes, date)]
+ 
+    def _getLastChangedBackupTime(self, filename):
++      files = self.groupedIncrementEntries.get(filename, [])
+       if os.path.isdir(joinPaths(self.completePath, filename)):
+-         files = filter((lambda x: incrementEntry(x).getFilename() == filename and x.endswith(&quot;.dir&quot;)), self.incrementEntries)
+-      else:
+-         files = filter((lambda x: incrementEntry(x).getFilename() == filename), self.incrementEntries)
++         files = files.filter(lambda x: x.endswith(&quot;.dir&quot;), self.incrementEntries)
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+@@ -418,14 +416,14 @@
+ 
+    def getBackupStates(self, backupTestDir):
+       return filter(lambda x: not x.startswith(&quot;.&quot;), os.listdir(backupTestDir))
+-   
++
+    def fileChangedBetweenBackups(self, backupTest, filename, lastBackup, allBackups):
+       prevRevisions = filter(lambda x: x &lt; lastBackup, allBackups)
+       if not prevRevisions: return False
+       oldVersion = prevRevisions[-1]
+       oldFilePath = joinPaths(self.masterDirPath, backupTest, oldVersion, filename)
+       newFilePath = joinPaths(self.masterDirPath, backupTest, lastBackup, filename)
+-      
++
+       if not os.access(oldFilePath, os.F_OK): return False
+       return open(oldFilePath, &quot;r&quot;).read() == open(newFilePath, &quot;r&quot;).read()
+ 
+@@ -436,7 +434,7 @@
+          # Get a list of backup entries for the root folder
+          rdiffDestDir = joinPaths(self.destRoot, testDir)
+          entries = getDirEntries(rdiffDestDir, &quot;/&quot;)
+-         
++
+          # Go back through all backup states and make sure that the backup entries match the files that exist
+          origStateDir = joinPaths(self.masterDirPath, testDir)
+          backupStates = self.getBackupStates(origStateDir)
+@@ -549,3 +547,5 @@
+    testSuite = unittest.makeSuite(libRdiffTest, 'test')
+    testRunner = unittest.TextTestRunner()
+    testRunner.run(testSuite)
++#    import profile
++#    profile.run(&quot;getDirEntries('/', '/')&quot;, &quot;results.txt&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000008.html">[Rdiffweb-commits] r51 - trunk/rdiffWeb/static
+</A></li>
+	<LI>Next message: <A HREF="000010.html">[Rdiffweb-commits] r53 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r200 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r200%20-%20trunk&In-Reply-To=%3C200801011751.m01HpMIq012250%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000158.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r200 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r200%20-%20trunk&In-Reply-To=%3C200801011751.m01HpMIq012250%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r200 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan  1 18:51:22 CET 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000158.html">[Rdiffweb-commits] r201 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-01 18:51:18 +0100 (Tue, 01 Jan 2008)
+New Revision: 200
+
+Modified:
+   trunk/setup.py
+Log:
+Stop supporting python 2.3
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2007-12-28 13:37:46 UTC (rev 199)
++++ trunk/setup.py	2008-01-01 17:51:18 UTC (rev 200)
+@@ -3,50 +3,23 @@
+ from distutils.core import setup, Command
+ import glob, sys
+ 
+-# &lt; Python 2.4 does not have the package_data setup keyword, making installation a pain.
+-# If we can, use package_data, otherwise, hack in the files
++# &lt; Python 2.4 does not have the package_data setup keyword, so it is unsupported
+ pythonVersion = sys.version_info[0]+sys.version_info[1]/10.0
+-if pythonVersion &gt; 2.3:
+-   setup(name='rdiffWeb',
+-      version='0.6.0',
+-      description='A web interface to rdiff-backup repositories',
+-      author='Josh Nisly',
+-      author_email='<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at rdiffweb.org</A>',
+-      url='<A HREF="http://www.rdiffweb.org">http://www.rdiffweb.org</A>',
+-      packages=['rdiffWeb'],
+-      package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
+-      data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+-                  ('/etc/init.d', ['init/rdiff-web']),
+-                  ('/usr/bin', ['rdiff-web']), # Manually place rdiff-web in /usr/bin, so the init script can find it
+-                  ],
+-      scripts=['rdiff-web-config']
+-   )
+-else:
+-   from distutils.dist import Distribution
+-   import distutils.command.install
+-
+-   installer = distutils.command.install.install(Distribution())
+-   installer.initialize_options()
+-   installer.finalize_options()
+-   packageDataDir = installer.config_vars['prefix']+&quot;/lib/python&quot;+installer.config_vars['py_version_short']+&quot;/site-packages/rdiffWeb&quot;
+-
+-   setup(name='rdiffWeb',
+-      version='0.6.0',
+-      description='A web interface to rdiff-backup repositories',
+-      author='Josh Nisly',
+-      author_email='<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at rdiffweb.org</A>',
+-      url='<A HREF="http://www.rdiffweb.org">http://www.rdiffweb.org</A>',
+-      packages=['rdiffWeb'],
+-      data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
+-                  ('/etc/init.d', ['init/rdiff-web']),
+-                  ('/usr/bin', ['rdiff-web']),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.html')),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.xml')),
+-                  (packageDataDir+'/templates', glob.glob('rdiffWeb/templates/*.txt')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.js')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.png')),
+-                  (packageDataDir+'/static', glob.glob('rdiffWeb/static/*.css')),
+-                  (packageDataDir+'/static/images', glob.glob('rdiffWeb/static/images/*')),
+-                  ],
+-      scripts=['rdiff-web-config']
+-   )
++if pythonVersion &lt; 2.4:
++   print 'Python version 2.3 and lower is not supported.'
++   sys.exit(1)
++   
++setup(name='rdiffWeb',
++   version='0.6.0',
++   description='A web interface to rdiff-backup repositories',
++   author='Josh Nisly',
++   author_email='<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at rdiffweb.org</A>',
++   url='<A HREF="http://www.rdiffweb.org">http://www.rdiffweb.org</A>',
++   packages=['rdiffWeb'],
++   package_data={'rdiffWeb': ['templates/*.html', 'templates/*.xml', 'templates/*.txt', 'static/*.png', 'static/*.js', 'static/*.css', 'static/images/*']},
++   data_files=[('/etc/rdiffweb', ['rdw.conf.sample']),
++               ('/etc/init.d', ['init/rdiff-web']),
++               ('/usr/bin', ['rdiff-web']), # Manually place rdiff-web in /usr/bin, so the init script can find it
++               ],
++   scripts=['rdiff-web-config']
++)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000158.html">[Rdiffweb-commits] r201 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

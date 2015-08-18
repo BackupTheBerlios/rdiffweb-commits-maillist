@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r289 - trunk/init
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r289%20-%20trunk/init&In-Reply-To=%3C200911140257.nAE2vauP007904%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r289 - trunk/init</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r289%20-%20trunk/init&In-Reply-To=%3C200911140257.nAE2vauP007904%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r289 - trunk/init">commits at rdiffweb.org
+       </A><BR>
+    <I>Sat Nov 14 03:57:36 CET 2009</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2009-11-14 03:57:32 +0100 (Sat, 14 Nov 2009)
+New Revision: 289
+
+Modified:
+   trunk/init/rdiff-web
+Log:
+Improved init script (thanks to David Flink.)
+
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2009-10-31 01:14:55 UTC (rev 288)
++++ trunk/init/rdiff-web	2009-11-14 02:57:32 UTC (rev 289)
+@@ -25,6 +25,21 @@
+    exit 1
+ fi
+ 
++# Used a lot; is rdiff-web running?
++status() {
++    if [ -e &quot;$PIDFILE&quot; ]; then
++	PIDLIST=&quot;&quot;
++        for tmp in `cat $PIDFILE` 
++	do 
++	    PID=`ps -fp $tmp | awk '/rdiff-web/ {print $2}'`;    
++	    if [ &quot;$PID&quot; ]; then
++		echo $PID
++		return 
++	    fi
++	done
++    fi	
++    echo 0
++}
+ 
+ # See how we were called.
+ case &quot;$1&quot; in
+@@ -37,6 +52,19 @@
+       echo -n &quot;Starting rdiffWeb...&quot;
+       /usr/bin/rdiff-web --pid-file=&quot;$PIDFILE&quot; \
+       --background &gt; /dev/null 2&gt;&amp;1
++      EXIT_CODE=$?
++      if [ $EXIT_CODE -ne 0 ] ; then
++       echo -n &quot;rdiffweb did not startup (Exit code $EXIT_CODE) &quot;
++       echo $ERROR_MSG
++       exit 1
++      fi
++      PID=$(status)
++      if [ &quot;$PID&quot; -eq 0 ]; then
++       echo  -n &quot;rdiffweb is not running! &quot;
++       echo $ERROR_MSG
++       exit 1
++      fi
++      echo -n &quot; running as PID $PID.&quot;
+       echo $SUCCESS_MSG
+       exit 0
+    ;;
+@@ -45,9 +73,20 @@
+       if [ -e &quot;$PIDFILE&quot; ]; then
+          echo -n &quot;Stopping rdiffWeb...&quot;
+          kill `cat &quot;$PIDFILE&quot; 2&gt;/dev/null` &gt; /dev/null 2&gt;&amp;1
+-         rm $PIDFILE &gt; /dev/null 2&gt;&amp;1
+-         echo $SUCCESS_MSG
+-         exit 0
++	 for loop in 0 1 2 3 4 5 6 7 8 9; do
++	     PID=$(status)
++	     if [ &quot;$PID&quot; -eq 0 ]; then
++		 rm $PIDFILE &gt; /dev/null 2&gt;&amp;1
++		 echo $SUCCESS_MSG
++		 exit 0
++	     else
++		 echo -n &quot; .&quot;
++		 sleep 1
++	     fi 
++	 done
++	 echo -n &quot;rdiffweb will not stop!&quot;
++	 echo $ERROR_MSG
++	 exit 1
+       else
+          echo -n &quot;rdiffWeb is not running&quot;
+          echo $ERROR_MSG
+@@ -57,8 +96,9 @@
+ 
+    status)
+       echo -n &quot;rdiffWeb &quot;
+-      if [ -e &quot;$PIDFILE&quot; ]; then
+-         echo &quot;is running.&quot;
++      PID=$(status)
++      if [ &quot;$PID&quot; -ne 0 ]; then
++         echo &quot;is running as PID $PID.&quot;
+          exit 0
+       else
+          echo &quot;is not running.&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

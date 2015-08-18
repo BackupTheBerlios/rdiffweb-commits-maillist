@@ -1,0 +1,261 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r64 - in trunk: . rdiffWeb rdiffWeb/templates
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2006-September/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r64%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200609210228.k8L2SEZf023115%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000020.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r64 - in trunk: . rdiffWeb rdiffWeb/templates</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r64%20-%20in%20trunk%3A%20.%20rdiffWeb%20rdiffWeb/templates&In-Reply-To=%3C200609210228.k8L2SEZf023115%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r64 - in trunk: . rdiffWeb rdiffWeb/templates">commits at rdiffweb.org
+       </A><BR>
+    <I>Thu Sep 21 04:28:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000020.html">[Rdiffweb-commits] r63 - trunk
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21">[ date ]</a>
+              <a href="thread.html#21">[ thread ]</a>
+              <a href="subject.html#21">[ subject ]</a>
+              <a href="author.html#21">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2006-09-21 04:28:09 +0200 (Thu, 21 Sep 2006)
+New Revision: 64
+
+Modified:
+   trunk/rdiff-web-config
+   trunk/rdiffWeb/db_mysql.py
+   trunk/rdiffWeb/page_admin.py
+   trunk/rdiffWeb/rdw_spider_repos.py
+   trunk/rdiffWeb/templates/admin_main.html
+Log:
+Changes to improve commandline user administration
+
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2006-09-06 17:46:57 UTC (rev 63)
++++ trunk/rdiff-web-config	2006-09-21 02:28:09 UTC (rev 64)
+@@ -81,6 +81,12 @@
+    databases = [ x[0] for x in results]
+    return databases
+ 
++def addUser(username, password, userRoot, isAdmin):
++   mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
++   mysqlUserDb.addUser(username)
++   mysqlUserDb.setUserPassword(username, password)
++   mysqlUserDb.setUserInfo(username, userRoot, isAdmin)
++
+ def mysqlSetup():
+    print &quot;MySQL backend chosen.\n&quot;
+    # TODO: load default answers from existing config file, if any
+@@ -148,7 +154,7 @@
+    mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
+    for createStatement in mysqlUserDb._getCreateStatements():
+       executeQuery(sqlConnection, createStatement)
+-   
++
+    mysqlUserDb = rdiffWeb.db_mysql.mysqlUserDB()
+ 
+    print &quot;\nYou must now add the first user account.  This user will have admin privileges, and therefore will have the ability to add/delete other users.&quot;
+@@ -171,19 +177,13 @@
+    response = promptUser(prompt, [&quot;yes&quot;, &quot;no&quot;], &quot;yes&quot;, False)
+    if response == &quot;yes&quot;:
+       try:
+-         repos = rdiffWeb.rdw_spider_repos.findReposForUsers(username, mysqlUserDb)
++         repos = rdiffWeb.rdw_spider_repos.findReposForUser(username, mysqlUserDb)
+       except OSError, error:
+          print &quot;Unable to search repository: &quot; + str(error)
+       else:
+          print &quot;Repository search complete.&quot;
+ 
+-if __name__ == &quot;__main__&quot;:
+-   # Because this script manipulates files in the /etc directory, it must be run as root.  Validate
+-   # that we're being run as root, before the user has spent a lot of time entering data.
+-   if os.getuid() != 0:
+-      print &quot;Error: this script must be run as root.&quot;
+-      sys.exit(2)
+-
++def doMainSetup():
+    addConfigFileLine(&quot;ServerName=localhost&quot;)
+    addConfigFileLine(&quot;ServerPort=8080&quot;)
+ 
+@@ -198,6 +198,29 @@
+       fileSetup()
+    else:
+       mysqlSetup()
+-
+    print &quot;Configuration complete!&quot;
+ 
++def doSpiderRepos():
++   rdiffWeb.rdw_spider_repos.findReposForAllUsers()
++
++def doAddUser():
++   if len(sys.argv) != 5:
++      print &quot;Usage: rdiff-web-config adduser &lt;username&gt; &lt;password&gt; &lt;/path/to/usr/root&gt;&quot;
++      sys.exit(2)
++
++   addUser(sys.argv[2], sys.argv[3], sys.argv[4], False)
++
++if __name__ == &quot;__main__&quot;:
++   # Because this script manipulates files in the /etc directory, it must be run as root.  Validate
++   # that we're being run as root, before the user has spent a lot of time entering data.
++   if os.getuid() != 0:
++      print &quot;Error: this script must be run as root.&quot;
++      sys.exit(2)
++
++   if len(sys.argv) &gt; 1:
++      if sys.argv[1] == &quot;adduser&quot;:
++         doAddUser()
++      elif sys.argv[1] == &quot;spiderrepos&quot;:
++         doSpiderRepos()
++   else:
++      doMainSetup()
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2006-09-06 17:46:57 UTC (rev 63)
++++ trunk/rdiffWeb/db_mysql.py	2006-09-21 02:28:09 UTC (rev 64)
+@@ -62,7 +62,6 @@
+       repoPaths = [ {&quot;repo&quot; : repo} for repo in repoPaths ]
+       cursor = self.sqlConnection.cursor()
+       cursor.executemany(query, repoPaths)
+-      return cursor.fetchall()
+ 
+    def setUserPassword(self, username, password):
+       if not self.userExists(username): raise ValueError
+
+Modified: trunk/rdiffWeb/page_admin.py
+===================================================================
+--- trunk/rdiffWeb/page_admin.py	2006-09-06 17:46:57 UTC (rev 63)
++++ trunk/rdiffWeb/page_admin.py	2006-09-21 02:28:09 UTC (rev 64)
+@@ -113,6 +113,15 @@
+       return page + self.endPage()
+    editUser.exposed = True
+ 
++   def deleteUser(self, user):
++      if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
++      if not self.userDB.userExists(user): return
++
++      self.userDB.deleteUser(user)
++      return self.writeMessagePage(&quot;Success&quot;, &quot;User account removed.&quot;)
++
++   deleteUser.exposed = True
++
+    def changePassword(self, user, password=&quot;&quot;):
+       if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
+       if not self.userDB.userExists(user): return
+@@ -133,7 +142,7 @@
+    def updateRepos(self, user):
+       if not self._userIsAdmin(): return self.writeErrorPage(&quot;Access denied.&quot;)
+       if not self.userDB.userExists(user): return
+-      rdw_spider_repos.findReposForUsers(user, self.userDB)
++      rdw_spider_repos.findReposForUser(user, self.userDB)
+       return self.writeMessagePage(&quot;Success&quot;, &quot;Successfully updated repositories.&quot;)
+    updateRepos.exposed = True
+ 
+
+Modified: trunk/rdiffWeb/rdw_spider_repos.py
+===================================================================
+--- trunk/rdiffWeb/rdw_spider_repos.py	2006-09-06 17:46:57 UTC (rev 63)
++++ trunk/rdiffWeb/rdw_spider_repos.py	2006-09-21 02:28:09 UTC (rev 64)
+@@ -3,7 +3,7 @@
+ import os
+ import db_mysql, rdw_helpers, librdiff
+ 
+-def findRdiffRepos(dirToSearch, outRepoPaths):
++def _findRdiffRepos(dirToSearch, outRepoPaths):
+    dirEntries = os.listdir(dirToSearch)
+    if librdiff.rdiffDataDirName in dirEntries:
+       print &quot;   Found repo at &quot; + dirToSearch
+@@ -13,13 +13,13 @@
+    for entry in dirEntries:
+       entryPath = rdw_helpers.joinPaths(dirToSearch, entry)
+       if os.path.isdir(entryPath) and not os.path.islink(entryPath):
+-         findRdiffRepos(entryPath, outRepoPaths)
++         _findRdiffRepos(entryPath, outRepoPaths)
+ 
+ 
+-def findReposForUsers(user, userDBModule):
++def findReposForUser(user, userDBModule):
+    userRoot = userDBModule.getUserRoot(user)
+    repoPaths = []
+-   findRdiffRepos(userRoot, repoPaths)
++   _findRdiffRepos(userRoot, repoPaths)
+ 
+    def stripRoot(path):
+       if not path[len(userRoot):]:
+@@ -29,13 +29,13 @@
+    userDBModule.setUserRepos(user, repoPaths)
+ 
+ 
+-def main():
++def findReposForAllUsers():
+    userDBModule = db_mysql.mysqlUserDB()
+    users = userDBModule.getUserList()
+    for user in users:
+       print &quot;Adding repos for user %s...&quot; % user
+-      findReposForUsers(user, userDBModule)
++      findReposForUser(user, userDBModule)
+ 
+ 
+ if __name__ == &quot;__main__&quot;:
+-   main()
++   findReposForAllUsers()
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2006-09-06 17:46:57 UTC (rev 63)
++++ trunk/rdiffWeb/templates/admin_main.html	2006-09-21 02:28:09 UTC (rev 64)
+@@ -7,7 +7,10 @@
+ &lt;!--StartRepeat:users--&gt;
+    &lt;tr&gt;
+       &lt;td&gt;^username$&lt;/td&gt;
+-      &lt;td&gt;&lt;a href=&quot;/admin/editUser?user=^username$&quot;&gt;Edit User&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/admin/changePassword?user=^username$&quot;&gt;Change Password&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/admin/updateRepos?user=^username$&quot;&gt;Find and update repositories&lt;/a&gt;&lt;/td&gt;
++      &lt;td&gt;&lt;a href=&quot;/admin/editUser?user=^username$&quot;&gt;Edit User&lt;/a&gt;&lt;/td&gt;
++      &lt;td&gt;&lt;a href=&quot;/admin/deleteUser?user=^username$&quot;&gt;Delete User&lt;/a&gt;&lt;/td&gt;
++      &lt;td&gt;&lt;a href=&quot;/admin/changePassword?user=^username$&quot;&gt;Change Password&lt;/a&gt;&lt;/td&gt;
++      &lt;td&gt;&lt;a href=&quot;/admin/updateRepos?user=^username$&quot;&gt;Find and update repositories&lt;/a&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+ &lt;!--EndRepeat:users--&gt;
+ &lt;/table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000020.html">[Rdiffweb-commits] r63 - trunk
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21">[ date ]</a>
+              <a href="thread.html#21">[ thread ]</a>
+              <a href="subject.html#21">[ subject ]</a>
+              <a href="author.html#21">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

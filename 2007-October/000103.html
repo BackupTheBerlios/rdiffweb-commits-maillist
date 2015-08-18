@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r146 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r146%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710100139.l9A1da8Z029833%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000102.html">
+   <LINK REL="Next"  HREF="000104.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r146 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r146%20-%20trunk/rdiffWeb&In-Reply-To=%3C200710100139.l9A1da8Z029833%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r146 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Oct 10 03:39:36 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000102.html">[Rdiffweb-commits] r145 - trunk/rdiffWeb
+</A></li>
+        <LI>Next message: <A HREF="000104.html">[Rdiffweb-commits] r147 - in trunk/tests: . quoting quoting/repo	quoting/repo/; 067ap; 067ase; 068ir quoting/repo/rdiff-backup-data	quoting/repo/rdiff-backup-data/increments	quoting/repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#103">[ date ]</a>
+              <a href="thread.html#103">[ thread ]</a>
+              <a href="subject.html#103">[ subject ]</a>
+              <a href="author.html#103">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2007-10-10 03:39:34 +0200 (Wed, 10 Oct 2007)
+New Revision: 146
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Handle quoted repositories
+
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-10-10 01:25:00 UTC (rev 145)
++++ trunk/rdiffWeb/librdiff.py	2007-10-10 01:39:34 UTC (rev 146)
+@@ -38,8 +38,8 @@
+ ##### Interfaced objects #####
+ class dirEntry:
+    &quot;&quot;&quot;Includes name, isDir, fileSize, exists, and dict (changeDates) of sorted local dates when backed up&quot;&quot;&quot;
+-   def __init__(self, name, isDir, fileSize, exists, changeDates):
+-      self.name = name
++   def __init__(self, name, quoter, isDir, fileSize, exists, changeDates):
++      self.name = quoter.getUnquotedPath(name)
+       self.isDir = isDir
+       self.fileSize = fileSize
+       self.exists = exists
+@@ -60,8 +60,8 @@
+    missingSuffix = &quot;.missing&quot;
+    suffixes = [&quot;.missing&quot;, &quot;.snapshot.gz&quot;, &quot;.snapshot&quot;, &quot;.diff.gz&quot;, &quot;.data.gz&quot;, &quot;.data&quot;, &quot;.dir&quot;, &quot;.diff&quot;];
+ 
+-   def __init__(self, incrementName):
+-      self.entryName = incrementName
++   def __init__(self, pathQuoter, incrementName):
++      self.entryName = pathQuoter.getUnquotedPath(incrementName)
+ 
+    def shouldShowIncrement(self):
+       return self.hasIncrementSuffix(self.entryName) and not self.isMissingIncrement()
+@@ -118,15 +118,44 @@
+             return filename[0:-len(suffix)]
+       return filename
+ 
+-
+ rdiffDataDirName = &quot;rdiff-backup-data&quot;
+ rdiffIncrementsDirName = joinPaths(rdiffDataDirName, &quot;increments&quot;)
+ 
++class rdiffQuotedPath:
++   def __init__(self, repoRoot):
++      self.unquoteRegex = re.compile(&quot;;[0-9]{3}&quot;, re.S)
++      
++      charsToQuotePath = joinPaths(repoRoot, rdiffDataDirName, &quot;chars_to_quote&quot;)
++      if os.path.exists(charsToQuotePath):
++         self.quoteRegex = re.compile(&quot;[^/%s]|;&quot; % open(charsToQuotePath).read(), re.S)
++      
++   def getUnquotedPath(self, quotedPath):
++      return self.unquoteRegex.sub(self.getUnquotedChar, quotedPath)
++   
++   def getQuotedPath(self, unQuotedPath):
++      return self.quoteRegex.sub(self.getQuotedChar, unQuotedPath)
++   
++   # This function just gives back the original text if it can decode it
++   def getUnquotedChar(self, match):
++      if not len(match.group()) == 4:
++         return match.group
++      try:
++         return chr(int(match.group()[1:]))
++      except ValueError:
++         return match.group
++   
++   def getQuotedChar(self, match):
++      return &quot;;%03d&quot; % (ord(match.group()))
++
+ class rdiffDirEntries:
+    &quot;&quot;&quot;This class is responsible for building a listing of directory entries.
+       All knowledge of how increments work is contained in this class.&quot;&quot;&quot;
++      
++   # dirPath must be quoted!
+    def init(self, repo, dirPath):
+       # Var assignment and validation
++      self.pathQuoter = rdiffQuotedPath(repo)
++      
+       self.repo = repo
+       self.dirPath = dirPath
+       self.completePath = joinPaths(repo, dirPath)
+@@ -142,8 +171,8 @@
+       if os.access(incrementsDir, os.F_OK): # the increments may not exist if the folder has existed forever and never been changed
+          self.incrementEntries = os.listdir(incrementsDir)
+ 
+-      self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(x).getFilename())
+-      self.backupTimes = [ incrementEntry(x).getDate() for x in filter(lambda x: x.startswith(&quot;mirror_metadata&quot;), self.dataDirEntries) ]
++      self.groupedIncrementEntries = rdw_helpers.groupby(self.incrementEntries, lambda x: incrementEntry(self.pathQuoter, x).getFilename())
++      self.backupTimes = [ incrementEntry(self.pathQuoter, x).getDate() for x in filter(lambda x: x.startswith(&quot;mirror_metadata&quot;), self.dataDirEntries) ]
+       self.backupTimes.sort()
+ 
+    def getDirEntries(self):
+@@ -154,13 +183,13 @@
+       for entryName in self.entries:
+          if entryName == rdiffDataDirName: continue
+          entryPath = joinPaths(self.repo, self.dirPath, entryName)
+-         newEntry = dirEntry(entryName, os.path.isdir(entryPath), os.lstat(entryPath)[6], True,
++         newEntry = dirEntry(entryName, self.pathQuoter, os.path.isdir(entryPath), os.lstat(entryPath)[6], True,
+                              [self._getLastChangedBackupTime(entryName)])
+-         entriesDict[entryName] = newEntry
++         entriesDict[newEntry.name] = newEntry
+ 
+       # Go through the increments dir.  If we find any files that didn't exist in dirPath (i.e. have been deleted), add them
+       for entryFile in self.incrementEntries:
+-         entry = incrementEntry(entryFile)
++         entry = incrementEntry(self.pathQuoter, entryFile)
+          entryName = entry.getFilename()
+          if entry.shouldShowIncrement() or entry.isMissingIncrement():
+             entryDate = entry.getDate()
+@@ -171,7 +200,7 @@
+                   entryDate = entry.getDate()
+             if not entryName in entriesDict.keys():
+                entryPath = joinPaths(self.repo, rdiffIncrementsDirName, self.dirPath, entryName)
+-               newEntry = dirEntry(entryName, os.path.isdir(entryPath), 0, False, [entryDate])
++               newEntry = dirEntry(entryName, self.pathQuoter, os.path.isdir(entryPath), 0, False, [entryDate])
+                entriesDict[entryName] = newEntry
+             else:
+                if not entryDate in entriesDict[entryName].changeDates:
+@@ -192,7 +221,7 @@
+       files.sort()
+       if not files:
+          return self._getFirstBackupAfterDate(None)
+-      return self._getFirstBackupAfterDate(incrementEntry(files[-1]).getDate())
++      return self._getFirstBackupAfterDate(incrementEntry(self.pathQuoter, files[-1]).getDate())
+ 
+ 
+ def getSessionStatsFile(rdiffDataDir, entry):
+@@ -243,6 +272,7 @@
+ ##### Interfaced Functions #####
+ def getDirEntries(repoRoot, dirPath):
+    &quot;&quot;&quot;Returns list of rdiffDirEntry objects.  dirPath is relative to repoPath.&quot;&quot;&quot;
++   dirPath = rdiffQuotedPath(repoRoot).getQuotedPath(dirPath)
+    checkRepoPath(repoRoot, dirPath)
+ 
+    entryLister = rdiffDirEntries()
+@@ -260,7 +290,9 @@
+ import tempfile
+ def restoreFileOrDir(repoRoot, dirPath, filename, restoreDate):
+    &quot;&quot;&quot; returns a file path to the file.  User is responsible for deleting file, as well as containing dir, after use. &quot;&quot;&quot;
+-   checkRepoPath(repoRoot, joinPaths(dirPath, filename))
++   filePath = joinPaths(dirPath, filename)
++   filePath = rdiffQuotedPath(repoRoot).getQuotedPath(filePath)
++   checkRepoPath(repoRoot, filePath)
+ 
+    restoredFilename = filename
+    if restoredFilename == &quot;/&quot;:
+@@ -292,7 +324,7 @@
+       return True
+    mirrorMarkers = mirrorMarkers[1:] # Skip the oldest one, since that one is completed
+    for marker in mirrorMarkers:
+-      if incrementEntry(marker).getDate().getSeconds() == date.getSeconds():
++      if incrementEntry(rdiffQuotedPath(repo), marker).getDate().getSeconds() == date.getSeconds():
+          return True
+    return False
+ 
+@@ -318,6 +350,8 @@
+ def _getBackupHistory(repoRoot, numLatestEntries=-1, earliestDate=None, latestDate=None, includeInProgress=True):
+    &quot;&quot;&quot;Returns a list of backupHistoryEntry's&quot;&quot;&quot;
+    checkRepoPath(repoRoot, &quot;&quot;)
++   
++   pathQuoter = rdiffQuotedPath(repoRoot)
+ 
+    # Get a listing of error log files, and use that to build backup history
+    rdiffDir = joinPaths(repoRoot, rdiffDataDirName)
+@@ -327,7 +361,7 @@
+ 
+    entries = []
+    for entryFile in curEntries:
+-      entry = incrementEntry(entryFile)
++      entry = incrementEntry(pathQuoter, entryFile)
+       # compare local times because of discrepency between client/server time zones
+       if earliestDate and entry.getDate().getLocalSeconds() &lt; earliestDate.getLocalSeconds():
+          continue
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000102.html">[Rdiffweb-commits] r145 - trunk/rdiffWeb
+</A></li>
+	<LI>Next message: <A HREF="000104.html">[Rdiffweb-commits] r147 - in trunk/tests: . quoting quoting/repo	quoting/repo/; 067ap; 067ase; 068ir quoting/repo/rdiff-backup-data	quoting/repo/rdiff-backup-data/increments	quoting/repo/rdiff-backup-data/increments/; 067ap; 067ase; 068ir
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#103">[ date ]</a>
+              <a href="thread.html#103">[ thread ]</a>
+              <a href="subject.html#103">[ subject ]</a>
+              <a href="author.html#103">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

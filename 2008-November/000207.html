@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r250 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r250%20-%20trunk&In-Reply-To=%3C200811050226.mA52Qd6R002257%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r250 - trunk</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r250%20-%20trunk&In-Reply-To=%3C200811050226.mA52Qd6R002257%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r250 - trunk">commits at rdiffweb.org
+       </A><BR>
+    <I>Wed Nov  5 03:26:39 CET 2008</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-11-05 03:26:37 +0100 (Wed, 05 Nov 2008)
+New Revision: 250
+
+Modified:
+   trunk/rdiff-web
+Log:
+Add ability to redirect from HTTP to HTTPS.
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2008-03-27 23:06:12 UTC (rev 249)
++++ trunk/rdiff-web	2008-11-05 02:26:37 UTC (rev 250)
+@@ -1,4 +1,15 @@
+ #!/usr/bin/python
++# Copyright (C) 2005-2008  Josh Nisly &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">rdiffweb at joshnisly.com</A>&gt;
++#
++# This program is licensed under the GNU General Public License (GPL).
++# you can redistribute it and/or modify it under the terms of the GNU
++# General Public License as published by the Free Software Foundation,
++# Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA; either
++# version 2 of the License, or (at your option) any later version.
++# Distributions of rdiff-backup should include a copy of the GPL in a
++# file called COPYING.  The GPL is also available online at
++# <A HREF="http://www.gnu.org/copyleft/gpl.html.">http://www.gnu.org/copyleft/gpl.html.</A>
++#
+ 
+ import cherrypy
+ import getopt
+@@ -22,6 +33,14 @@
+ import rdiffWeb.page_status
+ import rdiffWeb.page_prefs
+ 
++def redirectToHttps():
++   requestPath = cherrypy.request.base + cherrypy.request.path_info
++   if requestPath.startswith('http:'):
++      requestPath = 'https:' + requestPath[5:]
++      raise cherrypy.HTTPRedirect(requestPath)
++
++cherrypy.tools.redirect = cherrypy._cptools.HandlerTool(redirectToHttps)
++
+ if __name__ == &quot;__main__&quot;:
+    # Parse command line options
+    verbose = True
+@@ -59,6 +78,7 @@
+       environment = &quot;production&quot;
+    global_settings = {
+       'tools.encode.on': True,
++      'tools.redirect.on': True,
+       'tools.encode.encoding': 'utf-8',
+       'tools.gzip.on': True,
+       'tools.sessions.on' : True,
+@@ -72,6 +92,10 @@
+       'log.screen': True,
+       'server.environment': environment,
+    }
++
++   sslCert = rdiffWeb.rdw_config.getConfigSetting(&quot;SslCertificate&quot;)
++   redirectSetting = rdiffWeb.rdw_config.getConfigSetting(&quot;redirectToHttps&quot;)
++   shouldRedirectToHttps = sslCert != &quot;&quot; and redirectSetting.lower() == &quot;true&quot;
+    
+    page_settings = {
+       '/': {
+@@ -113,6 +137,8 @@
+    root.status = rdiffWeb.page_status.rdiffStatusPage()
+    root.admin = rdiffWeb.page_admin.rdiffAdminPage()
+    root.prefs = rdiffWeb.page_prefs.rdiffPreferencesPage()
++   cherrypy.config.update(page_settings)
++   cherrypy.tree.mount(root, '', page_settings)
+    
+    # Start repo spider thread
+    if not debug:
+@@ -122,4 +148,17 @@
+       rdiffWeb.email_notification.startEmailNotificationThread(killEvent)
+       cherrypy.engine.on_stop_engine_list.append(lambda: killEvent.set())
+ 
+-   cherrypy.quickstart(root, config=page_settings)
++
++   # Start the HTTP servers. If serving SSL, optionally also start 
++   # up an http server that redirects to HTTPS
++   httpserver, bind_addr = cherrypy.server.httpserver_from_self(None)
++   cherrypy.server.httpservers[httpserver] = bind_addr
++   if shouldRedirectToHttps:
++      cherrypy.server.socket_port = 80
++      cherrypy.server.ssl_certificate = None
++      cherrypy.server.ssl_private_key = None
++      httpserver, bind_addr = cherrypy.server.httpserver_from_self(None)
++      cherrypy.server.httpservers[httpserver] = bind_addr
++   cherrypy.server.start()
++   cherrypy.engine.start()
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

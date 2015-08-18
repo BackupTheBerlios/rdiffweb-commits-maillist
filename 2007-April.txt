@@ -1,0 +1,362 @@
+From commits at rdiffweb.org  Wed Apr  4 22:32:14 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 4 Apr 2007 22:32:14 +0200
+Subject: [Rdiffweb-commits] r84 - trunk/rdiffWeb
+Message-ID: <200704042032.l34KWEgX026584@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-04 22:32:10 +0200 (Wed, 04 Apr 2007)
+New Revision: 84
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+* Provide default values for user records
+* Start caching the user's root path
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-03-30 12:10:32 UTC (rev 83)
++++ trunk/rdiffWeb/db_mysql.py	2007-04-04 20:32:10 UTC (rev 84)
+@@ -9,6 +9,7 @@
+       import MySQLdb
+       self.configFilePath = configFilePath
+       MySQLdb.paramstyle = "pyformat"
++      self.userRootCache = {}
+       self._connect()
+ 
+    def userExists(self, username):
+@@ -20,7 +21,9 @@
+       return len(results) == 1
+ 
+    def getUserRoot(self, username):
+-      return self._getUserField(username, "UserRoot")
++      if not self.userRootCache[username]:
++         self.userRootCache[username] = self._getUserField(username, "UserRoot")
++      return self.userRootCache[username]
+ 
+    def getUserRepoPaths(self, username):
+       if not self.userExists(username): return None
+@@ -53,6 +56,7 @@
+          adminInt = 0
+       query = "UPDATE users SET UserRoot=%(userRoot)s, IsAdmin="+str(adminInt)+" WHERE Username = %(user)s"
+       self._executeQuery(query, userRoot=userRoot, user=username)
++      self.userRootCache[username] = userRoot # update cache
+ 
+    def setUserRepos(self, username, repoPaths):
+       if not self.userExists(username): raise ValueError
+@@ -120,12 +124,15 @@
+ 
+    def _getCreateStatements(self):
+       return ["""create table users ( UserID int(11) NOT NULL auto_increment,
+-               Username varchar (50) binary unique not null,
+-               Password varchar (40) not null,
+-               UserRoot varchar (255) not null,
+-               IsAdmin tinyint not null,
++               Username varchar (50) binary unique NOT NULL,
++               Password varchar (40) NOT NULL DEFAULT "",
++               UserRoot varchar (255) NOT NULL DEFAULT "",
++               IsAdmin tinyint NOT NULL DEFAULT FALSE,
+                primary key (UserID) )""",
+-               "create table repos ( UserID int(11) NOT NULL, RepoPath varchar (255) not null);"]
++               """create table repos ( RepoID int(11) NOT NULL auto_increment,
++               UserID int(11) NOT NULL, 
++               RepoPath varchar (255) NOT NULL,
++               primary key (RepoID))"""]
+ 
+ 
+ ##################### Unit Tests #########################
+
+
+
+From commits at rdiffweb.org  Wed Apr  4 22:34:42 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 4 Apr 2007 22:34:42 +0200
+Subject: [Rdiffweb-commits] r85 - trunk/rdiffWeb
+Message-ID: <200704042034.l34KYgbv026983@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-04 22:34:39 +0200 (Wed, 04 Apr 2007)
+New Revision: 85
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+Fix previous commit
+
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-04-04 20:32:10 UTC (rev 84)
++++ trunk/rdiffWeb/db_mysql.py	2007-04-04 20:34:39 UTC (rev 85)
+@@ -21,7 +21,7 @@
+       return len(results) == 1
+ 
+    def getUserRoot(self, username):
+-      if not self.userRootCache[username]:
++      if not username in self.userRootCache:
+          self.userRootCache[username] = self._getUserField(username, "UserRoot")
+       return self.userRootCache[username]
+ 
+
+
+
+From commits at rdiffweb.org  Wed Apr  4 23:19:04 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 4 Apr 2007 23:19:04 +0200
+Subject: [Rdiffweb-commits] r86 - trunk/rdiffWeb
+Message-ID: <200704042119.l34LJ4da029712@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-04 23:18:58 +0200 (Wed, 04 Apr 2007)
+New Revision: 86
+
+Modified:
+   trunk/rdiffWeb/page_main.py
+Log:
+Fix browsing repos with relative paths
+
+Modified: trunk/rdiffWeb/page_main.py
+===================================================================
+--- trunk/rdiffWeb/page_main.py	2007-04-04 20:34:39 UTC (rev 85)
++++ trunk/rdiffWeb/page_main.py	2007-04-04 21:18:58 UTC (rev 86)
+@@ -46,6 +46,7 @@
+          
+    def validateUserPath(self, path):
+       '''Takes a path relative to the user's root dir and validates that it is valid and within the user's root'''
++      path = rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), path)
+       path = path.rstrip("/")
+       realPath = os.path.realpath(path)
+       if realPath != path:
+
+
+
+From commits at rdiffweb.org  Wed Apr  4 23:20:55 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 4 Apr 2007 23:20:55 +0200
+Subject: [Rdiffweb-commits] r87 - in trunk/rdiffWeb: . templates
+Message-ID: <200704042120.l34LKt95029832@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-04 23:20:52 +0200 (Wed, 04 Apr 2007)
+New Revision: 87
+
+Modified:
+   trunk/rdiffWeb/page_locations.py
+   trunk/rdiffWeb/templates/repo_listing.html
+Log:
+Show invalid repositories at the bottom of the repo listing page
+
+Modified: trunk/rdiffWeb/page_locations.py
+===================================================================
+--- trunk/rdiffWeb/page_locations.py	2007-04-04 21:18:58 UTC (rev 86)
++++ trunk/rdiffWeb/page_locations.py	2007-04-04 21:20:52 UTC (rev 87)
+@@ -4,25 +4,33 @@
+ 
+ 
+ class rdiffLocationsPage(page_main.rdiffPage):
++   ''' Shows the locations page. Will show all available destination
++   backup directories. This is the root (/) page '''
+    def index(self):
+       page = self.startPage("Backup Locations")
+ 
+       repoList = []
++      repoErrors = []
+       for userRepo in self.userDB.getUserRepoPaths(self.getUsername()):
+          try:
+             repoHistory = librdiff.getLastBackupHistoryEntry(rdw_helpers.joinPaths(self.userDB.getUserRoot(self.getUsername()), userRepo))
+          except librdiff.FileError:
+             repoSize = "0"
+             repoDate = "Error"
+-         else:
+-            repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
+-            repoDate = repoHistory.date.getDisplayString()
+-         repoList.append({ "repoName" : userRepo,
++            repoErrors.append({ "repoName" : userRepo,
+                            "repoSize" : repoSize,
+                            "repoDate" : repoDate,
+                            "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
+                            "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
+-      page = page + self.compileTemplate("repo_listing.html", title="browse", repos=repoList)
++         else:
++            repoSize = rdw_helpers.formatFileSizeStr(repoHistory.size)
++            repoDate = repoHistory.date.getDisplayString()
++            repoList.append({ "repoName" : userRepo,
++                              "repoSize" : repoSize,
++                              "repoDate" : repoDate,
++                              "repoBrowseUrl" : self.buildBrowseUrl(userRepo, "/", False),
++                              "repoHistoryUrl" : self.buildHistoryUrl(userRepo) })
++      page = page + self.compileTemplate("repo_listing.html", title="browse", repos=repoList, badrepos=repoErrors)
+       page = page + self.endPage()
+       return page
+    index.exposed = True
+
+Modified: trunk/rdiffWeb/templates/repo_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/repo_listing.html	2007-04-04 21:18:58 UTC (rev 86)
++++ trunk/rdiffWeb/templates/repo_listing.html	2007-04-04 21:20:52 UTC (rev 87)
+@@ -18,5 +18,14 @@
+          <td><a href="^repoHistoryUrl$">(more)</a></td>
+       </tr>
+       <!--EndRepeat:repos-->
++      <!--StartRepeat:badrepos-->
++      <tr>
++         <td class="Icon" valign="middle"><img src="/static/images/repo.png"></img></td>
++         <td>^repoName$</a></td>
++         <td>^repoDate$</td><td>^repoSize$</td>
++         <td><a href="^repoHistoryUrl$">(more)</a></td>
++      </tr>
++      <!--EndRepeat:badrepos-->
++      
+    </tbody>
+ </table>
+
+
+
+From commits at rdiffweb.org  Thu Apr  5 00:50:27 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 5 Apr 2007 00:50:27 +0200
+Subject: [Rdiffweb-commits] r88 - trunk/rdiffWeb
+Message-ID: <200704042250.l34MoRAm003178@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-05 00:50:21 +0200 (Thu, 05 Apr 2007)
+New Revision: 88
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+Slight tweak to the way that repos are added.
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-04-04 21:20:52 UTC (rev 87)
++++ trunk/rdiffWeb/db_mysql.py	2007-04-04 22:50:21 UTC (rev 88)
+@@ -62,8 +62,8 @@
+       if not self.userExists(username): raise ValueError
+       userID = self._getUserID(username)
+       self._deleteUserRepos(username)
+-      query = "INSERT INTO repos (UserID, RepoPath) values ("+str(userID)+", %(repo)s)"
+-      repoPaths = [ {"repo" : repo} for repo in repoPaths ]
++      query = "INSERT INTO repos (UserID, RepoPath) values (%(userID)s, %(repo)s)"
++      repoPaths = [ {"userID": str(userID), "repo" : repo} for repo in repoPaths ]
+       cursor = self.sqlConnection.cursor()
+       cursor.executemany(query, repoPaths)
+ 
+
+
+
+From commits at rdiffweb.org  Thu Apr  5 06:25:06 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Thu, 5 Apr 2007 06:25:06 +0200
+Subject: [Rdiffweb-commits] r89 - trunk/rdiffWeb
+Message-ID: <200704050425.l354P6ZT002594@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-05 06:25:04 +0200 (Thu, 05 Apr 2007)
+New Revision: 89
+
+Modified:
+   trunk/rdiffWeb/db_mysql.py
+Log:
+Yet another way of calling executemany
+
+Modified: trunk/rdiffWeb/db_mysql.py
+===================================================================
+--- trunk/rdiffWeb/db_mysql.py	2007-04-04 22:50:21 UTC (rev 88)
++++ trunk/rdiffWeb/db_mysql.py	2007-04-05 04:25:04 UTC (rev 89)
+@@ -62,8 +62,8 @@
+       if not self.userExists(username): raise ValueError
+       userID = self._getUserID(username)
+       self._deleteUserRepos(username)
+-      query = "INSERT INTO repos (UserID, RepoPath) values (%(userID)s, %(repo)s)"
+-      repoPaths = [ {"userID": str(userID), "repo" : repo} for repo in repoPaths ]
++      query = "INSERT INTO repos (UserID, RepoPath) values (%s, %s)"
++      repoPaths = [ (str(userID), repo) for repo in repoPaths ]
+       cursor = self.sqlConnection.cursor()
+       cursor.executemany(query, repoPaths)
+ 
+
+
+
+From commits at rdiffweb.org  Fri Apr  6 03:18:12 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 6 Apr 2007 03:18:12 +0200
+Subject: [Rdiffweb-commits] r90 - trunk/rdiffWeb
+Message-ID: <200704060118.l361IC9S016464@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-06 03:18:07 +0200 (Fri, 06 Apr 2007)
+New Revision: 90
+
+Modified:
+   trunk/rdiffWeb/librdiff.py
+Log:
+Fix error when viewing repos when first backup is in progress
+
+Modified: trunk/rdiffWeb/librdiff.py
+===================================================================
+--- trunk/rdiffWeb/librdiff.py	2007-04-05 04:25:04 UTC (rev 89)
++++ trunk/rdiffWeb/librdiff.py	2007-04-06 01:18:07 UTC (rev 90)
+@@ -284,7 +284,9 @@
+    return _getBackupHistory(repoRoot)
+ 
+ def getLastBackupHistoryEntry(repoRoot):
+-   return _getBackupHistory(repoRoot, 1)[0]
++   history = _getBackupHistory(repoRoot, 1)
++   if not history: raise FileError # We may not have any backup entries if the first backup for the repository is in progress
++   return history[0]
+ 
+ def getBackupHistoryForDay(repoRoot, date):
+    return _getBackupHistory(repoRoot, -1, date)
+
+
+
+From commits at rdiffweb.org  Fri Apr 20 07:48:36 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 20 Apr 2007 07:48:36 +0200
+Subject: [Rdiffweb-commits] r91 - trunk
+Message-ID: <200704200548.l3K5maLG030667@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-04-20 07:48:31 +0200 (Fri, 20 Apr 2007)
+New Revision: 91
+
+Modified:
+   trunk/rdiff-web
+Log:
+Add support for saving session data to disk
+
+Modified: trunk/rdiff-web
+===================================================================
+--- trunk/rdiff-web	2007-04-06 01:18:07 UTC (rev 90)
++++ trunk/rdiff-web	2007-04-20 05:48:31 UTC (rev 91)
+@@ -6,6 +6,9 @@
+ import rdiffWeb.rdw_config
+ import sys
+ 
++def isValidSessionDir(sessionDir):
++   return os.path.exists(sessionDir) and os.path.isdir(sessionDir) and os.access(sessionDir, os.W_OK)
++
+ if __name__ == "__main__":
+ 
+    # First make sure we have a valid config file.  If not, tell the user to run the config script
+@@ -83,6 +86,14 @@
+    if not verbose:
+       settings['server.logToScreen'] = False
+ 
++   if rdiffWeb.rdw_config.getConfigSetting("SessionStorage").lower() == "disk":
++      sessionDir = rdiffWeb.rdw_config.getConfigSetting("SessionDir")
++      if isValidSessionDir(sessionDir):
++         cherrypy.log("Setting session mode to disk in directory %s" % sessionDir)
++         settings['sessionFilter'] = True
++         settings['sessionFilter.storageType'] = 'File'
++         settings['sessionFilter.storagePath'] = sessionDir
++
+    cherrypy.config.update(settings)
+    cherrypy.root = rdiffWeb.page_locations.rdiffLocationsPage()
+    cherrypy.root.browse = rdiffWeb.page_browse.rdiffBrowsePage()
+
+
+

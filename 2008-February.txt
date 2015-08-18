@@ -1,0 +1,488 @@
+From commits at rdiffweb.org  Sat Feb  2 23:07:21 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 2 Feb 2008 23:07:21 +0100
+Subject: [Rdiffweb-commits] r238 - trunk
+Message-ID: <200802022207.m12M7L4u029964@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-02 23:07:19 +0100 (Sat, 02 Feb 2008)
+New Revision: 238
+
+Modified:
+   trunk/setup.py
+Log:
+Bump version in preparation for release.
+
+Modified: trunk/setup.py
+===================================================================
+--- trunk/setup.py	2008-01-29 20:06:10 UTC (rev 237)
++++ trunk/setup.py	2008-02-02 22:07:19 UTC (rev 238)
+@@ -10,7 +10,7 @@
+    sys.exit(1)
+    
+ setup(name='rdiffWeb',
+-   version='0.6.1',
++   version='0.6.2',
+    description='A web interface to rdiff-backup repositories',
+    author='Josh Nisly',
+    author_email='rdiffweb at joshnisly.com',
+
+
+
+From commits at rdiffweb.org  Sat Feb  2 23:08:53 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 2 Feb 2008 23:08:53 +0100
+Subject: [Rdiffweb-commits] r239 - tags
+Message-ID: <200802022208.m12M8r1k030077@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-02 23:08:50 +0100 (Sat, 02 Feb 2008)
+New Revision: 239
+
+Added:
+   tags/release-0.6.2/
+Log:
+Tagging version 0.6.2
+
+Copied: tags/release-0.6.2 (from rev 238, trunk)
+
+
+
+From commits at rdiffweb.org  Sat Feb  2 23:58:11 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 2 Feb 2008 23:58:11 +0100
+Subject: [Rdiffweb-commits] r240 - trunk/init
+Message-ID: <200802022258.m12MwBPc000114@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-02 23:58:09 +0100 (Sat, 02 Feb 2008)
+New Revision: 240
+
+Modified:
+   trunk/init/rdiff-web
+Log:
+Fix typo in init script.
+
+Modified: trunk/init/rdiff-web
+===================================================================
+--- trunk/init/rdiff-web	2008-02-02 22:08:50 UTC (rev 239)
++++ trunk/init/rdiff-web	2008-02-02 22:58:09 UTC (rev 240)
+@@ -7,7 +7,7 @@
+ # Required-Stop: $network
+ # Default-Start: 2 3 5
+ # Default-Stop: 0 6
+-# Description: Manages the rdiff-backup daemon
++# Description: Manages the rdiffWeb daemon
+ ### END INIT INFO
+ 
+ PIDFILE="/var/run/rdiff-web"
+
+
+
+From commits at rdiffweb.org  Sun Feb  3 00:06:17 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sun, 3 Feb 2008 00:06:17 +0100
+Subject: [Rdiffweb-commits] r241 - in trunk: . debian
+Message-ID: <200802022306.m12N6HJq000814@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-03 00:06:12 +0100 (Sun, 03 Feb 2008)
+New Revision: 241
+
+Added:
+   trunk/debian/
+   trunk/debian/changelog
+   trunk/debian/compat
+   trunk/debian/control
+   trunk/debian/copyright
+   trunk/debian/python-rdiff-web.install
+   trunk/debian/rdiff-web.examples
+   trunk/debian/rdiff-web.init
+   trunk/debian/rdiff-web.install
+   trunk/debian/rules
+Log:
+Commit initial debian packaging, thanks to Matthew Rosewarne.
+
+Added: trunk/debian/changelog
+===================================================================
+--- trunk/debian/changelog	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/changelog	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1,14 @@
++rdiff-web (0.6.2-1) unstable; urgency=low
++
++  * New upstream testing release.
++  * Switched from python-cherrypy to python-cherrypy3.
++  * Switched from python-mysqldb to python-pysqlite2.
++
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Fri, 18 Jan 2008 01:43:30 -0500
++
++rdiff-web (0.5.1-1) stable; urgency=low
++
++  * Initial release.
++
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Thu, 17 Jan 2008 21:01:05 -0500
++
+
+Added: trunk/debian/compat
+===================================================================
+--- trunk/debian/compat	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/compat	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1 @@
++5
+
+Added: trunk/debian/control
+===================================================================
+--- trunk/debian/control	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/control	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1,26 @@
++Source: rdiff-web
++Section: www
++Priority: extra
++Maintainer: Matthew Rosewarne <mrosewarne at inoutbox.com>
++Build-Depends: cdbs, debhelper (>= 5), python-central
++Standards-Version: 3.7.3
++Homepage: http://www.rdiffweb.org/
++XS-Python-Version: all
++
++Package: python-rdiff-web
++Architecture: all
++XB-Python-Version: ${python:Versions}
++Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python (>=2.4), python-cherrypy3, rdiff-backup, python-pysqlite2
++Provides: ${python:Provides}
++Description: Python module for rdiffWeb
++ This package contains Python modules used by rdiffWeb.
++ .
++ rdiffWeb is a web interface for browsing and restoring from rdiff-backup
++ repositories.
++
++Package: rdiff-web
++Architecture: all
++Depends: ${shlibs:Depends}, ${misc:Depends}, python-rdiff-web (= ${source:Version})
++Description: Web interface to rdiff-backup repositories
++ rdiffWeb is a web interface for browsing and restoring from rdiff-backup
++ repositories.
+
+Added: trunk/debian/copyright
+===================================================================
+--- trunk/debian/copyright	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/copyright	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1,38 @@
++This package was debianized by Matthew Rosewarne <mrosewarne at inoutbox.com> on
++Thu, 17 Jan 2008 21:01:05 -0500.
++
++It was downloaded from http://www.rdiffweb.org/
++
++Upstream Author(s): 
++
++    Josh Nisly
++
++Copyright: 
++
++    <Copyright (C) 2008 Josh Nisly>
++
++License:
++
++    This package is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++ 
++    This package is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++ 
++    You should have received a copy of the GNU General Public License
++    along with this package; if not, write to the Free Software
++    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
++
++On Debian systems, the complete text of the GNU General
++Public License can be found in `/usr/share/common-licenses/GPL'.
++
++The Debian packaging is (C) 2008, Matthew Rosewarne <mrosewarne at inoutbox.com> and
++is licensed under the GPL, see above.
++
++
++# Please also look if there are files or directories which have a
++# different copyright/license attached and list them here.
+
+Added: trunk/debian/python-rdiff-web.install
+===================================================================
+--- trunk/debian/python-rdiff-web.install	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/python-rdiff-web.install	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1 @@
++usr/lib/python2.*/site-packages/rdiffWeb*
+
+Added: trunk/debian/rdiff-web.examples
+===================================================================
+--- trunk/debian/rdiff-web.examples	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/rdiff-web.examples	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1 @@
++rdw.conf.sample
+
+Added: trunk/debian/rdiff-web.init
+===================================================================
+--- trunk/debian/rdiff-web.init	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/rdiff-web.init	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1 @@
++link ../init/rdiff-web
+\ No newline at end of file
+
+
+Property changes on: trunk/debian/rdiff-web.init
+___________________________________________________________________
+Name: svn:special
+   + *
+
+Added: trunk/debian/rdiff-web.install
+===================================================================
+--- trunk/debian/rdiff-web.install	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/rdiff-web.install	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1,2 @@
++usr/bin/rdiff-web
++usr/bin/rdiff-web-config
+
+Added: trunk/debian/rules
+===================================================================
+--- trunk/debian/rules	2008-02-02 22:58:09 UTC (rev 240)
++++ trunk/debian/rules	2008-02-02 23:06:12 UTC (rev 241)
+@@ -0,0 +1,12 @@
++#!/usr/bin/make -f
++
++DEB_PYTHON_SYSTEM = pycentral
++
++include /usr/share/cdbs/1/rules/debhelper.mk
++include /usr/share/cdbs/1/class/python-distutils.mk
++
++DEB_DH_INSTALL_SOURCEDIR = debian/tmp
++
++DEB_DH_INSTALLINIT_ARGS = --no-start
++
++DEB_INSTALL_DOCS_ALL = 
+
+
+Property changes on: trunk/debian/rules
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+
+
+From commits at rdiffweb.org  Mon Feb  4 15:40:59 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 4 Feb 2008 15:40:59 +0100
+Subject: [Rdiffweb-commits] r242 - trunk/tests
+Message-ID: <200802041440.m14Eexj9022929@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-04 15:40:57 +0100 (Mon, 04 Feb 2008)
+New Revision: 242
+
+Removed:
+   trunk/tests/encoding/
+Log:
+Remove encoding test. This made it impossible to checkout on US-en systems.
+
+
+
+
+From commits at rdiffweb.org  Mon Feb  4 19:16:22 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Mon, 4 Feb 2008 19:16:22 +0100
+Subject: [Rdiffweb-commits] r243 - trunk/rdiffWeb
+Message-ID: <200802041816.m14IGMDG007009@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-04 19:16:16 +0100 (Mon, 04 Feb 2008)
+New Revision: 243
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Fix error on python 2.4.
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2008-02-04 14:40:57 UTC (rev 242)
++++ trunk/rdiffWeb/rdw_templating.py	2008-02-04 18:16:16 UTC (rev 243)
+@@ -3,7 +3,7 @@
+ import rdw_helpers
+ import re
+ 
+-class templateError(BaseException):
++class templateError(Exception):
+    pass
+ class templateDataError(templateError):
+    pass
+
+
+
+From commits at rdiffweb.org  Sat Feb  9 17:33:52 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 9 Feb 2008 17:33:52 +0100
+Subject: [Rdiffweb-commits] r244 - trunk
+Message-ID: <200802091633.m19GXqLN030213@sheep.berlios.de>
+
+Author: joshn
+Date: 2008-02-09 17:33:50 +0100 (Sat, 09 Feb 2008)
+New Revision: 244
+
+Modified:
+   trunk/rdiff-web-config
+Log:
+Bring back rdiff-web-config command to spider repos. This lets people schedule it with cron.
+
+Modified: trunk/rdiff-web-config
+===================================================================
+--- trunk/rdiff-web-config	2008-02-04 18:16:16 UTC (rev 243)
++++ trunk/rdiff-web-config	2008-02-09 16:33:50 UTC (rev 244)
+@@ -100,7 +100,10 @@
+       sys.exit(2)
+ 
+    addUser(sys.argv[2], sys.argv[3], sys.argv[4], False)
+-   
++
++def doSpiderRepos():
++   rdiffWeb.rdw_spider_repos.findReposForAllUsers()  
++
+ def createNeededFolders():
+    # We can't just check for root privileges, since cygwin doesn't support the "root" user.
+    # So we poke around at folders/files, to make sure that we have the required permissions.
+@@ -132,5 +135,10 @@
+    if len(sys.argv) > 1:
+       if sys.argv[1] == "adduser":
+          doAddUser()
++      elif sys.argv[1] == "spiderrepos":
++         doSpiderRepos()
++      else:
++         print "Error: unrecognized command."
++         sys.exit(2)
+    else:
+       doMainSetup()
+
+
+
+From commits at rdiffweb.org  Sat Feb  9 21:30:02 2008
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 9 Feb 2008 21:30:02 +0100
+Subject: [Rdiffweb-commits] r245 - trunk/debian
+Message-ID: <200802092030.m19KU2qv007263@sheep.berlios.de>
+
+Author: mukidohime
+Date: 2008-02-09 21:30:02 +0100 (Sat, 09 Feb 2008)
+New Revision: 245
+
+Modified:
+   trunk/debian/changelog
+   trunk/debian/control
+   trunk/debian/copyright
+   trunk/debian/rdiff-web.install
+   trunk/debian/rules
+Log:
+* init script fix
+* misc fixes and tidying
+
+
+Modified: trunk/debian/changelog
+===================================================================
+--- trunk/debian/changelog	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/changelog	2008-02-09 20:30:02 UTC (rev 245)
+@@ -1,6 +1,14 @@
+ rdiff-web (0.6.2-1) unstable; urgency=low
+ 
+   * New upstream testing release.
++  * Changed init script handling.
++  * Fixed python-pysqlite2 dependency.
++
++ -- Matthew Rosewarne <mrosewarne at inoutbox.com>  Sat, 09 Feb 2008 15:09:52 -0500
++
++rdiff-web (0.6.1-1) unstable; urgency=low
++
++  * New upstream testing release.
+   * Switched from python-cherrypy to python-cherrypy3.
+   * Switched from python-mysqldb to python-pysqlite2.
+ 
+
+Modified: trunk/debian/control
+===================================================================
+--- trunk/debian/control	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/control	2008-02-09 20:30:02 UTC (rev 245)
+@@ -2,7 +2,7 @@
+ Section: www
+ Priority: extra
+ Maintainer: Matthew Rosewarne <mrosewarne at inoutbox.com>
+-Build-Depends: cdbs, debhelper (>= 5), python-central
++Build-Depends: cdbs, debhelper (>= 5), python-all-dev, python-central
+ Standards-Version: 3.7.3
+ Homepage: http://www.rdiffweb.org/
+ XS-Python-Version: all
+@@ -10,7 +10,8 @@
+ Package: python-rdiff-web
+ Architecture: all
+ XB-Python-Version: ${python:Versions}
+-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python (>=2.4), python-cherrypy3, rdiff-backup, python-pysqlite2
++Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
++ python-cherrypy3, python-pysqlite2, rdiff-backup
+ Provides: ${python:Provides}
+ Description: Python module for rdiffWeb
+  This package contains Python modules used by rdiffWeb.
+
+Modified: trunk/debian/copyright
+===================================================================
+--- trunk/debian/copyright	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/copyright	2008-02-09 20:30:02 UTC (rev 245)
+@@ -3,13 +3,13 @@
+ 
+ It was downloaded from http://www.rdiffweb.org/
+ 
+-Upstream Author(s): 
++Upstream Author:
+ 
+-    Josh Nisly
++    Josh Nisly <rdiffweb at joshnisly.com>
+ 
+ Copyright: 
+ 
+-    <Copyright (C) 2008 Josh Nisly>
++    Copyright (C) 2008 Josh Nisly
+ 
+ License:
+ 
+@@ -32,7 +32,3 @@
+ 
+ The Debian packaging is (C) 2008, Matthew Rosewarne <mrosewarne at inoutbox.com> and
+ is licensed under the GPL, see above.
+-
+-
+-# Please also look if there are files or directories which have a
+-# different copyright/license attached and list them here.
+
+Modified: trunk/debian/rdiff-web.install
+===================================================================
+--- trunk/debian/rdiff-web.install	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/rdiff-web.install	2008-02-09 20:30:02 UTC (rev 245)
+@@ -1,2 +1,3 @@
++etc/init.d/rdiff-web
+ usr/bin/rdiff-web
+ usr/bin/rdiff-web-config
+
+Modified: trunk/debian/rules
+===================================================================
+--- trunk/debian/rules	2008-02-09 16:33:50 UTC (rev 244)
++++ trunk/debian/rules	2008-02-09 20:30:02 UTC (rev 245)
+@@ -3,10 +3,11 @@
+ DEB_PYTHON_SYSTEM = pycentral
+ 
+ include /usr/share/cdbs/1/rules/debhelper.mk
++include /usr/share/cdbs/1/rules/utils.mk
+ include /usr/share/cdbs/1/class/python-distutils.mk
+ 
+ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+ 
+-DEB_DH_INSTALLINIT_ARGS = --no-start
++DEB_DH_INSTALLINIT_ARGS = --onlyscripts
+ 
+ DEB_INSTALL_DOCS_ALL = 
+
+
+

@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Rdiffweb-commits] r229 - trunk/rdiffWeb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/rdiffweb-commits/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r229%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801282342.m0SNgTjB018999%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000185.html">
+   <LINK REL="Next"  HREF="000187.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Rdiffweb-commits] r229 - trunk/rdiffWeb</H1>
+    <B>commits at rdiffweb.org</B> 
+    <A HREF="mailto:rdiffweb-commits%40lists.berlios.de?Subject=Re%3A%20%5BRdiffweb-commits%5D%20r229%20-%20trunk/rdiffWeb&In-Reply-To=%3C200801282342.m0SNgTjB018999%40sheep.berlios.de%3E"
+       TITLE="[Rdiffweb-commits] r229 - trunk/rdiffWeb">commits at rdiffweb.org
+       </A><BR>
+    <I>Tue Jan 29 00:42:29 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000185.html">[Rdiffweb-commits] r228 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000187.html">[Rdiffweb-commits] r230 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: joshn
+Date: 2008-01-29 00:42:22 +0100 (Tue, 29 Jan 2008)
+New Revision: 229
+
+Modified:
+   trunk/rdiffWeb/page_restore.py
+Log:
+Fix names for restorations.
+
+Modified: trunk/rdiffWeb/page_restore.py
+===================================================================
+--- trunk/rdiffWeb/page_restore.py	2008-01-28 21:04:36 UTC (rev 228)
++++ trunk/rdiffWeb/page_restore.py	2008-01-28 23:42:22 UTC (rev 229)
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+ 
+-from cherrypy.lib.static import serve_file
++from cherrypy.lib.static import serve_file, serve_download
+ import rdw_helpers, page_main, librdiff
+ import os
+ 
+@@ -13,6 +13,8 @@
+       rdw_helpers.removeDir(self.dirPath)
+ 
+ class rdiffRestorePage(page_main.rdiffPage):
++   _cp_config = {&quot;response.stream&quot;: True, &quot;response.timeout&quot;: 3000 }
++   
+    def index(self, repo, path, date):
+       try:
+          self.validateUserPath(rdw_helpers.joinPaths(repo, path))
+@@ -41,8 +43,7 @@
+          return self.writeErrorPage(&quot;Invalid date parameter.&quot;)
+ 
+       (directory, filename) = os.path.split(filePath)
+-      file = autoDeleteDir(directory)
+-      filename = &quot;\&quot;&quot;+filename.replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;)+&quot;\&quot;&quot; # quote file to handle files with spaces, while escaping quotes in filename
++      filename = filename.replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;) # Escape quotes in filename
+       return serve_file(filePath, None, disposition=&quot;attachment&quot;, name=filename)
+    index.exposed = True
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000185.html">[Rdiffweb-commits] r228 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000187.html">[Rdiffweb-commits] r230 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/rdiffweb-commits">More information about the Rdiffweb-commits
+mailing list</a><br>
+</body></html>

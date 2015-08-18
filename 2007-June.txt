@@ -1,0 +1,178 @@
+From commits at rdiffweb.org  Sat Jun  9 10:33:35 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Sat, 9 Jun 2007 10:33:35 +0200
+Subject: [Rdiffweb-commits] r92 - trunk/rdiffWeb
+Message-ID: <200706090833.l598XZNQ032638@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-06-09 10:33:28 +0200 (Sat, 09 Jun 2007)
+New Revision: 92
+
+Modified:
+   trunk/rdiffWeb/filter_authentication.py
+Log:
+Fix rss feed when using cherrypy 2.2
+
+
+Modified: trunk/rdiffWeb/filter_authentication.py
+===================================================================
+--- trunk/rdiffWeb/filter_authentication.py	2007-04-20 05:48:31 UTC (rev 91)
++++ trunk/rdiffWeb/filter_authentication.py	2007-06-09 08:33:28 UTC (rev 92)
+@@ -43,6 +43,7 @@
+          cherrypy.response.status = "401 Unauthorized"
+          cherrypy.response.body = "Not Authorized\n" + error
+          cherrypy.response.headerMap["WWW-Authenticate"] = 'Basic realm="cherrypy"'
++         cherrypy.request.execute_main = False
+          return
+ 
+       loginKey = "login"
+
+
+
+From commits at rdiffweb.org  Wed Jun 13 10:40:32 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Wed, 13 Jun 2007 10:40:32 +0200
+Subject: [Rdiffweb-commits] r93 - in trunk/rdiffWeb: . static templates
+Message-ID: <200706130840.l5D8eWOe010695@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-06-13 10:40:27 +0200 (Wed, 13 Jun 2007)
+New Revision: 93
+
+Modified:
+   trunk/rdiffWeb/page_browse.py
+   trunk/rdiffWeb/static/main.css
+   trunk/rdiffWeb/templates/admin_main.html
+   trunk/rdiffWeb/templates/dir_listing.html
+Log:
+* Add prompt when deleting user
+* Show number of previous revisions when browsing repos
+
+
+Modified: trunk/rdiffWeb/page_browse.py
+===================================================================
+--- trunk/rdiffWeb/page_browse.py	2007-06-09 08:33:28 UTC (rev 92)
++++ trunk/rdiffWeb/page_browse.py	2007-06-13 08:40:27 UTC (rev 93)
+@@ -74,7 +74,7 @@
+                changeDates = [ { "changeDateUrl" : self.buildRestoreUrl(repo, joinPaths(path, libEntry.name), x),
+                                  "changeDateStr" : x.getDisplayString() } for x in entryChangeDates]
+ 
+-            showNoRevisionsText = (len(changeDates) == 0) and (not libEntry.isDir)
++            showRevisionsText = (len(changeDates) > 0) or libEntry.isDir
+             entries.append({ "filename" : libEntry.name,
+                            "fileRestoreUrl" : entryLink,
+                            "filetype" : fileType,
+@@ -82,7 +82,9 @@
+                            "date" : libEntry.changeDates[-1].getDisplayString(),
+                            "size" : fileSize,
+                            "hasPrevRevisions" : len(changeDates) > 0,
+-                           "showNoRevisionsText" : showNoRevisionsText,
++                           "numPrevRevisions" : str(len(changeDates)), 
++                           "hasMultipleRevisions" : len(changeDates) > 1,
++                           "showRevisionsText" : showRevisionsText,
+                            "changeDates" : changeDates })
+ 
+       # Start page
+
+Modified: trunk/rdiffWeb/static/main.css
+===================================================================
+--- trunk/rdiffWeb/static/main.css	2007-06-09 08:33:28 UTC (rev 92)
++++ trunk/rdiffWeb/static/main.css	2007-06-13 08:40:27 UTC (rev 93)
+@@ -37,9 +37,16 @@
+ 
+ table td
+ {
+-   padding-right: 2em
++   padding-right: 2em;
+ }
+ 
++td.PopupLinkCell,
++td.PopupLinkCell td
++{
++   padding-right: 0em;
++   text-align: right;
++}
++
+ /* disable padding on icons and flyouts */
+ td.Icon,
+ td.FlyoutContainer,
+
+Modified: trunk/rdiffWeb/templates/admin_main.html
+===================================================================
+--- trunk/rdiffWeb/templates/admin_main.html	2007-06-09 08:33:28 UTC (rev 92)
++++ trunk/rdiffWeb/templates/admin_main.html	2007-06-13 08:40:27 UTC (rev 93)
+@@ -8,7 +8,7 @@
+    <tr>
+       <td>^username$</td>
+       <td><a href="/admin/editUser?user=^username$">Edit User</a></td>
+-      <td><a href="/admin/deleteUser?user=^username$">Delete User</a></td>
++      <td><a href="/admin/deleteUser?user=^username$" onClick="if(!confirm('Are you sure that you wish to delete user ^username$?')) return(false) ">Delete User</a></td>
+       <td><a href="/admin/changePassword?user=^username$">Change Password</a></td>
+       <td><a href="/admin/updateRepos?user=^username$">Find and update repositories</a></td>
+    </tr>
+
+Modified: trunk/rdiffWeb/templates/dir_listing.html
+===================================================================
+--- trunk/rdiffWeb/templates/dir_listing.html	2007-06-09 08:33:28 UTC (rev 92)
++++ trunk/rdiffWeb/templates/dir_listing.html	2007-06-13 08:40:27 UTC (rev 93)
+@@ -42,8 +42,8 @@
+ 
+       <!--StartIncludeIf:hasPrevRevisions-->
+    <!-- ENTRIES WITH REVISIONS -->
+-      <td>
+-         <a class="PopupLink" href="javascript:void 0">Previous Revisions</a>
++      <td class="PopupLinkCell">
++         <a class="PopupLink" href="javascript:void 0">^numPrevRevisions$ Previous Revision<!--StartIncludeIf:hasMultipleRevisions-->s<!--EndIncludeIf:hasMultipleRevisions--></a>
+       </td>
+       <td class="FlyoutContainer">
+          <div>
+@@ -55,12 +55,12 @@
+          </div>
+       </td>
+       <!--EndIncludeIf:hasPrevRevisions-->
+-      <!--StartIncludeIf:showNoRevisionsText-->
++      <!--StartDeleteIf:showRevisionsText-->
+    <!-- ENTRIES WITH NO REVISIONS -->
+       <td class="FlyoutContainer">
+          No Previous Revisions
+       </td>
+-      <!--EndIncludeIf:showNoRevisionsText-->
++      <!--EndDeleteIf:showRevisionsText-->
+       </tr>
+    <!--EndRepeat:files-->
+ </tbody>
+
+
+
+From commits at rdiffweb.org  Fri Jun 15 12:42:56 2007
+From: commits at rdiffweb.org (commits at rdiffweb.org)
+Date: Fri, 15 Jun 2007 12:42:56 +0200
+Subject: [Rdiffweb-commits] r94 - trunk/rdiffWeb
+Message-ID: <200706151042.l5FAguix014336@sheep.berlios.de>
+
+Author: joshn
+Date: 2007-06-15 12:42:50 +0200 (Fri, 15 Jun 2007)
+New Revision: 94
+
+Modified:
+   trunk/rdiffWeb/rdw_templating.py
+Log:
+Make the templating engine looser about parameter types
+
+
+Modified: trunk/rdiffWeb/rdw_templating.py
+===================================================================
+--- trunk/rdiffWeb/rdw_templating.py	2007-06-13 08:40:27 UTC (rev 93)
++++ trunk/rdiffWeb/rdw_templating.py	2007-06-15 10:42:50 UTC (rev 94)
+@@ -66,7 +66,7 @@
+          matchText = matchText[len(multilineKeyword):]
+       if not matchText in replacements.keys():
+          raise templateDataError(matchText)
+-      replacementText = rdw_helpers.encodeText(replacements[matchText])
++      replacementText = rdw_helpers.encodeText(str(replacements[matchText]))
+       if isMultiline:
+          replacementText = replacementText.replace("\n", "\n<br/>")
+       return replacementText
+
+
+
